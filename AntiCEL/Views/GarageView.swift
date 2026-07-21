@@ -3,6 +3,7 @@ import SwiftData
 
 struct GarageView: View {
     
+    @Environment(\.modelContext) private var modelContext
     @Query private var vehicles: [Vehicle]
     //used to detect if we are showing the modal for creating a new vehicle.
     @State private var showingAddVehicle = false
@@ -28,17 +29,30 @@ struct GarageView: View {
 
                     ForEach(vehicles) { vehicle in
 
-                        VStack(alignment: .leading) {
+                        NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
 
-                            Text("\(vehicle.year) \(vehicle.make) \(vehicle.model)")
-                                .font(.headline)
+                            VStack(alignment: .leading, spacing: 4) {
 
-                            Text("\(vehicle.currentMileage) km")
-                                .foregroundStyle(.secondary)
+                                Text("\(vehicle.year) \(vehicle.make) \(vehicle.model)")
+                                    .font(.headline)
+
+                                if !vehicle.nickname.isEmpty {
+                                    Text(vehicle.nickname)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Text("\(vehicle.currentMileage.formatted()) km")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+
+                            }
+                            .padding(.vertical, 4)
 
                         }
 
                     }
+                    .onDelete(perform: deleteVehicles)
 
                 }
 
@@ -62,6 +76,13 @@ struct GarageView: View {
             .sheet(isPresented: $showingAddVehicle) {
                 AddVehicleView()
             }
+        }
+    }
+    
+    //function to delete a vehicle on the main page.
+    private func deleteVehicles(at offsets: IndexSet) {
+        for index in offsets{
+            modelContext.delete(vehicles[index])
         }
     }
 }
