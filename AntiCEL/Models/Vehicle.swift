@@ -15,13 +15,19 @@ final class Vehicle {
     var model: String
     var year: Int
     var nickname: String
+    var vin: String
     var currentMileage: Int
+    
+    //this is for the service reminders (A vehicle can have many ServiceReminder)
+    @Relationship(deleteRule: .cascade, inverse: \ServiceReminder.vehicle) //when the vehicle is deleted, so are all of these.
+    var serviceReminders: [ServiceReminder] = []
 
     init(
         make: String,
         model: String,
         year: Int,
         nickname: String = "",
+        vin: String = "",
         currentMileage: Int
     ) {
         self.id = UUID()
@@ -32,6 +38,7 @@ final class Vehicle {
         self.model = model
         self.year = year
         self.nickname = nickname
+        self.vin = vin
         self.currentMileage = currentMileage
     }
 }

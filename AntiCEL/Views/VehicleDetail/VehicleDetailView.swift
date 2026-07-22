@@ -23,20 +23,21 @@ struct VehicleDetailView: View {
             .pickerStyle(.segmented)
             .padding(.horizontal)
 
-            //for the dynamic text
+            //for the dynamic cards on selection
+            //This will call on the individual views for the corresponding section that is picked
             switch selectedSection {
 
             case .overview:
-                Text("Overview")
+                VehicleOverviewView(vehicle: vehicle)
 
             case .history:
-                Text("History")
+                VehicleHistoryView(vehicle: vehicle)
 
             case .documents:
-                Text("Documents")
+                VehicleDocumentsView(vehicle: vehicle)
 
             case .settings:
-                Text("Settings")
+                VehicleSettingsView(vehicle: vehicle)
 
             }
 

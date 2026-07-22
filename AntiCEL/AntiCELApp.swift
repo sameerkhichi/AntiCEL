@@ -1,18 +1,13 @@
-//
-//  AntiCELApp.swift
-//  AntiCEL
-//
-//  Created by Amaan Warsi on 2026-07-05.
-//
-
 import SwiftUI
 import SwiftData
 
 @main
 struct AntiCELApp: App {
     var sharedModelContainer: ModelContainer = {
+        //this is where you register different models that you create.
         let schema = Schema([
             Vehicle.self,
+            ServiceReminder.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
