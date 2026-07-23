@@ -4,27 +4,26 @@ struct ServiceReminderCard: View {
 
     let vehicle: Vehicle
 
+    @State private var showingAddReminder = false
+
     var body: some View {
 
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
 
             HStack {
 
                 Text("Service Reminders")
-                    .font(.headline)
+                    .font(.title3)
+                    .fontWeight(.semibold)
 
                 Spacer()
 
                 Button {
-
-                    //TODO: Make a sheet to add a reminder
-
+                    showingAddReminder = true
                 } label: {
-
                     Image(systemName: "plus")
-
+                        .font(.title3)
                 }
-
             }
 
             Divider()
@@ -36,55 +35,83 @@ struct ServiceReminderCard: View {
 
             } else {
 
-                ForEach(vehicle.serviceReminders) { reminder in
+                ForEach(Array(vehicle.serviceReminders.enumerated()), id: \.element) { index, reminder in
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 0) {
 
-                        Text(reminder.name)
-                            .fontWeight(.semibold)
+                        NavigationLink(destination: ServiceReminderDetailView(reminder: reminder)) {
 
-                        switch reminder.type {
+                            VStack(alignment: .leading, spacing: 6) {
 
-                        case .date:
+                                Text(reminder.name)
+                                    .fontWeight(.semibold)
 
-                            if let dueDate = reminder.dueDate {
+                                switch reminder.type {
 
-                                Text("Due: \(dueDate.formatted(date: .abbreviated, time: .omitted))")
-                                    .font(.caption)
+                                case .date:
 
-                            }
+                                    if let dueDate = reminder.dueDate {
 
-                        case .mileage:
+                                        Text("Due: \(dueDate.formatted(date: .abbreviated, time: .omitted))")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
 
-                            if let mileage = reminder.dueMileage {
+                                    }
 
-                                Text("Due at \(mileage.formatted()) km")
-                                    .font(.caption)
+                                case .mileage:
 
-                            }
+                                    if let mileage = reminder.dueMileage {
 
-                        case .whicheverComesFirst:
+                                        Text("Due at \(mileage.formatted()) km")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
 
-                            VStack(alignment: .leading) {
+                                    }
 
-                                if let dueDate = reminder.dueDate {
+                                case .whicheverComesFirst:
 
-                                    Text("Date: \(dueDate.formatted(date: .abbreviated, time: .omitted))")
-                                        .font(.caption)
+                                    if let dueDate = reminder.dueDate {
+
+                                        Text("Date: \(dueDate.formatted(date: .abbreviated, time: .omitted))")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+
+                                    }
+
+                                    if let mileage = reminder.dueMileage {
+
+                                        Text("Mileage: \(mileage.formatted()) km")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+
+                                    }
 
                                 }
 
-                                if let mileage = reminder.dueMileage {
-
-                                    Text("Mileage: \(mileage.formatted()) km")
-                                        .font(.caption)
-                                }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+
                         }
+                        .buttonStyle(.plain)
+
+                        if index < vehicle.serviceReminders.count - 1 {
+                            Divider()
+                        }
+
                     }
-                    Divider()
+
                 }
             }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal)
+        .sheet(isPresented: $showingAddReminder) {
+
+            AddServiceReminderView(vehicle: vehicle)
         }
     }
 }

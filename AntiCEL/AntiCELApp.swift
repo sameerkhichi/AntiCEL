@@ -7,7 +7,8 @@ struct AntiCELApp: App {
         //this is where you register different models that you create.
         let schema = Schema([
             Vehicle.self,
-            ServiceReminder.self
+            ServiceReminder.self,
+            VehicleNote.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

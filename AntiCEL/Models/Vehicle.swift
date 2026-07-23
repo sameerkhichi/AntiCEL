@@ -21,6 +21,10 @@ final class Vehicle {
     //this is for the service reminders (A vehicle can have many ServiceReminder)
     @Relationship(deleteRule: .cascade, inverse: \ServiceReminder.vehicle) //when the vehicle is deleted, so are all of these.
     var serviceReminders: [ServiceReminder] = []
+    
+    //relationship for the notes related to the vehicle.
+    @Relationship(deleteRule: .cascade, inverse: \VehicleNote.vehicle)
+    var notes: [VehicleNote] = []
 
     init(
         make: String,
