@@ -25,6 +25,9 @@ final class Vehicle {
     //relationship for the notes related to the vehicle.
     @Relationship(deleteRule: .cascade, inverse: \VehicleNote.vehicle)
     var notes: [VehicleNote] = []
+    
+    @Relationship(deleteRule: .cascade, inverse: \HistoryEntry.vehicle)
+    var historyEntries: [HistoryEntry] = []
 
     init(
         make: String,
