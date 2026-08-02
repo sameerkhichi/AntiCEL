@@ -8,6 +8,13 @@ struct HistoryEntryDetailView: View {
 
     @Bindable var vehicle: Vehicle
 
+    //optional properties for when a service reminder is converted into a history event.
+    var initialTitle: String?
+    var initialCategory: HistoryCategory?
+    var initialDate: Date?
+    var initialMileage: Int?
+    var completedReminder: ServiceReminder?
+
     var historyEntry: HistoryEntry?
 
     @State private var title = ""
@@ -83,15 +90,27 @@ struct HistoryEntryDetailView: View {
         }
         .onAppear {
 
-            guard let historyEntry else { return }
+            if let historyEntry {
 
-            title = historyEntry.title
-            category = historyEntry.category
-            date = historyEntry.date
-            notes = historyEntry.details
+                title = historyEntry.title
+                category = historyEntry.category
+                date = historyEntry.date
+                notes = historyEntry.details
 
-            if let mileageValue = historyEntry.mileage {
-                mileage = String(mileageValue)
+                if let mileageValue = historyEntry.mileage {
+                    mileage = String(mileageValue)
+                }
+
+            } else {
+
+                title = initialTitle ?? ""
+                category = initialCategory ?? .maintenance
+                date = initialDate ?? Date()
+                notes = ""
+
+                if let initialMileage {
+                    mileage = String(initialMileage)
+                }
             }
         }
     }
@@ -119,9 +138,11 @@ struct HistoryEntryDetailView: View {
 
             modelContext.insert(newEntry)
             vehicle.historyEntries.append(newEntry)
-
+            
+            if let completedReminder {
+                modelContext.delete(completedReminder)
+            }
         }
-
         dismiss()
 
     }

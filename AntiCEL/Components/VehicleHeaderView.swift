@@ -16,7 +16,10 @@ struct VehicleHeaderView: View {
                 .background(.blue)
                 .clipShape(Circle())
 
-            Text("\(vehicle.year) \(vehicle.make) \(vehicle.model)")
+            Text(String(vehicle.year))
+                .font(.headline)
+
+            Text("\(vehicle.make) \(vehicle.model)")
                 .font(.title2)
                 .fontWeight(.bold)
 

@@ -33,8 +33,9 @@ struct GarageView: View {
 
                             VStack(alignment: .leading, spacing: 4) {
 
-                                Text("\(vehicle.year) \(vehicle.make) \(vehicle.model)")
+                                Text(String(vehicle.year))
                                     .font(.headline)
+                                Text("\(vehicle.make) \(vehicle.model)")
 
                                 if !vehicle.nickname.isEmpty {
                                     Text(vehicle.nickname)

@@ -1,9 +1,16 @@
-//When a user taps on a reminder, it will show them the details of it, then it will prompt them either to delete it, update their mileage that is currently on their car, or complete the reminder which will auto transfer it to the history page for the vehicle.
 import SwiftUI
+import SwiftData
 
 struct ServiceReminderDetailView: View {
 
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var showDeleteAlert = false
+
     let reminder: ServiceReminder
+
+    @State private var showCompletionSheet = false
 
     var body: some View {
 
@@ -22,16 +29,19 @@ struct ServiceReminderDetailView: View {
                     value: reminder.type.rawValue
                 )
 
+
                 switch reminder.type {
 
                 case .date:
 
                     infoRow(
                         title: "Due Date",
-                        value: reminder.dueDate?.formatted(date: .abbreviated,
-                                                           time: .omitted)
-                        ?? "Not Set"
+                        value: reminder.dueDate?.formatted(
+                            date: .abbreviated,
+                            time: .omitted
+                        ) ?? "Not Set"
                     )
+
 
                 case .mileage:
 
@@ -40,13 +50,15 @@ struct ServiceReminderDetailView: View {
                         value: reminder.dueMileage?.formatted() ?? "Not Set"
                     )
 
+
                 case .whicheverComesFirst:
 
                     infoRow(
                         title: "Due Date",
-                        value: reminder.dueDate?.formatted(date: .abbreviated,
-                                                           time: .omitted)
-                        ?? "Not Set"
+                        value: reminder.dueDate?.formatted(
+                            date: .abbreviated,
+                            time: .omitted
+                        ) ?? "Not Set"
                     )
 
                     infoRow(
@@ -56,10 +68,13 @@ struct ServiceReminderDetailView: View {
 
                 }
 
+
                 Divider()
+
 
                 Text("Notes")
                     .font(.headline)
+
 
                 Text(
                     reminder.notes.isEmpty
@@ -70,31 +85,25 @@ struct ServiceReminderDetailView: View {
             }
             .padding()
 
+
             Spacer()
+
 
             VStack(spacing: 12) {
 
-                Button("Update Mileage") {
-
-                    // TODO
-
-                }
-                .buttonStyle(.borderedProminent)
-
+                //Opens the completion sheet before converting reminder into history.
                 Button("Complete Service") {
-
-                    // TODO
-
+                    showCompletionSheet = true
                 }
                 .buttonStyle(.borderedProminent)
 
-                Button("Delete Reminder") {
-
-                    // TODO
-
+                // Deletes the reminder.
+                Button(role: .destructive) {
+                    showDeleteAlert = true
+                } label: {
+                    Text("Delete Reminder")
                 }
-                .foregroundStyle(.red)
-
+                .buttonStyle(.borderedProminent)
             }
             .padding()
 
@@ -102,8 +111,71 @@ struct ServiceReminderDetailView: View {
         .navigationTitle("Reminder")
         .navigationBarTitleDisplayMode(.inline)
 
+        //Completion Sheet
+        .sheet(isPresented: $showCompletionSheet) {
+
+            CompleteServiceSheet(reminder: reminder) { date, mileage in
+
+                completeService(
+                    completionDate: date,
+                    completionMileage: mileage
+                )
+            }
+        }
+
+        //Delete Confirmation
+        .alert(
+            "Delete Reminder?",
+            isPresented: $showDeleteAlert
+        ) {
+
+            Button("Delete", role: .destructive) {
+
+                modelContext.delete(reminder)
+                dismiss()
+
+            }
+            Button("Cancel", role: .cancel) {
+            }
+
+        } message: {
+
+            Text("This reminder will be permanently deleted.")
+        }
     }
 
+    private func completeService(
+        completionDate: Date,
+        completionMileage: Int?
+    ) {
+
+        guard let vehicle = reminder.vehicle else {
+            return
+        }
+
+
+        let newEntry = HistoryEntry(
+            title: reminder.name,
+            details: reminder.notes,
+            date: completionDate,
+            mileage: completionMileage,
+            category: .maintenance,
+            vehicle: vehicle
+        )
+
+
+        modelContext.insert(newEntry)
+
+        vehicle.historyEntries.append(newEntry)
+
+
+        modelContext.delete(reminder)
+
+
+        dismiss()
+
+    }
+    
     @ViewBuilder
     private func infoRow(title: String, value: String) -> some View {
 
@@ -115,12 +187,10 @@ struct ServiceReminderDetailView: View {
 
             Text(value)
                 .foregroundStyle(.secondary)
-
         }
-
     }
-
 }
+
 
 #Preview {
 
