@@ -29,6 +29,10 @@ final class Vehicle {
     @Relationship(deleteRule: .cascade, inverse: \HistoryEntry.vehicle)
     var historyEntries: [HistoryEntry] = []
 
+    //relationship for documents related to the vehicle.
+    @Relationship(deleteRule: .cascade, inverse: \VehicleDocument.vehicle)
+    var documents: [VehicleDocument] = []
+
     init(
         make: String,
         model: String,

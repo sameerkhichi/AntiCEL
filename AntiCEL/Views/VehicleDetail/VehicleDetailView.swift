@@ -39,7 +39,7 @@ struct VehicleDetailView: View {
             case .settings:
                 VehicleSettingsView(vehicle: vehicle)
 
-            }
+        }
 
         }
         .navigationTitle(vehicle.make)

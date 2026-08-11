@@ -8,7 +8,9 @@ struct AntiCELApp: App {
         let schema = Schema([
             Vehicle.self,
             ServiceReminder.self,
-            VehicleNote.self
+            VehicleNote.self,
+            HistoryEntry.self,
+            VehicleDocument.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
