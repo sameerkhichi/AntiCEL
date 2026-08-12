@@ -12,26 +12,24 @@ struct VehicleModel3DView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
-        let background = UIColor.systemBackground
-        view.scene = GenericSedanSceneBuilder.makeScene(backgroundColor: background)
+        view.scene = GenericSedanSceneBuilder.makeScene()
         view.autoenablesDefaultLighting = false
         view.allowsCameraControl = true
         view.defaultCameraController.interactionMode = .orbitTurntable
         view.defaultCameraController.minimumVerticalAngle = -10
         view.defaultCameraController.maximumVerticalAngle = 70
-        view.backgroundColor = background
+        //clear so the page background shows through — fully flush
+        view.backgroundColor = .clear
+        view.isOpaque = false
         view.antialiasingMode = .multisampling4X
         view.isPlaying = true
-        //no border / chrome — sits flush with the page
-        view.layer.cornerRadius = 0
-        view.clipsToBounds = true
 
         let camera = SCNNode()
         camera.camera = SCNCamera()
-        camera.camera?.fieldOfView = 42
+        camera.camera?.fieldOfView = 40
         camera.camera?.wantsHDR = true
-        camera.position = SCNVector3(3.4, 1.9, 4.0)
-        camera.look(at: SCNVector3(0, 0.45, 0))
+        camera.position = SCNVector3(3.5, 1.75, 4.1)
+        camera.look(at: SCNVector3(0, 0.5, 0))
         view.pointOfView = camera
         view.scene?.rootNode.addChildNode(camera)
 
@@ -56,11 +54,9 @@ struct VehicleModel3DView: UIViewRepresentable {
 
     func updateUIView(_ uiView: SCNView, context: Context) {
         context.coordinator.onSelect = onSelect
-
-        //keep scene background matched to light/dark mode
-        let background = UIColor.systemBackground
-        uiView.backgroundColor = background
-        uiView.scene?.background.contents = background
+        uiView.backgroundColor = .clear
+        uiView.isOpaque = false
+        uiView.scene?.background.contents = UIColor.clear
 
         guard context.coordinator.lastSelectedArea != selectedArea else {
             return
