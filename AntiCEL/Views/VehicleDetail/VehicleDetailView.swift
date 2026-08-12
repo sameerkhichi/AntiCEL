@@ -7,45 +7,51 @@ struct VehicleDetailView: View {
     
     let vehicle: Vehicle
 
+    private var navigationTitleText: String {
+        if !vehicle.nickname.isEmpty {
+            return vehicle.nickname
+        }
+        return "\(vehicle.make) \(vehicle.model)"
+    }
+
     var body: some View {
 
-        ScrollView {
+        VStack(spacing: 0) {
 
-            VStack(spacing: 0) {
-
-                VehicleHeaderView(vehicle: vehicle)
-
-                //this is a picker so the user can select different tabs on the vehicle details page.
-                Picker("", selection: $selectedSection) {
-                    ForEach(VehicleDetailSection.allCases, id: \.self) {
-                        Text($0.rawValue)
-                            .tag($0)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.bottom, 8)
+            Group {
 
                 switch selectedSection {
 
                 case .overview:
-                    VehicleOverviewView(vehicle: vehicle)
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            VehicleHeaderView(vehicle: vehicle)
+                            VehicleOverviewView(vehicle: vehicle)
+                        }
+                    }
 
                 case .history:
                     VehicleHistoryView(vehicle: vehicle)
 
                 case .documents:
-                    VehicleDocumentsView(vehicle: vehicle)
+                    ScrollView {
+                        VehicleDocumentsView(vehicle: vehicle)
+                    }
 
                 case .settings:
-                    VehicleSettingsView(vehicle: vehicle)
+                    ScrollView {
+                        VehicleSettingsView(vehicle: vehicle)
+                    }
 
                 }
 
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            VehicleSectionTabBar(selection: $selectedSection)
 
         }
-        .navigationTitle(vehicle.make)
+        .navigationTitle(navigationTitleText)
         .navigationBarTitleDisplayMode(.inline)
 
     }
@@ -53,13 +59,15 @@ struct VehicleDetailView: View {
 
 //test preview.
 #Preview {
-    VehicleDetailView(
-        vehicle: Vehicle(
-            make: "Audi",
-            model: "S4",
-            year: 2022,
-            nickname: "Batmobile",
-            currentMileage: 79500
+    NavigationStack {
+        VehicleDetailView(
+            vehicle: Vehicle(
+                make: "Audi",
+                model: "S4",
+                year: 2022,
+                nickname: "Batmobile",
+                currentMileage: 79500
+            )
         )
-    )
+    }
 }

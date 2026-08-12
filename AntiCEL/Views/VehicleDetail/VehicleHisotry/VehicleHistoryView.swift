@@ -5,50 +5,48 @@ struct VehicleHistoryView: View {
 
     @Bindable var vehicle: Vehicle
 
-    @State private var displayMode: HistoryDisplayMode = .list
+    @State private var displayMode: HistoryDisplayMode = .model
     @State private var showingNewEntry = false
 
     var body: some View {
 
-        VStack(spacing: 0) {
+        Group {
 
-            Picker("View", selection: $displayMode) {
-                ForEach(HistoryDisplayMode.allCases) { mode in
-                    Text(mode.rawValue)
-                        .tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal)
+            switch displayMode {
 
-            Group {
+            case .model:
+                HistoryModelView(vehicle: vehicle)
 
-                switch displayMode {
-
-                case .list:
+            case .list:
+                ScrollView {
                     HistoryListView(vehicle: vehicle)
-
-                case .model:
-                    HistoryModelView(vehicle: vehicle)
-
                 }
 
             }
 
         }
-        .navigationTitle("History")
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .toolbar {
 
             ToolbarItem(placement: .topBarTrailing) {
 
                 Button {
-
-                    showingNewEntry = true
-
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        displayMode.toggle()
+                    }
                 } label: {
+                    Image(systemName: displayMode.toggleIconName)
+                }
+                .accessibilityLabel(displayMode.toggleTitle)
 
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+
+                Button {
+                    showingNewEntry = true
+                } label: {
                     Image(systemName: "plus")
-
                 }
 
             }
