@@ -46,6 +46,10 @@ struct ServiceReminderCard: View {
                                 Text(reminder.name)
                                     .fontWeight(.semibold)
 
+                                Text(reminder.vehicleArea.displayName)
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+
                                 switch reminder.type {
 
                                 case .date:

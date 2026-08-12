@@ -1,6 +1,6 @@
 enum HistoryDisplayMode: String, CaseIterable, Identifiable {
     case list = "List"
-    case timeline = "Timeline"
+    case model = "Model"
 
     var id: Self { self }
 }

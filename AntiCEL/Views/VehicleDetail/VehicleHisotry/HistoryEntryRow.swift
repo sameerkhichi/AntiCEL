@@ -49,6 +49,10 @@ struct HistoryEntryRow: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
+                Text(entry.vehicleArea.displayName)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+
                 if let mileage = entry.mileage {
                     Text("\(mileage.formatted()) km")
                         .font(.subheadline)

@@ -11,6 +11,7 @@ struct HistoryEntryDetailView: View {
     //optional properties for when a service reminder is converted into a history event.
     var initialTitle: String?
     var initialCategory: HistoryCategory?
+    var initialVehicleArea: VehicleArea?
     var initialDate: Date?
     var initialMileage: Int?
     var completedReminder: ServiceReminder?
@@ -19,6 +20,7 @@ struct HistoryEntryDetailView: View {
 
     @State private var title = ""
     @State private var category: HistoryCategory = .maintenance
+    @State private var vehicleArea: VehicleArea = .misc
     @State private var date = Date()
     @State private var mileage = ""
     @State private var notes = ""
@@ -40,6 +42,14 @@ struct HistoryEntryDetailView: View {
                     ForEach(HistoryCategory.allCases, id: \.self) { category in
                         Text(category.rawValue.capitalized)
                             .tag(category)
+                    }
+                }
+
+                Picker("Related To", selection: $vehicleArea) {
+
+                    ForEach(VehicleArea.allCases) { area in
+                        Text(area.displayName)
+                            .tag(area)
                     }
                 }
 
@@ -94,6 +104,7 @@ struct HistoryEntryDetailView: View {
 
                 title = historyEntry.title
                 category = historyEntry.category
+                vehicleArea = historyEntry.vehicleArea
                 date = historyEntry.date
                 notes = historyEntry.details
 
@@ -105,6 +116,7 @@ struct HistoryEntryDetailView: View {
 
                 title = initialTitle ?? ""
                 category = initialCategory ?? .maintenance
+                vehicleArea = initialVehicleArea ?? .misc
                 date = initialDate ?? Date()
                 notes = ""
 
@@ -121,6 +133,7 @@ struct HistoryEntryDetailView: View {
 
             historyEntry.title = title
             historyEntry.category = category
+            historyEntry.vehicleArea = vehicleArea
             historyEntry.date = date
             historyEntry.details = notes
             historyEntry.mileage = Int(mileage)
@@ -133,6 +146,7 @@ struct HistoryEntryDetailView: View {
                 date: date,
                 mileage: Int(mileage),
                 category: category,
+                vehicleArea: vehicleArea,
                 vehicle: vehicle
             )
 

@@ -29,6 +29,11 @@ struct ServiceReminderDetailView: View {
                     value: reminder.type.rawValue
                 )
 
+                infoRow(
+                    title: "Related To",
+                    value: reminder.vehicleArea.displayName
+                )
+
 
                 switch reminder.type {
 
@@ -160,6 +165,7 @@ struct ServiceReminderDetailView: View {
             date: completionDate,
             mileage: completionMileage,
             category: .maintenance,
+            vehicleArea: reminder.vehicleArea,
             vehicle: vehicle
         )
 

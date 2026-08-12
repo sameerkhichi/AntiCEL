@@ -10,6 +10,7 @@ final class HistoryEntry {
     var date: Date
     var mileage: Int?
     var category: HistoryCategory
+    var vehicleArea: VehicleArea = .misc
     var vehicle: Vehicle?
 
     init(
@@ -18,6 +19,7 @@ final class HistoryEntry {
         date: Date,
         mileage: Int? = nil,
         category: HistoryCategory,
+        vehicleArea: VehicleArea = .misc,
         vehicle: Vehicle? = nil
     ) {
         self.id = UUID()
@@ -26,6 +28,7 @@ final class HistoryEntry {
         self.date = date
         self.mileage = mileage
         self.category = category
+        self.vehicleArea = vehicleArea
         self.vehicle = vehicle
     }
 }

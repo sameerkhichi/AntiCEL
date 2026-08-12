@@ -28,8 +28,8 @@ struct VehicleHistoryView: View {
                 case .list:
                     HistoryListView(vehicle: vehicle)
 
-                case .timeline:
-                    HistoryTimelineView(vehicle: vehicle)
+                case .model:
+                    HistoryModelView(vehicle: vehicle)
 
                 }
 

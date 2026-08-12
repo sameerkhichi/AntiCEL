@@ -12,6 +12,7 @@ struct AddServiceReminderView: View {
 
     @State private var name = ""
     @State private var reminderType: ReminderType = .date
+    @State private var vehicleArea: VehicleArea = .misc
 
     @State private var dueDate = Date()
     @State private var dueMileage = ""
@@ -35,6 +36,15 @@ struct AddServiceReminderView: View {
                             Text($0.rawValue)
                                 .tag($0)
 
+                        }
+
+                    }
+
+                    Picker("Related To", selection: $vehicleArea) {
+
+                        ForEach(VehicleArea.allCases) { area in
+                            Text(area.displayName)
+                                .tag(area)
                         }
 
                     }
@@ -128,7 +138,8 @@ struct AddServiceReminderView: View {
             type: reminderType,
             dueDate: reminderType == .mileage ? nil : dueDate,
             dueMileage: reminderType == .date ? nil : mileage,
-            notes: notes
+            notes: notes,
+            vehicleArea: vehicleArea
         )
 
         reminder.vehicle = vehicle //appends this reminder to the array holding the in the model. This holds the relationship together.
