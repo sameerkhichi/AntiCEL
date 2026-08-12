@@ -31,7 +31,7 @@ struct ServiceReminderDetailView: View {
 
                 infoRow(
                     title: "Related To",
-                    value: reminder.vehicleArea.displayName
+                    value: reminder.resolvedVehicleArea.displayName
                 )
 
 
@@ -165,7 +165,7 @@ struct ServiceReminderDetailView: View {
             date: completionDate,
             mileage: completionMileage,
             category: .maintenance,
-            vehicleArea: reminder.vehicleArea,
+            vehicleArea: reminder.resolvedVehicleArea,
             vehicle: vehicle
         )
 

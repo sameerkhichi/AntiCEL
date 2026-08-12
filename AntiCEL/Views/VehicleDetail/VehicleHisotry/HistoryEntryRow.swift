@@ -49,7 +49,7 @@ struct HistoryEntryRow: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                Text(entry.vehicleArea.displayName)
+                Text(entry.resolvedVehicleArea.displayName)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
 

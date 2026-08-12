@@ -10,8 +10,13 @@ final class HistoryEntry {
     var date: Date
     var mileage: Int?
     var category: HistoryCategory
-    var vehicleArea: VehicleArea = VehicleArea.misc
+    //optional so older store rows (created before this field existed) do not crash on read
+    var vehicleArea: VehicleArea?
     var vehicle: Vehicle?
+
+    var resolvedVehicleArea: VehicleArea {
+        vehicleArea ?? .misc
+    }
 
     init(
         title: String,

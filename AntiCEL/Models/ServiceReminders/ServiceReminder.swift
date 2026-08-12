@@ -16,11 +16,14 @@ final class ServiceReminder {
 
     var isCompleted: Bool //for when we can turn it into a history event later.
 
-    var vehicleArea: VehicleArea = VehicleArea.misc
+    //optional so older store rows (created before this field existed) do not crash on read
+    var vehicleArea: VehicleArea?
 
     var vehicle: Vehicle? //every ServiceReminder has atleast one vehicle (many to one relationship in this case service reminder either has zero or one vehicle)
-    
-    
+
+    var resolvedVehicleArea: VehicleArea {
+        vehicleArea ?? .misc
+    }
 
     init(
         name: String,

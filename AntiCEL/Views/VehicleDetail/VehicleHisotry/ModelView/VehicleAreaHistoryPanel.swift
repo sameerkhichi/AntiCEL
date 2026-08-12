@@ -7,7 +7,7 @@ struct VehicleAreaHistoryPanel: View {
 
     private var entries: [HistoryEntry] {
         vehicle.historyEntries
-            .filter { $0.vehicleArea == area }
+            .filter { $0.resolvedVehicleArea == area }
             .sorted { $0.date > $1.date }
     }
 

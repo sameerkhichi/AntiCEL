@@ -130,9 +130,9 @@ struct HistoryModelView: View {
 
             ForEach(VehicleArea.allCases) { area in
 
-                let count = vehicle.historyEntries.filter { $0.vehicleArea == area }.count
+                let count = vehicle.historyEntries.filter { $0.resolvedVehicleArea == area }.count
                 let latest = vehicle.historyEntries
-                    .filter { $0.vehicleArea == area }
+                    .filter { $0.resolvedVehicleArea == area }
                     .sorted { $0.date > $1.date }
                     .first
 

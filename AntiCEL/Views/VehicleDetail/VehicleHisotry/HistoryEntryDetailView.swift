@@ -104,7 +104,7 @@ struct HistoryEntryDetailView: View {
 
                 title = historyEntry.title
                 category = historyEntry.category
-                vehicleArea = historyEntry.vehicleArea
+                vehicleArea = historyEntry.resolvedVehicleArea
                 date = historyEntry.date
                 notes = historyEntry.details
 

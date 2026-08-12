@@ -46,7 +46,7 @@ struct ServiceReminderCard: View {
                                 Text(reminder.name)
                                     .fontWeight(.semibold)
 
-                                Text(reminder.vehicleArea.displayName)
+                                Text(reminder.resolvedVehicleArea.displayName)
                                     .font(.caption2)
                                     .foregroundStyle(.tertiary)
 
