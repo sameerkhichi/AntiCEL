@@ -10,41 +10,6 @@ struct HistoryModelView: View {
 
         VStack(spacing: 12) {
 
-            HStack {
-
-                VStack(alignment: .leading, spacing: 4) {
-
-                    Text(selectedArea?.shortLabel ?? "Vehicle Model")
-                        .font(.headline)
-
-                    Text(
-                        selectedArea == nil
-                            ? "Drag to rotate · Tap a part for history"
-                            : "Tap again or another part to switch"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                }
-
-                Spacer()
-
-                if selectedArea != nil {
-
-                    Button("Reset") {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                            selectedArea = nil
-                        }
-                    }
-                    .font(.caption.weight(.semibold))
-
-                }
-
-            }
-            .padding(.horizontal)
-            .padding(.top, 8)
-
-            //fixed viewport so orbit gestures are not stolen by scrolling
             VehicleModel3DView(selectedArea: selectedArea) { area in
 
                 withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
@@ -58,9 +23,8 @@ struct HistoryModelView: View {
                 }
 
             }
-            .frame(height: 300)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .padding(.horizontal)
+            .frame(height: 320)
+            .padding(.top, 4)
 
             ScrollView(.horizontal, showsIndicators: false) {
 

@@ -12,22 +12,26 @@ struct VehicleModel3DView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
-        view.scene = GenericSedanSceneBuilder.makeScene()
+        let background = UIColor.systemBackground
+        view.scene = GenericSedanSceneBuilder.makeScene(backgroundColor: background)
         view.autoenablesDefaultLighting = false
         view.allowsCameraControl = true
         view.defaultCameraController.interactionMode = .orbitTurntable
-        view.defaultCameraController.minimumVerticalAngle = -15
-        view.defaultCameraController.maximumVerticalAngle = 75
-        view.backgroundColor = .secondarySystemBackground
+        view.defaultCameraController.minimumVerticalAngle = -10
+        view.defaultCameraController.maximumVerticalAngle = 70
+        view.backgroundColor = background
         view.antialiasingMode = .multisampling4X
         view.isPlaying = true
+        //no border / chrome — sits flush with the page
+        view.layer.cornerRadius = 0
+        view.clipsToBounds = true
 
-        //starting camera — 3/4 view of a blank sedan
         let camera = SCNNode()
         camera.camera = SCNCamera()
-        camera.camera?.fieldOfView = 45
-        camera.position = SCNVector3(3.6, 2.2, 4.2)
-        camera.look(at: SCNVector3(0, 0.5, 0))
+        camera.camera?.fieldOfView = 42
+        camera.camera?.wantsHDR = true
+        camera.position = SCNVector3(3.4, 1.9, 4.0)
+        camera.look(at: SCNVector3(0, 0.45, 0))
         view.pointOfView = camera
         view.scene?.rootNode.addChildNode(camera)
 
@@ -52,6 +56,11 @@ struct VehicleModel3DView: UIViewRepresentable {
 
     func updateUIView(_ uiView: SCNView, context: Context) {
         context.coordinator.onSelect = onSelect
+
+        //keep scene background matched to light/dark mode
+        let background = UIColor.systemBackground
+        uiView.backgroundColor = background
+        uiView.scene?.background.contents = background
 
         guard context.coordinator.lastSelectedArea != selectedArea else {
             return
@@ -82,30 +91,15 @@ struct VehicleModel3DView: UIViewRepresentable {
 
         sedan.enumerateChildNodes { node, _ in
             guard let name = node.name,
-                  let part = VehicleArea(rawValue: name),
-                  let materials = node.geometry?.materials
+                  VehicleArea(rawValue: name) != nil
             else {
                 return
             }
 
-            let isSelected = area == part
-            let emission: UIColor = {
-                guard isSelected else { return .clear }
-                switch part {
-                case .drivetrain: return UIColor.systemOrange.withAlphaComponent(0.55)
-                case .body: return UIColor.systemBlue.withAlphaComponent(0.4)
-                case .wheels: return UIColor.systemGreen.withAlphaComponent(0.45)
-                case .misc: return UIColor.systemBrown.withAlphaComponent(0.5)
-                }
-            }()
-
-            for material in materials {
-                material.emission.contents = emission
-            }
-
+            let isSelected = area.map { node.name == $0.rawValue } ?? true
             let opacity: CGFloat = {
-                guard let area else { return 1 }
-                return isSelected ? 1 : 0.45
+                guard area != nil else { return 1 }
+                return isSelected ? 1 : 0.38
             }()
 
             if animated {
@@ -135,13 +129,12 @@ struct VehicleModel3DView: UIViewRepresentable {
             trunkPivot?.eulerAngles.x = trunkAngle
         }
 
-        //spin the axis-aligned wheel pivots (not the laid-down tire meshes)
         let wheelPivots = sedan.childNodes.filter { $0.name == VehicleArea.wheels.rawValue }
         for pivot in wheelPivots {
             pivot.removeAction(forKey: "spin")
             if area == .wheels {
                 let spin = SCNAction.repeatForever(
-                    SCNAction.rotateBy(x: CGFloat.pi * 2, y: 0, z: 0, duration: 1.1)
+                    SCNAction.rotateBy(x: CGFloat.pi * 2, y: 0, z: 0, duration: 1.15)
                 )
                 pivot.runAction(spin, forKey: "spin")
             }
