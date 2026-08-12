@@ -110,55 +110,53 @@ struct VehicleModel3DView: UIViewRepresentable {
             return
         }
 
-        sedan.enumerateChildNodes { node, _ in
+        let model = sedan.childNode(
+            withName: GenericSedanSceneBuilder.modelNodeName,
+            recursively: false
+        )
+        let hotspots = sedan.childNode(
+            withName: GenericSedanSceneBuilder.hotspotsNodeName,
+            recursively: false
+        )
+
+        //keep the USDZ model fully visible; tint hotspot overlays for feedback
+        if animated {
+            SCNTransaction.begin()
+            SCNTransaction.animationDuration = 0.25
+        }
+
+        model?.opacity = 1
+
+        hotspots?.enumerateChildNodes { node, _ in
             guard let name = node.name,
-                  VehicleArea(rawValue: name) != nil
+                  let part = VehicleArea(rawValue: name)
             else {
                 return
             }
 
-            let isSelected = area.map { node.name == $0.rawValue } ?? true
-            let opacity: CGFloat = {
-                guard area != nil else { return 1 }
-                return isSelected ? 1 : 0.38
-            }()
-
-            if animated {
-                SCNTransaction.begin()
-                SCNTransaction.animationDuration = 0.28
-                node.opacity = opacity
-                SCNTransaction.commit()
+            if let area {
+                let isSelected = part == area
+                node.geometry?.firstMaterial?.diffuse.contents = isSelected
+                    ? highlightColor(for: part)
+                    : UIColor.clear
+                node.opacity = isSelected ? 0.22 : 0.01
             } else {
-                node.opacity = opacity
+                node.geometry?.firstMaterial?.diffuse.contents = UIColor.clear
+                node.opacity = 0.01
             }
         }
-
-        let hoodPivot = sedan.childNode(withName: "hoodPivot", recursively: false)
-        let trunkPivot = sedan.childNode(withName: "trunkPivot", recursively: false)
-
-        let hoodAngle: Float = area == .drivetrain ? -0.55 : 0
-        let trunkAngle: Float = area == .misc ? 0.7 : 0
 
         if animated {
-            SCNTransaction.begin()
-            SCNTransaction.animationDuration = 0.35
-            hoodPivot?.eulerAngles.x = hoodAngle
-            trunkPivot?.eulerAngles.x = trunkAngle
             SCNTransaction.commit()
-        } else {
-            hoodPivot?.eulerAngles.x = hoodAngle
-            trunkPivot?.eulerAngles.x = trunkAngle
         }
+    }
 
-        let wheelPivots = sedan.childNodes.filter { $0.name == VehicleArea.wheels.rawValue }
-        for pivot in wheelPivots {
-            pivot.removeAction(forKey: "spin")
-            if area == .wheels {
-                let spin = SCNAction.repeatForever(
-                    SCNAction.rotateBy(x: CGFloat.pi * 2, y: 0, z: 0, duration: 1.15)
-                )
-                pivot.runAction(spin, forKey: "spin")
-            }
+    private func highlightColor(for area: VehicleArea) -> UIColor {
+        switch area {
+        case .drivetrain: return UIColor.systemOrange
+        case .body: return UIColor.systemBlue
+        case .wheels: return UIColor.systemGreen
+        case .misc: return UIColor.systemBrown
         }
     }
 
@@ -180,11 +178,11 @@ struct VehicleModel3DView: UIViewRepresentable {
                 location,
                 options: [
                     .boundingBoxOnly: false,
-                    .searchMode: SCNHitTestSearchMode.all.rawValue
+                    .searchMode: SCNHitTestSearchMode.all.rawValue,
+                    .ignoreHiddenNodes: false
                 ]
             )
 
-            //prefer wheels whenever any wheel mesh is in the pick ray
             if let wheels = firstArea(in: hits, matching: .wheels) {
                 onSelect(wheels)
                 return
