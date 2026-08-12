@@ -33,6 +33,9 @@ struct HistoryModelView: View {
 
                 Button {
                     cameraResetID = UUID()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                        selectedArea = nil
+                    }
                 } label: {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.subheadline.weight(.semibold))
