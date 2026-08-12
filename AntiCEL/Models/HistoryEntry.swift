@@ -10,7 +10,7 @@ final class HistoryEntry {
     var date: Date
     var mileage: Int?
     var category: HistoryCategory
-    var vehicleArea: VehicleArea = .misc
+    var vehicleArea: VehicleArea = VehicleArea.misc
     var vehicle: Vehicle?
 
     init(

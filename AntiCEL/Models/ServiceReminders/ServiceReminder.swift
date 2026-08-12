@@ -16,7 +16,7 @@ final class ServiceReminder {
 
     var isCompleted: Bool //for when we can turn it into a history event later.
 
-    var vehicleArea: VehicleArea = .misc
+    var vehicleArea: VehicleArea = VehicleArea.misc
 
     var vehicle: Vehicle? //every ServiceReminder has atleast one vehicle (many to one relationship in this case service reminder either has zero or one vehicle)
     
