@@ -147,21 +147,25 @@ enum GenericSedanSceneBuilder {
         rubber: SCNMaterial,
         rim: SCNMaterial
     ) {
+        //pivot stays axis-aligned so spin around X = horizontal axle through the hub
+        let pivot = SCNNode()
+        pivot.name = VehicleArea.wheels.rawValue
+        pivot.position = SCNVector3(x, 0.32, z)
+        parent.addChildNode(pivot)
+
         let tire = SCNCylinder(radius: 0.32, height: 0.22)
         tire.firstMaterial = rubber.copy() as? SCNMaterial ?? rubber
         let tireNode = SCNNode(geometry: tire)
         tireNode.eulerAngles = SCNVector3(0, 0, Float.pi / 2)
-        tireNode.position = SCNVector3(x, 0.32, z)
         tireNode.name = VehicleArea.wheels.rawValue
-        parent.addChildNode(tireNode)
+        pivot.addChildNode(tireNode)
 
         let hub = SCNCylinder(radius: 0.14, height: 0.24)
         hub.firstMaterial = rim.copy() as? SCNMaterial ?? rim
         let hubNode = SCNNode(geometry: hub)
         hubNode.eulerAngles = SCNVector3(0, 0, Float.pi / 2)
-        hubNode.position = SCNVector3(x, 0.32, z)
         hubNode.name = VehicleArea.wheels.rawValue
-        parent.addChildNode(hubNode)
+        pivot.addChildNode(hubNode)
     }
 
     private static func box(

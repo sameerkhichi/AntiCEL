@@ -100,29 +100,26 @@ struct HistoryModelView: View {
 
             }
 
-            ScrollView {
+            if let selectedArea {
 
-                if let selectedArea {
+                VehicleAreaHistoryPanel(
+                    vehicle: vehicle,
+                    area: selectedArea
+                )
+                .transition(
+                    .move(edge: .bottom)
+                    .combined(with: .opacity)
+                )
 
-                    VehicleAreaHistoryPanel(
-                        vehicle: vehicle,
-                        area: selectedArea
-                    )
-                    .transition(
-                        .move(edge: .bottom)
-                        .combined(with: .opacity)
-                    )
+            } else {
 
-                } else {
-
-                    areaSummaryCard
-                        .transition(.opacity)
-
-                }
+                areaSummaryCard
+                    .transition(.opacity)
 
             }
 
         }
+        .padding(.bottom)
 
     }
 

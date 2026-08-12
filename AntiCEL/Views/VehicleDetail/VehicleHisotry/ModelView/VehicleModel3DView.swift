@@ -135,15 +135,15 @@ struct VehicleModel3DView: UIViewRepresentable {
             trunkPivot?.eulerAngles.x = trunkAngle
         }
 
-        let wheelNodes = sedan.childNodes.filter { $0.name == VehicleArea.wheels.rawValue }
-        for wheel in wheelNodes {
-            wheel.removeAction(forKey: "spin")
+        //spin the axis-aligned wheel pivots (not the laid-down tire meshes)
+        let wheelPivots = sedan.childNodes.filter { $0.name == VehicleArea.wheels.rawValue }
+        for pivot in wheelPivots {
+            pivot.removeAction(forKey: "spin")
             if area == .wheels {
-                //cylinder axle is local X after the 90° Z lay-down
                 let spin = SCNAction.repeatForever(
                     SCNAction.rotateBy(x: CGFloat.pi * 2, y: 0, z: 0, duration: 1.1)
                 )
-                wheel.runAction(spin, forKey: "spin")
+                pivot.runAction(spin, forKey: "spin")
             }
         }
     }

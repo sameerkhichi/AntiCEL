@@ -32,37 +32,33 @@ struct HistoryListView: View {
 
     var body: some View {
 
-        ScrollView {
+        LazyVStack(alignment: .leading, spacing: 24) {
 
-            LazyVStack(alignment: .leading, spacing: 24) {
+            ForEach(groupedEntries, id: \.0) { month, entries in
 
-                ForEach(groupedEntries, id: \.0) { month, entries in
+                VStack(alignment: .leading, spacing: 12) {
 
-                    VStack(alignment: .leading, spacing: 12) {
+                    Text(month)
+                        .font(.title3.bold())
+                        .padding(.horizontal)
 
-                        Text(month)
-                            .font(.title3.bold())
-                            .padding(.horizontal)
+                    VStack(spacing: 12) {
 
-                        VStack(spacing: 12) {
+                        ForEach(entries) { entry in
 
-                            ForEach(entries) { entry in
+                            NavigationLink {
 
-                                NavigationLink {
+                                HistoryEntryDetailView(
+                                    vehicle: vehicle,
+                                    historyEntry: entry
+                                )
 
-                                    HistoryEntryDetailView(
-                                        vehicle: vehicle,
-                                        historyEntry: entry
-                                    )
+                            } label: {
 
-                                } label: {
-
-                                    HistoryEntryRow(entry: entry)
-
-                                }
-                                .buttonStyle(.plain)
+                                HistoryEntryRow(entry: entry)
 
                             }
+                            .buttonStyle(.plain)
 
                         }
 
@@ -71,9 +67,9 @@ struct HistoryListView: View {
                 }
 
             }
-            .padding(.vertical)
 
         }
+        .padding(.vertical)
 
     }
 

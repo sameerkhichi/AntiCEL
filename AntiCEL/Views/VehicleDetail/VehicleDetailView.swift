@@ -9,40 +9,37 @@ struct VehicleDetailView: View {
 
     var body: some View {
 
-        VStack(spacing: 0) {
+        ScrollView {
 
-            VehicleHeaderView(vehicle: vehicle)
+            VStack(spacing: 0) {
 
-            //this is a picker so the user can select different tabs on the vehicle details page.
-            Picker("", selection: $selectedSection) {
-                ForEach(VehicleDetailSection.allCases, id: \.self) {
-                    Text($0.rawValue)
-                        .tag($0)
+                VehicleHeaderView(vehicle: vehicle)
+
+                //this is a picker so the user can select different tabs on the vehicle details page.
+                Picker("", selection: $selectedSection) {
+                    ForEach(VehicleDetailSection.allCases, id: \.self) {
+                        Text($0.rawValue)
+                            .tag($0)
+                    }
                 }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal)
-            .padding(.bottom, 8)
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
 
-            //history owns its own scrolling / 3D gestures; other tabs use a ScrollView
-            switch selectedSection {
+                switch selectedSection {
 
-            case .overview:
-                ScrollView {
+                case .overview:
                     VehicleOverviewView(vehicle: vehicle)
-                }
 
-            case .history:
-                VehicleHistoryView(vehicle: vehicle)
+                case .history:
+                    VehicleHistoryView(vehicle: vehicle)
 
-            case .documents:
-                ScrollView {
+                case .documents:
                     VehicleDocumentsView(vehicle: vehicle)
-                }
 
-            case .settings:
-                ScrollView {
+                case .settings:
                     VehicleSettingsView(vehicle: vehicle)
+
                 }
 
             }

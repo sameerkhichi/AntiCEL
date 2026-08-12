@@ -34,7 +34,6 @@ struct VehicleHistoryView: View {
                 }
 
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         }
         .navigationTitle("History")
