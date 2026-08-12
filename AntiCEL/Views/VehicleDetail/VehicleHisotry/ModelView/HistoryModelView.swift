@@ -8,7 +8,7 @@ struct HistoryModelView: View {
 
     var body: some View {
 
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
 
             HStack {
 
@@ -19,7 +19,7 @@ struct HistoryModelView: View {
 
                     Text(
                         selectedArea == nil
-                            ? "Tap a part to explore its history"
+                            ? "Drag to rotate · Tap a part for history"
                             : "Tap again or another part to switch"
                     )
                     .font(.caption)
@@ -42,8 +42,10 @@ struct HistoryModelView: View {
 
             }
             .padding(.horizontal)
+            .padding(.top, 8)
 
-            VehicleModelCanvas(selectedArea: selectedArea) { area in
+            //fixed viewport so orbit gestures are not stolen by scrolling
+            VehicleModel3DView(selectedArea: selectedArea) { area in
 
                 withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
 
@@ -56,10 +58,10 @@ struct HistoryModelView: View {
                 }
 
             }
-            .frame(height: 220)
-            .padding(.horizontal, 8)
+            .frame(height: 300)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .padding(.horizontal)
 
-            //quick area chips
             ScrollView(.horizontal, showsIndicators: false) {
 
                 HStack(spacing: 8) {
@@ -98,26 +100,29 @@ struct HistoryModelView: View {
 
             }
 
-            if let selectedArea {
+            ScrollView {
 
-                VehicleAreaHistoryPanel(
-                    vehicle: vehicle,
-                    area: selectedArea
-                )
-                .transition(
-                    .move(edge: .bottom)
-                    .combined(with: .opacity)
-                )
+                if let selectedArea {
 
-            } else {
+                    VehicleAreaHistoryPanel(
+                        vehicle: vehicle,
+                        area: selectedArea
+                    )
+                    .transition(
+                        .move(edge: .bottom)
+                        .combined(with: .opacity)
+                    )
 
-                areaSummaryCard
-                    .transition(.opacity)
+                } else {
+
+                    areaSummaryCard
+                        .transition(.opacity)
+
+                }
 
             }
 
         }
-        .padding(.vertical)
 
     }
 
@@ -188,6 +193,7 @@ struct HistoryModelView: View {
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .padding(.horizontal)
+        .padding(.bottom)
 
     }
 

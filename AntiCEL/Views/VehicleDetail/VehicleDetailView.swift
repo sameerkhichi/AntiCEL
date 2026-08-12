@@ -9,7 +9,7 @@ struct VehicleDetailView: View {
 
     var body: some View {
 
-        ScrollView {
+        VStack(spacing: 0) {
 
             VehicleHeaderView(vehicle: vehicle)
 
@@ -22,24 +22,30 @@ struct VehicleDetailView: View {
             }
             .pickerStyle(.segmented)
             .padding(.horizontal)
+            .padding(.bottom, 8)
 
-            //for the dynamic cards on selection
-            //This will call on the individual views for the corresponding section that is picked
+            //history owns its own scrolling / 3D gestures; other tabs use a ScrollView
             switch selectedSection {
 
             case .overview:
-                VehicleOverviewView(vehicle: vehicle)
+                ScrollView {
+                    VehicleOverviewView(vehicle: vehicle)
+                }
 
             case .history:
                 VehicleHistoryView(vehicle: vehicle)
 
             case .documents:
-                VehicleDocumentsView(vehicle: vehicle)
+                ScrollView {
+                    VehicleDocumentsView(vehicle: vehicle)
+                }
 
             case .settings:
-                VehicleSettingsView(vehicle: vehicle)
+                ScrollView {
+                    VehicleSettingsView(vehicle: vehicle)
+                }
 
-        }
+            }
 
         }
         .navigationTitle(vehicle.make)

@@ -6,20 +6,16 @@ struct VehicleOverviewView: View {
 
     var body: some View {
 
-        ScrollView {
+        VStack(spacing: 20) {
 
-            VStack(spacing: 20) {
+            QuickInfoCard(vehicle: vehicle)
 
-                QuickInfoCard(vehicle: vehicle)
+            ServiceReminderCard(vehicle: vehicle)
 
-                ServiceReminderCard(vehicle: vehicle)
-
-                VehicleNotesCard(vehicle: vehicle)
-
-            }
-            .padding(.vertical)
+            VehicleNotesCard(vehicle: vehicle)
 
         }
+        .padding(.vertical)
 
     }
 }
