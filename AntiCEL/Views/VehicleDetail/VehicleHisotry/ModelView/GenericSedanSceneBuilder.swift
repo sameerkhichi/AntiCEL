@@ -5,17 +5,19 @@ import UIKit
 enum GenericSedanSceneBuilder {
 
     static let sedanNodeName = "sedan"
+    static let cameraNodeName = "mainCamera"
+
+    static let defaultCameraPosition = SCNVector3(3.6, 1.8, 4.2)
+    static let defaultCameraTarget = SCNVector3(0, 0.45, 0)
 
     static func makeScene() -> SCNScene {
         let scene = SCNScene()
-        //fully clear so the SwiftUI page shows through
         scene.background.contents = UIColor.clear
 
         let sedan = makeSedan()
         sedan.name = sedanNodeName
         scene.rootNode.addChildNode(sedan)
 
-        //soft contact shadow only
         let shadow = SCNPlane(width: 5.2, height: 2.6)
         let shadowMat = SCNMaterial()
         shadowMat.diffuse.contents = UIColor.black
@@ -26,20 +28,20 @@ enum GenericSedanSceneBuilder {
         let shadowNode = SCNNode(geometry: shadow)
         shadowNode.eulerAngles.x = -.pi / 2
         shadowNode.position = SCNVector3(0, 0.002, 0)
-        shadowNode.opacity = 0.22
+        shadowNode.opacity = 0.2
         scene.rootNode.addChildNode(shadowNode)
 
         let ambient = SCNNode()
         ambient.light = SCNLight()
         ambient.light?.type = .ambient
-        ambient.light?.intensity = 480
+        ambient.light?.intensity = 420
         ambient.light?.color = UIColor.white
         scene.rootNode.addChildNode(ambient)
 
         let key = SCNNode()
         key.light = SCNLight()
         key.light?.type = .directional
-        key.light?.intensity = 1200
+        key.light?.intensity = 1300
         key.light?.castsShadow = true
         key.eulerAngles = SCNVector3(-0.95, 0.55, 0)
         scene.rootNode.addChildNode(key)
@@ -47,14 +49,14 @@ enum GenericSedanSceneBuilder {
         let fill = SCNNode()
         fill.light = SCNLight()
         fill.light?.type = .directional
-        fill.light?.intensity = 380
+        fill.light?.intensity = 320
         fill.eulerAngles = SCNVector3(-0.2, -1.0, 0)
         scene.rootNode.addChildNode(fill)
 
         let rim = SCNNode()
         rim.light = SCNLight()
         rim.light?.type = .directional
-        rim.light?.intensity = 260
+        rim.light?.intensity = 300
         rim.eulerAngles = SCNVector3(0.15, 2.5, 0)
         scene.rootNode.addChildNode(rim)
 
@@ -64,184 +66,173 @@ enum GenericSedanSceneBuilder {
     private static func makeSedan() -> SCNNode {
         let root = SCNNode()
 
-        let paint = mat(UIColor(white: 0.82, alpha: 1), metalness: 0.62, roughness: 0.28)
-        let dark = mat(UIColor(white: 0.12, alpha: 1), metalness: 0.45, roughness: 0.4)
+        //black paint so headlights / taillights read clearly
+        let paint = mat(UIColor(white: 0.07, alpha: 1), metalness: 0.7, roughness: 0.32)
+        let dark = mat(UIColor(white: 0.03, alpha: 1), metalness: 0.5, roughness: 0.45)
         let glass = mat(
-            UIColor(red: 0.45, green: 0.58, blue: 0.68, alpha: 1),
-            metalness: 0.1,
+            UIColor(red: 0.25, green: 0.32, blue: 0.38, alpha: 1),
+            metalness: 0.15,
             roughness: 0.08
         )
-        glass.transparency = 0.55
-        let rubber = mat(UIColor(white: 0.07, alpha: 1), metalness: 0.05, roughness: 0.92)
-        let chrome = mat(UIColor(white: 0.88, alpha: 1), metalness: 0.95, roughness: 0.16)
+        glass.transparency = 0.5
+        let rubber = mat(UIColor(white: 0.05, alpha: 1), metalness: 0.05, roughness: 0.92)
+        let chrome = mat(UIColor(white: 0.9, alpha: 1), metalness: 0.96, roughness: 0.14)
 
-        //main body — extruded side silhouette (reads as a real car, not stacked boxes)
         let body = extrudedProfile(
             path: sedanSideProfile(),
-            depth: 1.86,
+            depth: 1.84,
             material: paint,
             area: .body
         )
         root.addChildNode(body)
 
-        //subtle shoulder / beltline strip for more 3D form
         let shoulder = extrudedProfile(
             path: shoulderProfile(),
-            depth: 1.92,
+            depth: 1.90,
             material: paint,
             area: .body
         )
-        shoulder.position.y = 0.02
-        shoulder.opacity = 0.95
+        shoulder.position.y = 0.015
         root.addChildNode(shoulder)
 
-        //cabin glass insert (slightly narrower)
         let greenhouse = extrudedProfile(
             path: greenhouseProfile(),
-            depth: 1.72,
+            depth: 1.70,
             material: glass,
             area: .body
         )
         greenhouse.position.y = 0.01
         root.addChildNode(greenhouse)
 
-        //hood panel (drivetrain tap + open animation)
+        //hood at +Z (front)
         let hoodPivot = SCNNode()
         hoodPivot.name = "hoodPivot"
-        hoodPivot.position = SCNVector3(0, 0.70, 0.55)
+        hoodPivot.position = SCNVector3(0, 0.68, 0.55)
         root.addChildNode(hoodPivot)
 
-        let hood = roundedBox(width: 1.78, height: 0.05, length: 1.35, chamfer: 0.04, material: paint)
-        hood.position = SCNVector3(0, 0.01, 0.68)
+        let hood = roundedBox(width: 1.76, height: 0.045, length: 1.35, chamfer: 0.035, material: paint)
+        hood.position = SCNVector3(0, 0.015, 0.68)
         hood.name = VehicleArea.drivetrain.rawValue
         hoodPivot.addChildNode(hood)
 
-        let engine = roundedBox(width: 0.7, height: 0.32, length: 0.7, chamfer: 0.04, material: dark)
-        engine.position = SCNVector3(0, 0.42, 1.2)
+        let engine = roundedBox(width: 0.68, height: 0.3, length: 0.68, chamfer: 0.04, material: dark)
+        engine.position = SCNVector3(0, 0.4, 1.2)
         engine.name = VehicleArea.drivetrain.rawValue
         root.addChildNode(engine)
 
-        //front lower lip
-        let frontLip = roundedBox(width: 1.7, height: 0.1, length: 0.22, chamfer: 0.04, material: dark)
-        frontLip.position = SCNVector3(0, 0.16, 2.28)
+        let frontLip = roundedBox(width: 1.68, height: 0.09, length: 0.2, chamfer: 0.035, material: dark)
+        frontLip.position = SCNVector3(0, 0.15, 2.28)
         frontLip.name = VehicleArea.drivetrain.rawValue
         root.addChildNode(frontLip)
 
         addHeadlight(to: root, x: -0.68)
         addHeadlight(to: root, x: 0.68)
 
-        //trunk panel (misc tap + open animation)
+        //trunk at -Z (rear)
         let trunkPivot = SCNNode()
         trunkPivot.name = "trunkPivot"
-        trunkPivot.position = SCNVector3(0, 0.74, -1.15)
+        trunkPivot.position = SCNVector3(0, 0.72, -1.15)
         root.addChildNode(trunkPivot)
 
-        let trunk = roundedBox(width: 1.72, height: 0.05, length: 0.85, chamfer: 0.04, material: paint)
-        trunk.position = SCNVector3(0, 0.01, -0.40)
+        let trunk = roundedBox(width: 1.7, height: 0.045, length: 0.82, chamfer: 0.035, material: paint)
+        trunk.position = SCNVector3(0, 0.015, -0.38)
         trunk.name = VehicleArea.misc.rawValue
         trunkPivot.addChildNode(trunk)
 
-        let rearLip = roundedBox(width: 1.7, height: 0.1, length: 0.2, chamfer: 0.04, material: dark)
-        rearLip.position = SCNVector3(0, 0.16, -2.28)
+        let rearLip = roundedBox(width: 1.68, height: 0.09, length: 0.18, chamfer: 0.035, material: dark)
+        rearLip.position = SCNVector3(0, 0.15, -2.28)
         rearLip.name = VehicleArea.misc.rawValue
         root.addChildNode(rearLip)
 
         addTaillight(to: root, x: -0.72)
         addTaillight(to: root, x: 0.72)
 
-        //side mirrors — generic, tiny
         addMirror(to: root, x: -0.95)
         addMirror(to: root, x: 0.95)
 
-        addWheel(to: root, x: -0.93, z: 1.32, rubber: rubber, chrome: chrome)
-        addWheel(to: root, x: 0.93, z: 1.32, rubber: rubber, chrome: chrome)
-        addWheel(to: root, x: -0.93, z: -1.35, rubber: rubber, chrome: chrome)
-        addWheel(to: root, x: 0.93, z: -1.35, rubber: rubber, chrome: chrome)
+        //wheel centers aligned with deeper wells
+        addWheel(to: root, x: -0.98, z: 1.32, rubber: rubber, chrome: chrome)
+        addWheel(to: root, x: 0.98, z: 1.32, rubber: rubber, chrome: chrome)
+        addWheel(to: root, x: -0.98, z: -1.35, rubber: rubber, chrome: chrome)
+        addWheel(to: root, x: 0.98, z: -1.35, rubber: rubber, chrome: chrome)
 
         return root
     }
 
-    // MARK: - Profiles (side view: x = length front+, y = height)
+    // MARK: - Profiles
 
-    /// Sport-sedan outline loosely based on a 2022 S4 stance — long hood, set-back cabin, short deck.
     private static func sedanSideProfile() -> UIBezierPath {
         let path = UIBezierPath()
 
-        //front lower lip → nose
-        path.move(to: CGPoint(x: 2.30, y: 0.14))
-        path.addLine(to: CGPoint(x: 2.38, y: 0.28))
+        //front (+x) → rear (-x)
+        path.move(to: CGPoint(x: 2.30, y: 0.12))
+        path.addLine(to: CGPoint(x: 2.38, y: 0.26))
         path.addQuadCurve(
-            to: CGPoint(x: 2.20, y: 0.52),
-            controlPoint: CGPoint(x: 2.42, y: 0.44)
+            to: CGPoint(x: 2.18, y: 0.50),
+            controlPoint: CGPoint(x: 2.42, y: 0.42)
         )
-        //hood line
         path.addQuadCurve(
-            to: CGPoint(x: 0.78, y: 0.70),
-            controlPoint: CGPoint(x: 1.55, y: 0.76)
+            to: CGPoint(x: 0.78, y: 0.68),
+            controlPoint: CGPoint(x: 1.55, y: 0.74)
         )
-        //windshield rake
         path.addQuadCurve(
-            to: CGPoint(x: 0.22, y: 1.16),
-            controlPoint: CGPoint(x: 0.55, y: 1.02)
+            to: CGPoint(x: 0.22, y: 1.14),
+            controlPoint: CGPoint(x: 0.55, y: 1.00)
         )
-        //roof
         path.addQuadCurve(
-            to: CGPoint(x: -1.05, y: 1.20),
-            controlPoint: CGPoint(x: -0.40, y: 1.26)
+            to: CGPoint(x: -1.05, y: 1.18),
+            controlPoint: CGPoint(x: -0.40, y: 1.24)
         )
-        //rear window
         path.addQuadCurve(
-            to: CGPoint(x: -1.55, y: 0.86),
-            controlPoint: CGPoint(x: -1.35, y: 1.08)
+            to: CGPoint(x: -1.55, y: 0.84),
+            controlPoint: CGPoint(x: -1.35, y: 1.06)
         )
-        //trunk deck
-        path.addLine(to: CGPoint(x: -2.10, y: 0.78))
-        //rear fascia
+        path.addLine(to: CGPoint(x: -2.10, y: 0.76))
         path.addQuadCurve(
-            to: CGPoint(x: -2.34, y: 0.42),
-            controlPoint: CGPoint(x: -2.38, y: 0.68)
+            to: CGPoint(x: -2.34, y: 0.40),
+            controlPoint: CGPoint(x: -2.38, y: 0.66)
         )
-        path.addLine(to: CGPoint(x: -2.28, y: 0.14))
+        path.addLine(to: CGPoint(x: -2.28, y: 0.12))
 
-        //bottom + wheel wells (rear → front)
-        path.addLine(to: CGPoint(x: -1.72, y: 0.14))
+        //deeper wheel wells so tires sit in the arches (not through the rocker)
+        path.addLine(to: CGPoint(x: -1.78, y: 0.12))
         path.addQuadCurve(
-            to: CGPoint(x: -0.98, y: 0.14),
-            controlPoint: CGPoint(x: -1.35, y: 0.58)
+            to: CGPoint(x: -0.92, y: 0.12),
+            controlPoint: CGPoint(x: -1.35, y: 0.78)
         )
-        path.addLine(to: CGPoint(x: 0.95, y: 0.14))
+        path.addLine(to: CGPoint(x: 0.88, y: 0.12))
         path.addQuadCurve(
-            to: CGPoint(x: 1.70, y: 0.14),
-            controlPoint: CGPoint(x: 1.32, y: 0.58)
+            to: CGPoint(x: 1.76, y: 0.12),
+            controlPoint: CGPoint(x: 1.32, y: 0.78)
         )
-        path.addLine(to: CGPoint(x: 2.30, y: 0.14))
+        path.addLine(to: CGPoint(x: 2.30, y: 0.12))
         path.close()
         return path
     }
 
     private static func shoulderProfile() -> UIBezierPath {
         let path = UIBezierPath()
-        path.move(to: CGPoint(x: 2.05, y: 0.48))
-        path.addLine(to: CGPoint(x: 0.85, y: 0.62))
-        path.addLine(to: CGPoint(x: 0.35, y: 0.62))
-        path.addLine(to: CGPoint(x: -1.50, y: 0.66))
-        path.addLine(to: CGPoint(x: -2.05, y: 0.62))
-        path.addLine(to: CGPoint(x: -2.05, y: 0.52))
-        path.addLine(to: CGPoint(x: 2.05, y: 0.40))
+        path.move(to: CGPoint(x: 2.05, y: 0.46))
+        path.addLine(to: CGPoint(x: 0.85, y: 0.60))
+        path.addLine(to: CGPoint(x: 0.35, y: 0.60))
+        path.addLine(to: CGPoint(x: -1.50, y: 0.64))
+        path.addLine(to: CGPoint(x: -2.05, y: 0.60))
+        path.addLine(to: CGPoint(x: -2.05, y: 0.50))
+        path.addLine(to: CGPoint(x: 2.05, y: 0.38))
         path.close()
         return path
     }
 
     private static func greenhouseProfile() -> UIBezierPath {
         let path = UIBezierPath()
-        path.move(to: CGPoint(x: 0.70, y: 0.74))
-        path.addLine(to: CGPoint(x: 0.20, y: 1.12))
+        path.move(to: CGPoint(x: 0.70, y: 0.72))
+        path.addLine(to: CGPoint(x: 0.20, y: 1.10))
         path.addQuadCurve(
-            to: CGPoint(x: -1.00, y: 1.14),
-            controlPoint: CGPoint(x: -0.40, y: 1.20)
+            to: CGPoint(x: -1.00, y: 1.12),
+            controlPoint: CGPoint(x: -0.40, y: 1.18)
         )
-        path.addLine(to: CGPoint(x: -1.42, y: 0.88))
-        path.addLine(to: CGPoint(x: -1.35, y: 0.74))
+        path.addLine(to: CGPoint(x: -1.42, y: 0.86))
+        path.addLine(to: CGPoint(x: -1.35, y: 0.72))
         path.close()
         return path
     }
@@ -254,13 +245,13 @@ enum GenericSedanSceneBuilder {
     ) -> SCNNode {
         let shape = SCNShape(path: path, extrusionDepth: depth)
         shape.chamferMode = .both
-        shape.chamferRadius = 0.025
+        shape.chamferRadius = 0.02
         shape.firstMaterial = material.copy() as? SCNMaterial ?? material
         shape.firstMaterial?.isDoubleSided = false
 
         let node = SCNNode(geometry: shape)
-        //path is in XY (length × height); extrusion along Z → rotate so nose faces +Z
-        node.eulerAngles.y = .pi / 2
+        //path +X (nose) → scene +Z after this rotation
+        node.eulerAngles.y = -.pi / 2
         node.name = area.rawValue
         return node
     }
@@ -270,22 +261,22 @@ enum GenericSedanSceneBuilder {
     private static func addHeadlight(to parent: SCNNode, x: Float) {
         let housing = SCNSphere(radius: 0.10)
         housing.segmentCount = 28
-        let housingMat = mat(UIColor(white: 0.93, alpha: 1), metalness: 0.15, roughness: 0.12)
-        housingMat.emission.contents = UIColor(white: 0.45, alpha: 1)
+        let housingMat = mat(UIColor(white: 0.95, alpha: 1), metalness: 0.12, roughness: 0.1)
+        housingMat.emission.contents = UIColor(white: 0.65, alpha: 1)
         housing.firstMaterial = housingMat
 
         let node = SCNNode(geometry: housing)
-        node.scale = SCNVector3(1.5, 0.55, 0.45)
-        node.position = SCNVector3(x, 0.48, 2.18)
+        node.scale = SCNVector3(1.55, 0.55, 0.45)
+        node.position = SCNVector3(x, 0.46, 2.18)
         node.name = VehicleArea.drivetrain.rawValue
         parent.addChildNode(node)
 
-        let lens = SCNSphere(radius: 0.045)
-        let lensMat = mat(UIColor(red: 1, green: 0.97, blue: 0.88, alpha: 1), metalness: 0.05, roughness: 0.08)
-        lensMat.emission.contents = UIColor(red: 1, green: 0.96, blue: 0.85, alpha: 1)
+        let lens = SCNSphere(radius: 0.05)
+        let lensMat = mat(UIColor(red: 1, green: 0.97, blue: 0.88, alpha: 1), metalness: 0.05, roughness: 0.06)
+        lensMat.emission.contents = UIColor(red: 1, green: 0.97, blue: 0.88, alpha: 1)
         lens.firstMaterial = lensMat
         let lensNode = SCNNode(geometry: lens)
-        lensNode.position = SCNVector3(x, 0.48, 2.24)
+        lensNode.position = SCNVector3(x, 0.46, 2.25)
         lensNode.name = VehicleArea.drivetrain.rawValue
         parent.addChildNode(lensNode)
     }
@@ -293,10 +284,10 @@ enum GenericSedanSceneBuilder {
     private static func addTaillight(to parent: SCNNode, x: Float) {
         let light = roundedBox(width: 0.36, height: 0.1, length: 0.07, chamfer: 0.03, material: {
             let m = mat(UIColor(red: 0.7, green: 0.05, blue: 0.05, alpha: 1), metalness: 0.2, roughness: 0.3)
-            m.emission.contents = UIColor(red: 0.9, green: 0.05, blue: 0.05, alpha: 1)
+            m.emission.contents = UIColor(red: 1.0, green: 0.08, blue: 0.08, alpha: 1)
             return m
         }())
-        light.position = SCNVector3(x, 0.55, -2.22)
+        light.position = SCNVector3(x, 0.54, -2.22)
         light.name = VehicleArea.misc.rawValue
         parent.addChildNode(light)
     }
@@ -307,9 +298,9 @@ enum GenericSedanSceneBuilder {
             height: 0.05,
             length: 0.14,
             chamfer: 0.02,
-            material: mat(UIColor(white: 0.75, alpha: 1), metalness: 0.5, roughness: 0.35)
+            material: mat(UIColor(white: 0.12, alpha: 1), metalness: 0.55, roughness: 0.35)
         )
-        arm.position = SCNVector3(x, 0.78, 0.55)
+        arm.position = SCNVector3(x, 0.76, 0.55)
         arm.name = VehicleArea.body.rawValue
         parent.addChildNode(arm)
     }
@@ -323,37 +314,49 @@ enum GenericSedanSceneBuilder {
     ) {
         let pivot = SCNNode()
         pivot.name = VehicleArea.wheels.rawValue
-        pivot.position = SCNVector3(x, 0.34, z)
+        pivot.position = SCNVector3(x, 0.36, z)
+        //larger hit target so any wheel is easy to tap
+        pivot.physicsBody = nil
         parent.addChildNode(pivot)
 
-        let tire = SCNTube(innerRadius: 0.21, outerRadius: 0.35, height: 0.26)
+        let tire = SCNTube(innerRadius: 0.24, outerRadius: 0.37, height: 0.28)
         tire.firstMaterial = rubber.copy() as? SCNMaterial ?? rubber
         let tireNode = SCNNode(geometry: tire)
         tireNode.eulerAngles = SCNVector3(0, 0, Float.pi / 2)
         tireNode.name = VehicleArea.wheels.rawValue
         pivot.addChildNode(tireNode)
 
-        let disc = SCNCylinder(radius: 0.21, height: 0.07)
+        //larger rim face
+        let disc = SCNCylinder(radius: 0.25, height: 0.08)
         disc.firstMaterial = chrome.copy() as? SCNMaterial ?? chrome
         let discNode = SCNNode(geometry: disc)
         discNode.eulerAngles = SCNVector3(0, 0, Float.pi / 2)
         discNode.name = VehicleArea.wheels.rawValue
         pivot.addChildNode(discNode)
 
-        for i in 0..<5 {
-            let spoke = SCNBox(width: 0.048, height: 0.38, length: 0.04, chamferRadius: 0.008)
+        //7-spoke design
+        for i in 0..<7 {
+            let spoke = SCNBox(width: 0.055, height: 0.44, length: 0.048, chamferRadius: 0.01)
             spoke.firstMaterial = chrome.copy() as? SCNMaterial ?? chrome
             let spokeNode = SCNNode(geometry: spoke)
-            spokeNode.eulerAngles = SCNVector3(Float(i) * (.pi * 2 / 5), 0, 0)
+            spokeNode.eulerAngles = SCNVector3(Float(i) * (.pi * 2 / 7), 0, 0)
             spokeNode.name = VehicleArea.wheels.rawValue
             pivot.addChildNode(spokeNode)
         }
 
-        let cap = SCNSphere(radius: 0.055)
+        //outer rim ring for more presence
+        let ring = SCNTube(innerRadius: 0.23, outerRadius: 0.255, height: 0.09)
+        ring.firstMaterial = chrome.copy() as? SCNMaterial ?? chrome
+        let ringNode = SCNNode(geometry: ring)
+        ringNode.eulerAngles = SCNVector3(0, 0, Float.pi / 2)
+        ringNode.name = VehicleArea.wheels.rawValue
+        pivot.addChildNode(ringNode)
+
+        let cap = SCNSphere(radius: 0.07)
         cap.firstMaterial = chrome.copy() as? SCNMaterial ?? chrome
         let capNode = SCNNode(geometry: cap)
-        capNode.scale = SCNVector3(0.7, 0.7, 0.4)
-        capNode.position = SCNVector3(x > 0 ? 0.05 : -0.05, 0, 0)
+        capNode.scale = SCNVector3(0.75, 0.75, 0.4)
+        capNode.position = SCNVector3(x > 0 ? 0.06 : -0.06, 0, 0)
         capNode.name = VehicleArea.wheels.rawValue
         pivot.addChildNode(capNode)
     }

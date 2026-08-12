@@ -4,6 +4,7 @@ import SceneKit
 struct VehicleModel3DView: UIViewRepresentable {
 
     var selectedArea: VehicleArea?
+    var cameraResetID: UUID
     var onSelect: (VehicleArea) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -18,18 +19,18 @@ struct VehicleModel3DView: UIViewRepresentable {
         view.defaultCameraController.interactionMode = .orbitTurntable
         view.defaultCameraController.minimumVerticalAngle = -10
         view.defaultCameraController.maximumVerticalAngle = 70
-        //clear so the page background shows through — fully flush
         view.backgroundColor = .clear
         view.isOpaque = false
         view.antialiasingMode = .multisampling4X
         view.isPlaying = true
 
         let camera = SCNNode()
+        camera.name = GenericSedanSceneBuilder.cameraNodeName
         camera.camera = SCNCamera()
         camera.camera?.fieldOfView = 40
         camera.camera?.wantsHDR = true
-        camera.position = SCNVector3(3.5, 1.75, 4.1)
-        camera.look(at: SCNVector3(0, 0.5, 0))
+        camera.position = GenericSedanSceneBuilder.defaultCameraPosition
+        camera.look(at: GenericSedanSceneBuilder.defaultCameraTarget)
         view.pointOfView = camera
         view.scene?.rootNode.addChildNode(camera)
 
@@ -41,6 +42,7 @@ struct VehicleModel3DView: UIViewRepresentable {
         view.addGestureRecognizer(tap)
         context.coordinator.scnView = view
         context.coordinator.onSelect = onSelect
+        context.coordinator.lastCameraResetID = cameraResetID
 
         applySelection(
             selectedArea,
@@ -58,6 +60,11 @@ struct VehicleModel3DView: UIViewRepresentable {
         uiView.isOpaque = false
         uiView.scene?.background.contents = UIColor.clear
 
+        if context.coordinator.lastCameraResetID != cameraResetID {
+            context.coordinator.lastCameraResetID = cameraResetID
+            resetCamera(in: uiView)
+        }
+
         guard context.coordinator.lastSelectedArea != selectedArea else {
             return
         }
@@ -68,6 +75,24 @@ struct VehicleModel3DView: UIViewRepresentable {
             animated: true,
             coordinator: context.coordinator
         )
+    }
+
+    private func resetCamera(in view: SCNView) {
+        guard let camera = view.pointOfView ?? view.scene?.rootNode.childNode(
+            withName: GenericSedanSceneBuilder.cameraNodeName,
+            recursively: true
+        ) else {
+            return
+        }
+
+        view.pointOfView = camera
+
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = 0.35
+        camera.position = GenericSedanSceneBuilder.defaultCameraPosition
+        camera.eulerAngles = SCNVector3Zero
+        camera.look(at: GenericSedanSceneBuilder.defaultCameraTarget)
+        SCNTransaction.commit()
     }
 
     private func applySelection(
@@ -140,6 +165,7 @@ struct VehicleModel3DView: UIViewRepresentable {
     final class Coordinator: NSObject {
         var onSelect: (VehicleArea) -> Void
         var lastSelectedArea: VehicleArea?
+        var lastCameraResetID: UUID?
         weak var scnView: SCNView?
 
         init(onSelect: @escaping (VehicleArea) -> Void) {
@@ -154,21 +180,40 @@ struct VehicleModel3DView: UIViewRepresentable {
                 location,
                 options: [
                     .boundingBoxOnly: false,
-                    .searchMode: SCNHitTestSearchMode.closest.rawValue
+                    .searchMode: SCNHitTestSearchMode.all.rawValue
                 ]
             )
 
+            //prefer wheels whenever any wheel mesh is in the pick ray
+            if let wheels = firstArea(in: hits, matching: .wheels) {
+                onSelect(wheels)
+                return
+            }
+
+            if let area = firstArea(in: hits) {
+                onSelect(area)
+            }
+        }
+
+        private func firstArea(
+            in hits: [SCNHitTestResult],
+            matching only: VehicleArea? = nil
+        ) -> VehicleArea? {
             for hit in hits {
                 var node: SCNNode? = hit.node
                 while let current = node {
                     if let name = current.name,
                        let area = VehicleArea(rawValue: name) {
-                        onSelect(area)
-                        return
+                        if let only {
+                            if area == only { return area }
+                        } else {
+                            return area
+                        }
                     }
                     node = current.parent
                 }
             }
+            return nil
         }
     }
 }

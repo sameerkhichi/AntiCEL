@@ -5,25 +5,48 @@ struct HistoryModelView: View {
     @Bindable var vehicle: Vehicle
 
     @State private var selectedArea: VehicleArea?
+    @State private var cameraResetID = UUID()
 
     var body: some View {
 
         VStack(spacing: 12) {
 
-            VehicleModel3DView(selectedArea: selectedArea) { area in
+            ZStack(alignment: .topTrailing) {
 
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                VehicleModel3DView(
+                    selectedArea: selectedArea,
+                    cameraResetID: cameraResetID
+                ) { area in
 
-                    if selectedArea == area {
-                        selectedArea = nil
-                    } else {
-                        selectedArea = area
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+
+                        if selectedArea == area {
+                            selectedArea = nil
+                        } else {
+                            selectedArea = area
+                        }
+
                     }
 
                 }
+                .frame(height: 320)
+
+                Button {
+                    cameraResetID = UUID()
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 34, height: 34)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 16)
+                .padding(.top, 12)
+                .accessibilityLabel("Reset model view")
 
             }
-            .frame(height: 320)
             .padding(.top, 4)
 
             ScrollView(.horizontal, showsIndicators: false) {
