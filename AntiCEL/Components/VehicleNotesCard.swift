@@ -7,72 +7,53 @@ struct VehicleNotesCard: View {
     @State private var showingAddNote = false
 
     var body: some View {
+        DashPanel {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text("Vehicle Notes")
+                        .font(.title3.weight(.semibold).width(.condensed))
 
-        VStack(alignment: .leading, spacing: 16) {
+                    Spacer()
 
-            HStack {
-
-                Text("Vehicle Notes")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-
-                Spacer()
-
-                Button {
-                    showingAddNote = true
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.title3)
-                }
-
-            }
-
-            Divider()
-
-            if vehicle.notes.isEmpty {
-
-                Text("No notes.")
-                    .foregroundStyle(.secondary)
-
-            } else {
-
-                ForEach(vehicle.notes) { note in
-
-                    NavigationLink(destination: VehicleNoteDetailView(note: note)) {
-
-                        VStack(alignment: .leading, spacing: 6) {
-
-                            Text(note.title)
-                                .fontWeight(.semibold)
-
-                            Text(note.content)
-                                .lineLimit(2)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(Rectangle())
-
+                    Button {
+                        showingAddNote = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.body.weight(.semibold))
                     }
-                    .buttonStyle(.plain)
-
+                    .buttonStyle(DashButtonStyle(kind: .compact))
                 }
 
-            }
+                Rectangle()
+                    .fill(.quaternary)
+                    .frame(height: 1)
 
+                if vehicle.notes.isEmpty {
+                    Text("No notes.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(vehicle.notes) { note in
+                        NavigationLink(destination: VehicleNoteDetailView(note: note)) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(note.title)
+                                    .fontWeight(.semibold)
+
+                                Text(note.content)
+                                    .lineLimit(2)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
         .padding(.horizontal)
         .sheet(isPresented: $showingAddNote) {
-
             AddVehicleNoteView(vehicle: vehicle)
-
         }
-
     }
-
 }

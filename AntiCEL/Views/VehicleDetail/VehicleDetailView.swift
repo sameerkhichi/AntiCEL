@@ -2,9 +2,9 @@ import SwiftUI
 
 struct VehicleDetailView: View {
 
-    //uses the enum to track what section we are looking at.
+    @Environment(\.appTheme) private var theme
     @State private var selectedSection: VehicleDetailSection = .overview
-    
+
     let vehicle: Vehicle
 
     private var navigationTitleText: String {
@@ -15,13 +15,9 @@ struct VehicleDetailView: View {
     }
 
     var body: some View {
-
         VStack(spacing: 0) {
-
             Group {
-
                 switch selectedSection {
-
                 case .overview:
                     ScrollView {
                         VStack(spacing: 0) {
@@ -42,22 +38,20 @@ struct VehicleDetailView: View {
                     ScrollView {
                         VehicleSettingsView(vehicle: vehicle)
                     }
-
                 }
-
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             VehicleSectionTabBar(selection: $selectedSection)
-
         }
+        .appCanvas()
         .navigationTitle(navigationTitleText)
         .navigationBarTitleDisplayMode(.inline)
-
+        .toolbarBackground(theme.canvas, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 }
 
-//test preview.
 #Preview {
     NavigationStack {
         VehicleDetailView(
@@ -70,4 +64,5 @@ struct VehicleDetailView: View {
             )
         )
     }
+    .appTheme()
 }

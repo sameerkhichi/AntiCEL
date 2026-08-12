@@ -5,42 +5,38 @@ struct QuickInfoCard: View {
     let vehicle: Vehicle
 
     var body: some View {
+        DashPanel {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Quick Info")
+                    .font(.title3.weight(.semibold).width(.condensed))
 
-        VStack(alignment: .leading, spacing: 16) {
+                Rectangle()
+                    .fill(.quaternary)
+                    .frame(height: 1)
 
-            Text("Quick Info")
-                .font(.title3)
-                .fontWeight(.semibold)
+                infoRow(title: "VIN", value: vehicle.vin.isEmpty ? "Not Set" : vehicle.vin)
 
-            Divider()
+                infoRow(
+                    title: "Mileage",
+                    value: "\(vehicle.currentMileage.formatted()) km"
+                )
 
-            infoRow(title: "VIN", value: vehicle.vin.isEmpty ? "Not Set" : vehicle.vin)
-
-            infoRow(
-                title: "Mileage",
-                value: "\(vehicle.currentMileage.formatted()) km"
-            )
-
-            infoRow(
-                title: "Nickname",
-                value: vehicle.nickname.isEmpty ? "None" : vehicle.nickname
-            )
-
+                infoRow(
+                    title: "Nickname",
+                    value: vehicle.nickname.isEmpty ? "None" : vehicle.nickname
+                )
+            }
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
         .padding(.horizontal)
-
     }
 
     @ViewBuilder
     private func infoRow(title: String, value: String) -> some View {
-
         HStack {
-
             Text(title)
+                .font(.appBadge)
+                .tracking(1.2)
+                .textCase(.uppercase)
                 .foregroundStyle(.secondary)
 
             Spacer()
@@ -48,11 +44,8 @@ struct QuickInfoCard: View {
             Text(value)
                 .fontWeight(.medium)
                 .multilineTextAlignment(.trailing)
-
         }
-
     }
-
 }
 
 #Preview {
@@ -66,4 +59,5 @@ struct QuickInfoCard: View {
             currentMileage: 79500
         )
     )
+    .appTheme()
 }

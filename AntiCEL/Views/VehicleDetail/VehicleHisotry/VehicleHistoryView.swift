@@ -53,11 +53,7 @@ struct VehicleHistoryView: View {
 
         }
         .sheet(isPresented: $showingNewEntry) {
-
-            NavigationStack {
-                HistoryEntryDetailView(vehicle: vehicle)
-            }
-
+            HistoryEntryDetailView(vehicle: vehicle)
         }
 
     }

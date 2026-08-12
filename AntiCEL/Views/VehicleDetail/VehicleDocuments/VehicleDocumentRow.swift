@@ -9,54 +9,40 @@ struct VehicleDocumentRow: View {
     }
 
     var body: some View {
+        DashPanel(padding: 14, cornerRadius: 14) {
+            HStack(alignment: .top, spacing: 16) {
+                Image(systemName: document.category.iconName)
+                    .font(.title2)
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 32)
 
-        HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(document.title)
+                        .font(.headline)
 
-            Image(systemName: document.category.iconName)
-                .font(.title2)
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 32)
+                    Text(document.category.displayName)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
 
-            VStack(alignment: .leading, spacing: 6) {
+                    Text(formattedDate)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
 
-                Text(document.title)
-                    .font(.headline)
-
-                Text(document.category.displayName)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                Text(formattedDate)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                if let expirationDate = document.expirationDate {
-
-                    Text(
-                        "Expires \(expirationDate.formatted(date: .abbreviated, time: .omitted))"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
+                    if let expirationDate = document.expirationDate {
+                        Text(
+                            "Expires \(expirationDate.formatted(date: .abbreviated, time: .omitted))"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
                 }
 
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.tertiary)
             }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .foregroundStyle(.tertiary)
-
-        }
-        .padding()
-        .background(.background)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(.quaternary)
         }
         .padding(.horizontal)
-
     }
-
 }

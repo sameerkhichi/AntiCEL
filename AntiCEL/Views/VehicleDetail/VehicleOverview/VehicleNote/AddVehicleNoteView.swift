@@ -11,71 +11,36 @@ struct AddVehicleNoteView: View {
     @State private var title = ""
     @State private var content = ""
 
+    private var canSave: Bool {
+        !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     var body: some View {
+        InfotainmentScaffold(
+            title: "New Note",
+            confirmEnabled: canSave,
+            onCancel: { dismiss() },
+            onConfirm: saveNote
+        ) {
+            InfotainmentField(label: "Title") {
+                TextField("Optional", text: $title)
+            }
 
-        NavigationStack {
-
-            Form {
-
-                Section("Title") {
-
-                    TextField(
-                        "Optional",
-                        text: $title
-                    )
-
-                }
-
-                Section("Note") {
-
-                    TextField(
-                        "Write your note...",
-                        text: $content,
-                        axis: .vertical
-                    )
+            InfotainmentField(label: "Note") {
+                TextField("Write your note...", text: $content, axis: .vertical)
                     .lineLimit(8)
-
-                }
-
             }
-            .navigationTitle("New Note")
-            .toolbar {
-
-                ToolbarItem(placement: .topBarLeading) {
-
-                    Button("Cancel") {
-                        dismiss()
-                    }
-
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-
-                    Button("Save") {
-                        saveNote()
-                    }
-                    .disabled(content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                }
-
-            }
-
         }
-
+        .appTheme()
     }
 
     private func saveNote() {
-
         let finalTitle: String
 
         if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-
             finalTitle = String(content.prefix(30))
-
         } else {
-
             finalTitle = title
-
         }
 
         let note = VehicleNote(
@@ -84,17 +49,12 @@ struct AddVehicleNoteView: View {
         )
 
         vehicle.notes.append(note)
-
         modelContext.insert(note)
-
         dismiss()
-
     }
-
 }
 
 #Preview {
-
     AddVehicleNoteView(
         vehicle: Vehicle(
             make: "Audi",
@@ -103,5 +63,5 @@ struct AddVehicleNoteView: View {
             currentMileage: 79000
         )
     )
-
+    .appTheme()
 }

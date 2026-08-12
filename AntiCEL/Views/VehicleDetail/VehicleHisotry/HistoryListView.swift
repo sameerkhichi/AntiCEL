@@ -38,8 +38,10 @@ struct HistoryListView: View {
 
                 VStack(alignment: .leading, spacing: 12) {
 
-                    Text(month)
-                        .font(.title3.bold())
+                    Text(month.uppercased())
+                        .font(.appBadge)
+                        .tracking(1.6)
+                        .foregroundStyle(.secondary)
                         .padding(.horizontal)
 
                     VStack(spacing: 12) {

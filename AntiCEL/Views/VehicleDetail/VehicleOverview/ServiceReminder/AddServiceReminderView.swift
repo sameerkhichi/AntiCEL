@@ -1,5 +1,3 @@
-//this file is the view that lets the user add a service reminder to the overview page.
-//This can either be a milege based or date based service reminder.
 import SwiftUI
 import SwiftData
 
@@ -13,120 +11,85 @@ struct AddServiceReminderView: View {
     @State private var name = ""
     @State private var reminderType: ReminderType = .date
     @State private var vehicleArea: VehicleArea = .misc
-
     @State private var dueDate = Date()
     @State private var dueMileage = ""
-
     @State private var notes = ""
 
+    private var canSave: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     var body: some View {
+        InfotainmentScaffold(
+            title: "New Reminder",
+            confirmEnabled: canSave,
+            onCancel: { dismiss() },
+            onConfirm: saveReminder
+        ) {
+            InfotainmentField(label: "Reminder Name") {
+                TextField("Name", text: $name)
+            }
 
-        NavigationStack {
+            InfotainmentChipPicker(
+                title: "Reminder Type",
+                selection: $reminderType,
+                options: ReminderType.allCases,
+                itemTitle: { $0.rawValue }
+            )
 
-            Form {
+            InfotainmentChipPicker(
+                title: "Related To",
+                selection: $vehicleArea,
+                options: Array(VehicleArea.allCases),
+                itemTitle: { $0.displayName }
+            )
 
-                Section("Reminder") {
+            InfotainmentSectionHeader(title: "Due")
 
-                    TextField("Reminder Name", text: $name)
-
-                    Picker("Reminder Type", selection: $reminderType) {
-
-                        ForEach(ReminderType.allCases, id: \.self) {
-
-                            Text($0.rawValue)
-                                .tag($0)
-
-                        }
-
-                    }
-
-                    Picker("Related To", selection: $vehicleArea) {
-
-                        ForEach(VehicleArea.allCases) { area in
-                            Text(area.displayName)
-                                .tag(area)
-                        }
-
-                    }
-
-                }
-
-                Section("Due") {
-
-                    switch reminderType {
-
-                    case .date:
-
-                        DatePicker(
-                            "Due Date",
-                            selection: $dueDate,
-                            displayedComponents: .date
-                        )
-
-                    case .mileage:
-
-                        TextField(
-                            "Due Mileage",
-                            text: $dueMileage
-                        )
-                        .keyboardType(.numberPad)
-
-                    case .whicheverComesFirst:
-
-                        DatePicker(
-                            "Due Date",
-                            selection: $dueDate,
-                            displayedComponents: .date
-                        )
-
-                        TextField(
-                            "Due Mileage",
-                            text: $dueMileage
-                        )
-                        .keyboardType(.numberPad)
-
-                    }
-
-                }
-
-                Section("Notes") {
-
-                    TextField(
-                        "Optional Notes",
-                        text: $notes,
-                        axis: .vertical
+            switch reminderType {
+            case .date:
+                InfotainmentField(label: "Due Date") {
+                    DatePicker(
+                        "Due Date",
+                        selection: $dueDate,
+                        displayedComponents: .date
                     )
-
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
                 }
 
+            case .mileage:
+                InfotainmentField(label: "Due Mileage") {
+                    TextField("Due Mileage", text: $dueMileage)
+                        .keyboardType(.numberPad)
+                }
+
+            case .whicheverComesFirst:
+                InfotainmentField(label: "Due Date") {
+                    DatePicker(
+                        "Due Date",
+                        selection: $dueDate,
+                        displayedComponents: .date
+                    )
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                }
+
+                InfotainmentField(label: "Due Mileage") {
+                    TextField("Due Mileage", text: $dueMileage)
+                        .keyboardType(.numberPad)
+                }
             }
-            .navigationTitle("New Reminder")
-            .toolbar {
 
-                ToolbarItem(placement: .topBarLeading) {
-
-                    Button("Cancel") {
-                        dismiss()
-                    }
-
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-
-                    Button("Save") {
-                        saveReminder()
-                    }
-
-                }
-
+            InfotainmentField(label: "Notes") {
+                TextField("Optional notes", text: $notes, axis: .vertical)
+                    .lineLimit(3...6)
             }
-
         }
-
+        .appTheme()
     }
 
     private func saveReminder() {
-
         guard !name.isEmpty else {
             return
         }
@@ -142,12 +105,8 @@ struct AddServiceReminderView: View {
             vehicleArea: vehicleArea
         )
 
-        reminder.vehicle = vehicle //appends this reminder to the array holding the in the model. This holds the relationship together.
-
+        reminder.vehicle = vehicle
         modelContext.insert(reminder)
-
         dismiss()
-
     }
-
 }

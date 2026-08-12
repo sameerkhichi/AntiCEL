@@ -27,67 +27,33 @@ struct CompleteServiceSheet: View {
     }
 
     var body: some View {
-
-        NavigationStack {
-
-            Form {
-
-                Section("Completion") {
-
-                    DatePicker(
-                        "Completion Date",
-                        selection: $completionDate,
-                        displayedComponents: .date
-                    )
-
-                    VStack(alignment: .leading, spacing: 6) {
-
-                        Text("Mileage")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-
-                        TextField(
-                            "Current mileage",
-                            text: $completionMileage
-                        )
-                        .keyboardType(.numberPad)
-
-                    }
-
-                }
-
+        InfotainmentScaffold(
+            title: "Complete Service",
+            confirmTitle: "Continue",
+            onCancel: { dismiss() },
+            onConfirm: {
+                onContinue(
+                    completionDate,
+                    Int(completionMileage)
+                )
+                dismiss()
             }
-            .navigationTitle("Complete Service")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-
-                ToolbarItem(placement: .cancellationAction) {
-
-                    Button("Cancel") {
-                        dismiss()
-                    }
-
-                }
-
-                ToolbarItem(placement: .confirmationAction) {
-
-                    Button("Continue") {
-
-                        onContinue(
-                            completionDate,
-                            Int(completionMileage)
-                        )
-                        dismiss()
-
-                    }
-                    .bold()
-
-                }
-
+        ) {
+            InfotainmentField(label: "Completion Date") {
+                DatePicker(
+                    "Completion Date",
+                    selection: $completionDate,
+                    displayedComponents: .date
+                )
+                .labelsHidden()
+                .datePickerStyle(.compact)
             }
 
+            InfotainmentField(label: "Mileage") {
+                TextField("Current mileage", text: $completionMileage)
+                    .keyboardType(.numberPad)
+            }
         }
-
+        .appTheme()
     }
-
 }

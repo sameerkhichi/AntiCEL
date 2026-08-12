@@ -1,7 +1,5 @@
 import Foundation
 
-//this enum is to track what section the user is currently viewing on the vehicle detail page.
-
 enum VehicleDetailSection: String, CaseIterable, Identifiable {
 
     case overview = "Overview"
@@ -14,13 +12,13 @@ enum VehicleDetailSection: String, CaseIterable, Identifiable {
     var iconName: String {
         switch self {
         case .overview:
-            return "house.fill"
+            return "gauge"
         case .history:
             return "clock.fill"
         case .documents:
-            return "doc.text.fill"
+            return "folder.fill"
         case .settings:
-            return "gearshape.fill"
+            return "slider.horizontal.3"
         }
     }
 }

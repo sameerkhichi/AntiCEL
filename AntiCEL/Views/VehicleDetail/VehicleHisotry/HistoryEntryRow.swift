@@ -32,50 +32,38 @@ struct HistoryEntryRow: View {
     }
 
     var body: some View {
+        DashPanel(padding: 14, cornerRadius: 14) {
+            HStack(alignment: .top, spacing: 16) {
+                Image(systemName: categoryIcon)
+                    .font(.title2)
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 32)
 
-        HStack(alignment: .top, spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(entry.title)
+                        .font(.headline)
 
-            Image(systemName: categoryIcon)
-                .font(.title2)
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 32)
-
-            VStack(alignment: .leading, spacing: 6) {
-
-                Text(entry.title)
-                    .font(.headline)
-
-                Text(formattedDate)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                Text(entry.resolvedVehicleArea.displayName)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-
-                if let mileage = entry.mileage {
-                    Text("\(mileage.formatted()) km")
+                    Text(formattedDate)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+
+                    Text(entry.resolvedVehicleArea.displayName)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+
+                    if let mileage = entry.mileage {
+                        Text("\(mileage.formatted()) km")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.tertiary)
             }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .foregroundStyle(.tertiary)
-
-        }
-        .padding()
-        .background(.background)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(.quaternary)
         }
         .padding(.horizontal)
-
     }
-
 }

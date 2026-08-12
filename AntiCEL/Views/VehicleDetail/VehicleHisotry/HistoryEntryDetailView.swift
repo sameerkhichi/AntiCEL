@@ -8,7 +8,6 @@ struct HistoryEntryDetailView: View {
 
     @Bindable var vehicle: Vehicle
 
-    //optional properties for when a service reminder is converted into a history event.
     var initialTitle: String?
     var initialCategory: HistoryCategory?
     var initialVehicleArea: VehicleArea?
@@ -30,78 +29,52 @@ struct HistoryEntryDetailView: View {
     }
 
     var body: some View {
-
-        Form {
-
-            Section("Details") {
-
+        InfotainmentScaffold(
+            title: isEditing ? "Edit Entry" : "New Entry",
+            onCancel: { dismiss() },
+            onConfirm: saveEntry
+        ) {
+            InfotainmentField(label: "Title") {
                 TextField("Title", text: $title)
+            }
 
-                Picker("Category", selection: $category) {
+            InfotainmentChipPicker(
+                title: "Category",
+                selection: $category,
+                options: Array(HistoryCategory.allCases),
+                itemTitle: { $0.rawValue.capitalized }
+            )
 
-                    ForEach(HistoryCategory.allCases, id: \.self) { category in
-                        Text(category.rawValue.capitalized)
-                            .tag(category)
-                    }
-                }
+            InfotainmentChipPicker(
+                title: "Related To",
+                selection: $vehicleArea,
+                options: Array(VehicleArea.allCases),
+                itemTitle: { $0.displayName }
+            )
 
-                Picker("Related To", selection: $vehicleArea) {
-
-                    ForEach(VehicleArea.allCases) { area in
-                        Text(area.displayName)
-                            .tag(area)
-                    }
-                }
-
+            InfotainmentField(label: "Date") {
                 DatePicker(
                     "Date",
                     selection: $date,
                     displayedComponents: .date
                 )
+                .labelsHidden()
+                .datePickerStyle(.compact)
+            }
 
+            InfotainmentField(label: "Mileage") {
                 TextField("Mileage", text: $mileage)
                     .keyboardType(.numberPad)
-
             }
 
-            Section("Notes") {
-
-                TextField(
-                    "Notes",
-                    text: $notes,
-                    axis: .vertical
-                )
-                .lineLimit(4...8)
-
-            }
-
-        }
-        .navigationTitle(isEditing ? "Edit Entry" : "New Entry")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-
-            ToolbarItem(placement: .cancellationAction) {
-
-                Button("Cancel") {
-                    dismiss()
-                }
-            }
-
-            ToolbarItem(placement: .confirmationAction) {
-
-                Button("Save") {
-
-                    saveEntry()
-
-                }
-                .bold()
-
+            InfotainmentField(label: "Notes") {
+                TextField("Notes", text: $notes, axis: .vertical)
+                    .lineLimit(4...8)
             }
         }
+        .appTheme()
         .onAppear {
-
             if let historyEntry {
-
                 title = historyEntry.title
                 category = historyEntry.category
                 vehicleArea = historyEntry.resolvedVehicleArea
@@ -111,9 +84,7 @@ struct HistoryEntryDetailView: View {
                 if let mileageValue = historyEntry.mileage {
                     mileage = String(mileageValue)
                 }
-
             } else {
-
                 title = initialTitle ?? ""
                 category = initialCategory ?? .maintenance
                 vehicleArea = initialVehicleArea ?? .misc
@@ -128,18 +99,14 @@ struct HistoryEntryDetailView: View {
     }
 
     private func saveEntry() {
-
         if let historyEntry {
-
             historyEntry.title = title
             historyEntry.category = category
             historyEntry.vehicleArea = vehicleArea
             historyEntry.date = date
             historyEntry.details = notes
             historyEntry.mileage = Int(mileage)
-
         } else {
-
             let newEntry = HistoryEntry(
                 title: title,
                 details: notes,
@@ -152,13 +119,11 @@ struct HistoryEntryDetailView: View {
 
             modelContext.insert(newEntry)
             vehicle.historyEntries.append(newEntry)
-            
+
             if let completedReminder {
                 modelContext.delete(completedReminder)
             }
         }
         dismiss()
-
     }
-
 }

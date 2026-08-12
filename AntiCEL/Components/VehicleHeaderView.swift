@@ -1,4 +1,3 @@
-//this is basically a template file so that we can reuse this type of header elsewhere for widgets and other.
 import SwiftUI
 
 struct VehicleHeaderView: View {
@@ -6,34 +5,28 @@ struct VehicleHeaderView: View {
     let vehicle: Vehicle
 
     var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "car.side.fill")
+                .font(.system(size: 56, weight: .regular))
+                .foregroundStyle(Color.primary.opacity(0.92))
+                .shadow(color: Color.accentColor.opacity(0.35), radius: 12, y: 4)
+                .padding(.top, 8)
 
-        VStack(spacing: 12) {
-
-            Image(systemName: "car.fill")
-                .font(.system(size: 50))
-                .foregroundStyle(.white)
-                .frame(width: 90, height: 90)
-                .background(.blue)
-                .clipShape(Circle())
-
-            Text(String(vehicle.year))
-                .font(.headline)
-
-            Text("\(vehicle.make) \(vehicle.model)")
-                .font(.title2)
-                .fontWeight(.bold)
+            Text("\(String(vehicle.year))  \(vehicle.make.uppercased())  \(vehicle.model.uppercased())")
+                .font(.appBadge)
+                .tracking(1.8)
+                .foregroundStyle(.secondary)
 
             if !vehicle.nickname.isEmpty {
                 Text(vehicle.nickname)
-                    .foregroundStyle(.secondary)
+                    .font(.title2.weight(.semibold).width(.condensed))
             }
 
             Text("\(vehicle.currentMileage.formatted()) km")
-                .font(.headline)
-
+                .font(.appOdometer)
+                .foregroundStyle(Color.accentColor)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical)
-
+        .padding(.vertical, 12)
     }
 }

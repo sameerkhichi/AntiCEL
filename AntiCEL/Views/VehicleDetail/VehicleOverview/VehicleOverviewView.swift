@@ -16,7 +16,6 @@ struct VehicleOverviewView: View {
 
         }
         .padding(.vertical)
-
     }
 }
 
@@ -31,4 +30,5 @@ struct VehicleOverviewView: View {
             currentMileage: 79500
         )
     )
+    .appTheme()
 }

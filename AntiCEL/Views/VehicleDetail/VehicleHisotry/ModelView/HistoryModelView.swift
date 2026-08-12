@@ -39,12 +39,8 @@ struct HistoryModelView: View {
                 } label: {
                     Image(systemName: "arrow.counterclockwise")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-                        .frame(width: 34, height: 34)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(DashButtonStyle(kind: .compact))
                 .padding(.trailing, 16)
                 .padding(.top, 12)
                 .accessibilityLabel("Reset model view")
@@ -66,22 +62,11 @@ struct HistoryModelView: View {
 
                             Label(area.shortLabel, systemImage: area.iconName)
                                 .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(
-                                    selectedArea == area
-                                        ? Color.accentColor.opacity(0.18)
-                                        : Color(.secondarySystemBackground)
-                                )
-                                .foregroundStyle(
-                                    selectedArea == area
-                                        ? Color.accentColor
-                                        : Color.primary
-                                )
-                                .clipShape(Capsule())
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
 
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(DashButtonStyle(isSelected: selectedArea == area, kind: .compact))
 
                     }
 
@@ -114,74 +99,60 @@ struct HistoryModelView: View {
     }
 
     private var areaSummaryCard: some View {
+        DashPanel {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Areas")
+                    .font(.title3.weight(.semibold).width(.condensed))
 
-        VStack(alignment: .leading, spacing: 12) {
+                ForEach(VehicleArea.allCases) { area in
+                    let count = vehicle.historyEntries.filter { $0.resolvedVehicleArea == area }.count
+                    let latest = vehicle.historyEntries
+                        .filter { $0.resolvedVehicleArea == area }
+                        .sorted { $0.date > $1.date }
+                        .first
 
-            Text("Areas")
-                .font(.subheadline.weight(.semibold))
+                    Button {
+                        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                            selectedArea = area
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: area.iconName)
+                                .foregroundStyle(Color.accentColor)
+                                .frame(width: 24)
 
-            ForEach(VehicleArea.allCases) { area in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(area.displayName)
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(.primary)
 
-                let count = vehicle.historyEntries.filter { $0.resolvedVehicleArea == area }.count
-                let latest = vehicle.historyEntries
-                    .filter { $0.resolvedVehicleArea == area }
-                    .sorted { $0.date > $1.date }
-                    .first
-
-                Button {
-                    withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                        selectedArea = area
-                    }
-                } label: {
-
-                    HStack {
-
-                        Image(systemName: area.iconName)
-                            .foregroundStyle(Color.accentColor)
-                            .frame(width: 24)
-
-                        VStack(alignment: .leading, spacing: 2) {
-
-                            Text(area.displayName)
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(.primary)
-
-                            if let latest {
-                                Text(
-                                    "Last: \(latest.title) · \(latest.date.formatted(date: .abbreviated, time: .omitted))"
-                                )
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                            } else {
-                                Text("No records yet")
+                                if let latest {
+                                    Text(
+                                        "Last: \(latest.title) · \(latest.date.formatted(date: .abbreviated, time: .omitted))"
+                                    )
                                     .font(.caption2)
-                                    .foregroundStyle(.tertiary)
+                                    .foregroundStyle(.secondary)
+                                } else {
+                                    Text("No records yet")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
                             }
 
+                            Spacer()
+
+                            Text("\(count)")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
                         }
-
-                        Spacer()
-
-                        Text("\(count)")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
-
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-
             }
-
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .padding(.horizontal)
         .padding(.bottom)
-
     }
 
 }
@@ -197,4 +168,5 @@ struct HistoryModelView: View {
             )
         )
     }
+    .appTheme()
 }

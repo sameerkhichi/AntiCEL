@@ -14,89 +14,80 @@ struct VehicleSettingsView: View {
     @State private var didSave = false
 
     var body: some View {
-
         VStack(alignment: .leading, spacing: 20) {
+            DashPanel {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Identification")
+                        .font(.title3.weight(.semibold).width(.condensed))
 
-            settingsCard(title: "Identification") {
+                    Rectangle()
+                        .fill(.quaternary)
+                        .frame(height: 1)
 
-                TextField("VIN", text: $vin)
-                    .textInputAutocapitalization(.characters)
-                    .autocorrectionDisabled()
-
+                    TextField("VIN", text: $vin)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                }
             }
+            .padding(.horizontal)
 
-            settingsCard(title: "Vehicle Information") {
+            DashPanel {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Vehicle Information")
+                        .font(.title3.weight(.semibold).width(.condensed))
 
-                TextField("Year", text: $year)
-                    .keyboardType(.numberPad)
+                    Rectangle()
+                        .fill(.quaternary)
+                        .frame(height: 1)
 
-                Divider()
+                    TextField("Year", text: $year)
+                        .keyboardType(.numberPad)
 
-                TextField("Make", text: $make)
+                    Rectangle()
+                        .fill(.quaternary)
+                        .frame(height: 1)
 
-                Divider()
+                    TextField("Make", text: $make)
 
-                TextField("Model", text: $model)
+                    Rectangle()
+                        .fill(.quaternary)
+                        .frame(height: 1)
 
-                Divider()
+                    TextField("Model", text: $model)
 
-                TextField("Nickname", text: $nickname)
+                    Rectangle()
+                        .fill(.quaternary)
+                        .frame(height: 1)
 
-                Divider()
+                    TextField("Nickname", text: $nickname)
 
-                TextField("Mileage", text: $mileage)
-                    .keyboardType(.numberPad)
+                    Rectangle()
+                        .fill(.quaternary)
+                        .frame(height: 1)
 
+                    TextField("Mileage", text: $mileage)
+                        .keyboardType(.numberPad)
+                }
             }
+            .padding(.horizontal)
 
-            Button("Save Changes") {
-                saveChanges()
+            DashButton(isSelected: canSave, kind: .bar, action: saveChanges) {
+                Text("Save Changes")
             }
-            .buttonStyle(.borderedProminent)
-            .frame(maxWidth: .infinity)
             .disabled(!canSave)
             .padding(.horizontal)
 
             if didSave {
-
                 Text("Changes saved.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
-
             }
-
         }
         .padding(.vertical)
         .onAppear {
             loadValues()
         }
-
-    }
-
-    @ViewBuilder
-    private func settingsCard<Content: View>(
-        title: String,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-
-        VStack(alignment: .leading, spacing: 16) {
-
-            Text(title)
-                .font(.title3)
-                .fontWeight(.semibold)
-
-            Divider()
-
-            content()
-
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .padding(.horizontal)
-
     }
 
     private var canSave: Bool {
@@ -117,7 +108,6 @@ struct VehicleSettingsView: View {
     }
 
     private func saveChanges() {
-
         guard
             let yearValue = Int(year),
             let mileageValue = Int(mileage)
@@ -134,9 +124,7 @@ struct VehicleSettingsView: View {
         vehicle.updatedAt = Date()
 
         didSave = true
-
     }
-
 }
 
 #Preview {
@@ -148,4 +136,5 @@ struct VehicleSettingsView: View {
             currentMileage: 79500
         )
     )
+    .appTheme()
 }

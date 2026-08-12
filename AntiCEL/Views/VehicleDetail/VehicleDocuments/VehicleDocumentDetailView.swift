@@ -20,94 +20,68 @@ struct VehicleDocumentDetailView: View {
         document != nil
     }
 
+    private var canSave: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     var body: some View {
-
-        Form {
-
-            Section("Details") {
-
+        InfotainmentScaffold(
+            title: isEditing ? "Edit Document" : "New Document",
+            confirmEnabled: canSave,
+            onCancel: { dismiss() },
+            onConfirm: saveDocument
+        ) {
+            InfotainmentField(label: "Title") {
                 TextField("Title", text: $title)
+            }
 
-                Picker("Category", selection: $category) {
+            InfotainmentChipPicker(
+                title: "Category",
+                selection: $category,
+                options: Array(DocumentCategory.allCases),
+                itemTitle: { $0.displayName }
+            )
 
-                    ForEach(DocumentCategory.allCases, id: \.self) { category in
-                        Text(category.displayName)
-                            .tag(category)
-                    }
-
-                }
-
+            InfotainmentField(label: "Date") {
                 DatePicker(
                     "Date",
                     selection: $date,
                     displayedComponents: .date
                 )
+                .labelsHidden()
+                .datePickerStyle(.compact)
+            }
 
+            InfotainmentField(label: "Expires") {
                 Toggle("Expires", isOn: $hasExpirationDate)
+            }
 
-                if hasExpirationDate {
-
+            if hasExpirationDate {
+                InfotainmentField(label: "Expiration Date") {
                     DatePicker(
                         "Expiration Date",
                         selection: $expirationDate,
                         displayedComponents: .date
                     )
-
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
                 }
-
             }
 
-            Section("Notes") {
-
-                TextField(
-                    "Optional notes...",
-                    text: $details,
-                    axis: .vertical
-                )
-                .lineLimit(4...8)
-
+            InfotainmentField(label: "Notes") {
+                TextField("Optional notes...", text: $details, axis: .vertical)
+                    .lineLimit(4...8)
             }
 
             if isEditing {
-
-                Section {
-
-                    Button("Delete Document", role: .destructive) {
-                        deleteDocument()
-                    }
-
+                DashButton(kind: .bar, isDestructive: true, action: deleteDocument) {
+                    Text("Delete Document")
                 }
-
             }
-
         }
-        .navigationTitle(isEditing ? "Edit Document" : "New Document")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-
-            ToolbarItem(placement: .cancellationAction) {
-
-                Button("Cancel") {
-                    dismiss()
-                }
-
-            }
-
-            ToolbarItem(placement: .confirmationAction) {
-
-                Button("Save") {
-                    saveDocument()
-                }
-                .bold()
-                .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-            }
-
-        }
+        .appTheme()
         .onAppear {
-
             if let document {
-
                 title = document.title
                 category = document.category
                 date = document.date
@@ -117,29 +91,22 @@ struct VehicleDocumentDetailView: View {
                     hasExpirationDate = true
                     expirationDate = expiration
                 }
-
             }
-
         }
-
     }
 
     private func saveDocument() {
-
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let expiration = hasExpirationDate ? expirationDate : nil
 
         if let document {
-
             document.title = trimmedTitle
             document.category = category
             document.date = date
             document.details = details
             document.expirationDate = expiration
             document.updatedAt = Date()
-
         } else {
-
             let newDocument = VehicleDocument(
                 title: trimmedTitle,
                 details: details,
@@ -151,37 +118,26 @@ struct VehicleDocumentDetailView: View {
 
             modelContext.insert(newDocument)
             vehicle.documents.append(newDocument)
-
         }
 
         dismiss()
-
     }
 
     private func deleteDocument() {
-
         guard let document else { return }
-
         modelContext.delete(document)
         dismiss()
-
     }
-
 }
 
 #Preview {
-
-    NavigationStack {
-
-        VehicleDocumentDetailView(
-            vehicle: Vehicle(
-                make: "Audi",
-                model: "S4",
-                year: 2022,
-                currentMileage: 79500
-            )
+    VehicleDocumentDetailView(
+        vehicle: Vehicle(
+            make: "Audi",
+            model: "S4",
+            year: 2022,
+            currentMileage: 79500
         )
-
-    }
-
+    )
+    .appTheme()
 }
