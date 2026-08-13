@@ -59,6 +59,7 @@ struct VehicleModel3DView: UIViewRepresentable {
         uiView.backgroundColor = .clear
         uiView.isOpaque = false
         uiView.scene?.background.contents = UIColor.clear
+        preferCameraControlOverScroll(in: uiView, coordinator: context.coordinator)
 
         if context.coordinator.lastCameraResetID != cameraResetID {
             context.coordinator.lastCameraResetID = cameraResetID
@@ -164,6 +165,7 @@ struct VehicleModel3DView: UIViewRepresentable {
         var onSelect: (VehicleArea) -> Void
         var lastSelectedArea: VehicleArea?
         var lastCameraResetID: UUID?
+        var didBindScrollGestures = false
         weak var scnView: SCNView?
 
         init(onSelect: @escaping (VehicleArea) -> Void) {
@@ -213,5 +215,34 @@ struct VehicleModel3DView: UIViewRepresentable {
             }
             return nil
         }
+    }
+}
+
+private func preferCameraControlOverScroll(in view: SCNView, coordinator: VehicleModel3DView.Coordinator) {
+    guard !coordinator.didBindScrollGestures else { return }
+
+    DispatchQueue.main.async {
+        guard let scrollView = view.enclosingScrollView() else { return }
+
+        view.gestureRecognizers?
+            .compactMap { $0 as? UIPanGestureRecognizer }
+            .forEach { cameraPan in
+                scrollView.panGestureRecognizer.require(toFail: cameraPan)
+            }
+
+        coordinator.didBindScrollGestures = true
+    }
+}
+
+private extension UIView {
+    func enclosingScrollView() -> UIScrollView? {
+        var current: UIView? = superview
+        while let view = current {
+            if let scrollView = view as? UIScrollView {
+                return scrollView
+            }
+            current = view.superview
+        }
+        return nil
     }
 }

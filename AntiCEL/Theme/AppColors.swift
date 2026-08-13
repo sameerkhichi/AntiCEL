@@ -61,14 +61,14 @@ struct AppTheme {
 
     var stallPaint: Color {
         isDark
-            ? Color(red: 0.92, green: 0.84, blue: 0.55).opacity(0.55)
+            ? Color(white: 0.38)
             : Color.white.opacity(0.72)
     }
 
     var bayGlow: Color {
         isDark
-            ? Color(red: 1.0, green: 0.92, blue: 0.72)
-            : Color(red: 1.0, green: 0.98, blue: 0.90)
+            ? Color(red: 0.90, green: 0.94, blue: 1.0)
+            : Color(red: 1.0, green: 0.98, blue: 0.92)
     }
 
     var doorMetalTop: Color {
