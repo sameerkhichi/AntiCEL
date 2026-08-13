@@ -122,11 +122,7 @@ struct InfotainmentChipPicker<Option: Hashable>: View {
         VStack(alignment: .leading, spacing: 8) {
             InfotainmentSectionHeader(title: title)
 
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 96), spacing: 8)],
-                alignment: .leading,
-                spacing: 8
-            ) {
+            ChipFlowLayout(spacing: 8) {
                 ForEach(options, id: \.self) { option in
                     let selected = selection == option
 
@@ -135,11 +131,10 @@ struct InfotainmentChipPicker<Option: Hashable>: View {
                     } label: {
                         Text(itemTitle(option))
                             .font(.caption.weight(.semibold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                            .padding(.horizontal, 8)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .padding(.horizontal, 12)
                             .padding(.vertical, 9)
-                            .frame(maxWidth: .infinity)
                             .background {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                                     .fill(selected ? theme.keyFaceSelected : theme.keyFace)
@@ -160,8 +155,73 @@ struct InfotainmentChipPicker<Option: Hashable>: View {
                             .foregroundStyle(selected ? Color.accentColor : Color.primary)
                     }
                     .buttonStyle(.plain)
+                    .fixedSize(horizontal: true, vertical: true)
                 }
             }
         }
+    }
+}
+
+private struct ChipFlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        let result = arrange(in: maxWidth, subviews: subviews)
+        return CGSize(width: maxWidth.isFinite ? maxWidth : result.width, height: result.height)
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        let result = arrange(in: bounds.width, subviews: subviews)
+        for (index, origin) in result.origins.enumerated() {
+            let size = result.sizes[index]
+            subviews[index].place(
+                at: CGPoint(x: bounds.minX + origin.x, y: bounds.minY + origin.y),
+                proposal: ProposedViewSize(size)
+            )
+        }
+    }
+
+    private func arrange(
+        in maxWidth: CGFloat,
+        subviews: Subviews
+    ) -> (origins: [CGPoint], sizes: [CGSize], width: CGFloat, height: CGFloat) {
+        var origins: [CGPoint] = []
+        var sizes: [CGSize] = []
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var usedWidth: CGFloat = 0
+
+        for subview in subviews {
+            let proposedWidth = maxWidth.isFinite ? maxWidth : nil
+            var size = subview.sizeThatFits(ProposedViewSize(width: proposedWidth, height: nil))
+            if maxWidth.isFinite {
+                size.width = min(size.width, maxWidth)
+            }
+
+            if maxWidth.isFinite, x + size.width > maxWidth, x > 0 {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+
+            origins.append(CGPoint(x: x, y: y))
+            sizes.append(size)
+            rowHeight = max(rowHeight, size.height)
+            x += size.width + spacing
+            usedWidth = max(usedWidth, x - spacing)
+        }
+
+        return (origins, sizes, usedWidth, y + rowHeight)
     }
 }

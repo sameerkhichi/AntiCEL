@@ -8,28 +8,20 @@ struct HistoryModelView: View {
     @State private var cameraResetID = UUID()
 
     var body: some View {
-
         VStack(spacing: 12) {
-
             ZStack(alignment: .topTrailing) {
-
                 VehicleModel3DView(
                     selectedArea: selectedArea,
                     cameraResetID: cameraResetID
                 ) { area in
-
                     withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-
                         if selectedArea == area {
                             selectedArea = nil
                         } else {
                             selectedArea = area
                         }
-
                     }
-
                 }
-                .frame(height: 320)
 
                 Button {
                     cameraResetID = UUID()
@@ -42,60 +34,56 @@ struct HistoryModelView: View {
                 }
                 .buttonStyle(DashButtonStyle(kind: .compact))
                 .padding(.trailing, 16)
-                .padding(.top, 12)
+                .padding(.top, 8)
                 .accessibilityLabel("Reset model view")
-
             }
-            .padding(.top, 4)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(minHeight: 220)
+            .layoutPriority(1)
 
-            ScrollView(.horizontal, showsIndicators: false) {
+            areaChips
 
-                HStack(spacing: 8) {
-
-                    ForEach(VehicleArea.allCases) { area in
-
-                        Button {
-                            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                                selectedArea = selectedArea == area ? nil : area
-                            }
-                        } label: {
-
-                            Label(area.shortLabel, systemImage: area.iconName)
-                                .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 4)
-                                .padding(.vertical, 2)
-
-                        }
-                        .buttonStyle(DashButtonStyle(isSelected: selectedArea == area, kind: .compact))
-
-                    }
-
+            ScrollView {
+                if let selectedArea {
+                    VehicleAreaHistoryPanel(
+                        vehicle: vehicle,
+                        area: selectedArea
+                    )
+                    .transition(
+                        .move(edge: .bottom)
+                        .combined(with: .opacity)
+                    )
+                } else {
+                    areaSummaryCard
+                        .transition(.opacity)
                 }
-                .padding(.horizontal)
-
             }
-
-            if let selectedArea {
-
-                VehicleAreaHistoryPanel(
-                    vehicle: vehicle,
-                    area: selectedArea
-                )
-                .transition(
-                    .move(edge: .bottom)
-                    .combined(with: .opacity)
-                )
-
-            } else {
-
-                areaSummaryCard
-                    .transition(.opacity)
-
-            }
-
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 280)
         }
-        .padding(.bottom)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .padding(.top, 4)
+    }
 
+    private var areaChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(VehicleArea.allCases) { area in
+                    Button {
+                        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                            selectedArea = selectedArea == area ? nil : area
+                        }
+                    } label: {
+                        Label(area.shortLabel, systemImage: area.iconName)
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                    }
+                    .buttonStyle(DashButtonStyle(isSelected: selectedArea == area, kind: .compact))
+                }
+            }
+            .padding(.horizontal)
+        }
     }
 
     private var areaSummaryCard: some View {
@@ -152,9 +140,8 @@ struct HistoryModelView: View {
             }
         }
         .padding(.horizontal)
-        .padding(.bottom)
+        .padding(.bottom, 8)
     }
-
 }
 
 #Preview {

@@ -43,7 +43,7 @@ struct AppTheme {
 
     var keyFaceSelected: Color {
         isDark
-            ? Color(red: 0.22, green: 0.18, blue: 0.10)
+            ? Color(red: 0.26, green: 0.11, blue: 0.09)
             : Color(red: 0.98, green: 0.93, blue: 0.82)
     }
 

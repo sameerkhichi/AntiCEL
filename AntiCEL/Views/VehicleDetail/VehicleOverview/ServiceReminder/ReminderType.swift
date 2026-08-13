@@ -8,6 +8,6 @@ enum ReminderType: String, Codable, CaseIterable {
 
     case mileage = "Mileage"
 
-    case whicheverComesFirst = "Whichever Comes First"
+    case whicheverComesFirst = "Either"
 
 }

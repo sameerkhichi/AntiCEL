@@ -40,7 +40,7 @@ struct VehicleDetailView: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
             VehicleSectionTabBar(selection: $selectedSection)
         }
