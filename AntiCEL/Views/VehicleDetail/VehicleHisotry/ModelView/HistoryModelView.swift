@@ -41,24 +41,29 @@ struct HistoryModelView: View {
                 }
                 .padding(.top, 4)
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(VehicleArea.allCases) { area in
-                            Button {
-                                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                                    selectedArea = selectedArea == area ? nil : area
-                                }
-                            } label: {
-                                Label(area.shortLabel, systemImage: area.iconName)
-                                    .font(.caption.weight(.semibold))
-                                    .padding(.horizontal, 4)
-                                    .padding(.vertical, 2)
+                HStack(spacing: 6) {
+                    ForEach(VehicleArea.allCases) { area in
+                        Button {
+                            withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                                selectedArea = selectedArea == area ? nil : area
                             }
-                            .buttonStyle(DashButtonStyle(isSelected: selectedArea == area, kind: .compact))
+                        } label: {
+                            VStack(spacing: 3) {
+                                Image(systemName: area.iconName)
+                                    .font(.system(size: 13, weight: .semibold))
+
+                                Text(area.shortLabel)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.75)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 2)
                         }
+                        .buttonStyle(DashButtonStyle(isSelected: selectedArea == area, kind: .key))
                     }
-                    .padding(.horizontal)
                 }
+                .padding(.horizontal, 16)
 
                 if let selectedArea {
                     VehicleAreaHistoryPanel(

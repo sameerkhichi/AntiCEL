@@ -54,9 +54,7 @@ struct GarageBayCard: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Text("\(vehicle.currentMileage.formatted()) km")
-                    .font(.appOdometer)
-                    .foregroundStyle(Color.accentColor)
+                OdometerView(mileage: vehicle.currentMileage, compact: true)
             }
         }
         .padding(.horizontal, 20)

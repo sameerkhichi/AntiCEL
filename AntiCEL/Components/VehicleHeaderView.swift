@@ -22,9 +22,7 @@ struct VehicleHeaderView: View {
                     .font(.title2.weight(.semibold).width(.condensed))
             }
 
-            Text("\(vehicle.currentMileage.formatted()) km")
-                .font(.appOdometer)
-                .foregroundStyle(Color.accentColor)
+            OdometerView(mileage: vehicle.currentMileage)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)

@@ -34,7 +34,7 @@ enum VehicleArea: String, Codable, CaseIterable, Identifiable {
         case .wheels:
             return "Wheels"
         case .misc:
-            return "Trunk"
+            return "Misc"
         }
     }
 
