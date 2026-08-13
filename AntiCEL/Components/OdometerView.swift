@@ -9,38 +9,42 @@ struct OdometerView: View {
     var compact: Bool = false
 
     var body: some View {
-        HStack(alignment: .center, spacing: compact ? 6 : 8) {
-            HStack(spacing: compact ? 1.5 : 2.5) {
-                ForEach(Array(paddedDigits.enumerated()), id: \.offset) { _, character in
-                    digitWindow(character)
-                }
+        digitCluster
+            .overlay(alignment: .trailing) {
+                Text("km")
+                    .font(.appBadge)
+                    .tracking(1.2)
+                    .foregroundStyle(.secondary)
+                    .offset(x: compact ? 22 : 26)
             }
-            .padding(.horizontal, compact ? 4 : 6)
-            .padding(.vertical, compact ? 4 : 5)
-            .background {
-                RoundedRectangle(cornerRadius: compact ? 6 : 8, style: .continuous)
-                    .fill(housing)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: compact ? 6 : 8, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [theme.highlight.opacity(0.45), theme.edge],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ),
-                                lineWidth: 1
-                            )
-                    }
-                    .shadow(color: .black.opacity(theme.isDark ? 0.5 : 0.18), radius: 3, y: 2)
-            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(mileage.formatted()) kilometers")
+    }
 
-            Text("km")
-                .font(.appBadge)
-                .tracking(1.2)
-                .foregroundStyle(.secondary)
+    private var digitCluster: some View {
+        HStack(spacing: compact ? 1.5 : 2.5) {
+            ForEach(Array(paddedDigits.enumerated()), id: \.offset) { _, character in
+                digitWindow(character)
+            }
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(mileage.formatted()) kilometers")
+        .padding(.horizontal, compact ? 4 : 6)
+        .padding(.vertical, compact ? 4 : 5)
+        .background {
+            RoundedRectangle(cornerRadius: compact ? 6 : 8, style: .continuous)
+                .fill(housing)
+                .overlay {
+                    RoundedRectangle(cornerRadius: compact ? 6 : 8, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [theme.highlight.opacity(0.45), theme.edge],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
+                }
+                .shadow(color: .black.opacity(theme.isDark ? 0.5 : 0.18), radius: 3, y: 2)
+        }
     }
 
     private var paddedDigits: [Character] {
