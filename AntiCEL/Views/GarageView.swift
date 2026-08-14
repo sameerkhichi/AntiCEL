@@ -11,6 +11,7 @@ struct GarageView: View {
     @State private var showingAddVehicle = false
     @State private var vehiclePendingDelete: Vehicle?
     @State private var vehicleForMileageUpdate: Vehicle?
+    @Binding var pendingMileageVehicleID: UUID?
 
     private var columns: [GridItem] {
         let count = sizeClass == .regular ? 2 : 1
@@ -93,6 +94,26 @@ struct GarageView: View {
                     vehiclePendingDelete = nil
                 }
             }
+            .onChange(of: pendingMileageVehicleID) {
+                openPendingMileageUpdate()
+            }
+            .onChange(of: vehicles.count) {
+                openPendingMileageUpdate()
+            }
+            .onAppear {
+                openPendingMileageUpdate()
+            }
+        }
+    }
+
+    private func openPendingMileageUpdate() {
+        guard let pendingMileageVehicleID else {
+            return
+        }
+
+        if let vehicle = vehicles.first(where: { $0.id == pendingMileageVehicleID }) {
+            vehicleForMileageUpdate = vehicle
+            self.pendingMileageVehicleID = nil
         }
     }
 
@@ -177,6 +198,6 @@ private struct HexagonShape: Shape {
 }
 
 #Preview {
-    GarageView()
+    GarageView(pendingMileageVehicleID: .constant(nil))
         .appTheme()
 }

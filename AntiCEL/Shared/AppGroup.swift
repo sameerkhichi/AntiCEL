@@ -17,3 +17,24 @@ enum AppGroup {
 enum AntiCELWidgetKind {
     static let mileage = "SRKSolutions.AntiCEL.mileage"
 }
+
+enum AntiCELDeepLink {
+    static let scheme = "anticel"
+
+    static func mileage(vehicleID: UUID) -> URL {
+        URL(string: "\(scheme)://vehicle/\(vehicleID.uuidString)/mileage")!
+    }
+
+    static func vehicleIDForMileage(from url: URL) -> UUID? {
+        guard url.scheme == scheme, url.host == "vehicle" else {
+            return nil
+        }
+
+        let parts = url.pathComponents.filter { $0 != "/" }
+        guard parts.count >= 2, parts[1] == "mileage" else {
+            return nil
+        }
+
+        return UUID(uuidString: parts[0])
+    }
+}

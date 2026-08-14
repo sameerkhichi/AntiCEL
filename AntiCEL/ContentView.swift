@@ -5,10 +5,11 @@ struct ContentView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var doorOpen = false
     @State private var showDoor = true
+    @State private var pendingMileageVehicleID: UUID?
 
     var body: some View {
         ZStack {
-            GarageView()
+            GarageView(pendingMileageVehicleID: $pendingMileageVehicleID)
 
             if showDoor && !reduceMotion {
                 GarageDoorOverlay(isOpen: doorOpen)
@@ -18,10 +19,22 @@ struct ContentView: View {
         .onAppear {
             playDoorIfNeeded()
         }
+        .onOpenURL { url in
+            handleOpenURL(url)
+        }
+    }
+
+    private func handleOpenURL(_ url: URL) {
+        guard let vehicleID = AntiCELDeepLink.vehicleIDForMileage(from: url) else {
+            return
+        }
+
+        pendingMileageVehicleID = vehicleID
+        showDoor = false
     }
 
     private func playDoorIfNeeded() {
-        if reduceMotion {
+        if reduceMotion || pendingMileageVehicleID != nil {
             showDoor = false
             return
         }

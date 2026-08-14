@@ -63,6 +63,7 @@
 		E6626E0E2FFB283000540252 /* Exceptions for "AntiCEL" folder in "AntiCELWidget" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Components/DashButton.swift,
 				Components/OdometerView.swift,
 				Models/HistoryEntry.swift,
 				Models/ServiceReminders/ServiceReminder.swift,
@@ -94,6 +95,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				AntiCEL.entitlements,
+				Info.plist,
 			);
 			target = E6626CC22FFB283000540252 /* AntiCEL */;
 		};
@@ -397,6 +399,7 @@
 				DEVELOPMENT_TEAM = N27ND9NXBV;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AntiCEL/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -430,6 +433,7 @@
 				DEVELOPMENT_TEAM = N27ND9NXBV;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AntiCEL/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

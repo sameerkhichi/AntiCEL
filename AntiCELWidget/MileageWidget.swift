@@ -13,7 +13,7 @@ struct MileageWidget: Widget {
                 .appTheme()
         }
         .configurationDisplayName("Odometer")
-        .description("Check a vehicle’s mileage and add kilometers without opening AntiCEL.")
+        .description("Check a vehicle’s mileage. Tap to type a new reading, or use the dash keys to add kilometers.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
     }
 }
@@ -21,13 +21,6 @@ struct MileageWidget: Widget {
 struct MileageEntry: TimelineEntry {
     let date: Date
     let snapshot: MileageSnapshot?
-
-    var vehicleEntity: VehicleEntity? {
-        guard let snapshot else {
-            return nil
-        }
-        return VehicleEntity(id: snapshot.vehicleID, name: snapshot.name)
-    }
 }
 
 struct MileageTimelineProvider: AppIntentTimelineProvider {
@@ -75,8 +68,8 @@ struct MileageWidgetView: View {
 
     var body: some View {
         Group {
-            if let snapshot = entry.snapshot, let vehicle = entry.vehicleEntity {
-                populatedView(snapshot: snapshot, vehicle: vehicle)
+            if let snapshot = entry.snapshot {
+                populatedView(snapshot: snapshot)
             } else {
                 emptyView
             }
@@ -88,10 +81,13 @@ struct MileageWidgetView: View {
                 endPoint: .bottom
             )
         }
+        .widgetURL(entry.snapshot.map { AntiCELDeepLink.mileage(vehicleID: $0.vehicleID) })
     }
 
     @ViewBuilder
-    private func populatedView(snapshot: MileageSnapshot, vehicle: VehicleEntity) -> some View {
+    private func populatedView(snapshot: MileageSnapshot) -> some View {
+        let vehicle = VehicleEntity(id: snapshot.vehicleID, name: snapshot.name)
+
         switch family {
         case .systemMedium:
             VStack(alignment: .leading, spacing: 10) {
@@ -116,14 +112,25 @@ struct MileageWidgetView: View {
             VStack(spacing: 8) {
                 vehicleHeader(snapshot.name)
                 OdometerView(mileage: snapshot.mileage, compact: true)
-                Button(intent: AddMileageIntent(vehicle: vehicle, kilometers: 10)) {
-                    Text("+10 km")
-                        .font(.caption.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
+                incrementRow(vehicle: vehicle)
             }
         }
+    }
+
+    private func incrementRow(vehicle: VehicleEntity) -> some View {
+        HStack(spacing: 8) {
+            incrementButton(vehicle: vehicle, kilometers: 10)
+            incrementButton(vehicle: vehicle, kilometers: 50)
+            incrementButton(vehicle: vehicle, kilometers: 100)
+        }
+    }
+
+    private func incrementButton(vehicle: VehicleEntity, kilometers: Int) -> some View {
+        Button(intent: AddMileageIntent(vehicle: vehicle, kilometers: kilometers)) {
+            Text("+\(kilometers)")
+        }
+        .buttonStyle(DashButtonStyle(isSelected: true, kind: .key))
+        .invalidatableContent()
     }
 
     private var emptyView: some View {
@@ -152,25 +159,6 @@ struct MileageWidgetView: View {
                 .lineLimit(1)
             Spacer(minLength: 0)
         }
-    }
-
-    private func incrementRow(vehicle: VehicleEntity) -> some View {
-        HStack(spacing: 8) {
-            incrementButton(vehicle: vehicle, kilometers: 10)
-            incrementButton(vehicle: vehicle, kilometers: 50)
-            incrementButton(vehicle: vehicle, kilometers: 100)
-        }
-    }
-
-    private func incrementButton(vehicle: VehicleEntity, kilometers: Int) -> some View {
-        Button(intent: AddMileageIntent(vehicle: vehicle, kilometers: kilometers)) {
-            Text("+\(kilometers)")
-                .font(.caption.weight(.semibold))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
-        }
-        .buttonStyle(.bordered)
-        .tint(Color.accentColor)
     }
 }
 
