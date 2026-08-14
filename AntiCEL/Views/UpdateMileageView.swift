@@ -79,6 +79,7 @@ struct UpdateMileageView: View {
 
         vehicle.currentMileage = parsedMileage
         vehicle.updatedAt = Date()
+        WidgetReloader.reload()
         dismiss()
     }
 }

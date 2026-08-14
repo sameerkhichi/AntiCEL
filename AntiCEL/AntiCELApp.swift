@@ -4,18 +4,8 @@ import SwiftData
 @main
 struct AntiCELApp: App {
     var sharedModelContainer: ModelContainer = {
-        //this is where you register different models that you create.
-        let schema = Schema([
-            Vehicle.self,
-            ServiceReminder.self,
-            VehicleNote.self,
-            HistoryEntry.self,
-            VehicleDocument.self
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try SharedModelContainer.make()
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }

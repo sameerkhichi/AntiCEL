@@ -6,20 +6,89 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		E6626E0A2FFB283000540252 /* AntiCELWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E6626E012FFB283000540252 /* AntiCELWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E6626E0D2FFB283000540252 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E6626CBB2FFB283000540252 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E6626E032FFB283000540252;
+			remoteInfo = AntiCELWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		E6626E0F2FFB283000540252 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				E6626E0A2FFB283000540252 /* AntiCELWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		E6626CC32FFB283000540252 /* AntiCEL.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AntiCEL.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E6626E012FFB283000540252 /* AntiCELWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AntiCELWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E6626CC52FFB283000540252 /* AntiCEL */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E6626E0E2FFB283000540252 /* Exceptions for "AntiCEL" folder in "AntiCELWidget" target */,
+			);
 			path = AntiCEL;
+			sourceTree = "<group>";
+		};
+		E6626E022FFB283000540252 /* AntiCELWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AntiCELWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E6626E0E2FFB283000540252 /* Exceptions for "AntiCEL" folder in "AntiCELWidget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Components/OdometerView.swift,
+				Models/HistoryEntry.swift,
+				Models/ServiceReminders/ServiceReminder.swift,
+				Models/Vehicle.swift,
+				Models/VehicleDocument.swift,
+				Models/VehicleNote.swift,
+				Shared/AppGroup.swift,
+				Shared/MileageIntents.swift,
+				Shared/MileageWriter.swift,
+				Shared/SharedModelContainer.swift,
+				Shared/VehicleEntity.swift,
+				Theme/AppColors.swift,
+				Views/VehicleDetail/VehicleDocuments/DocumentCategory.swift,
+				Views/VehicleDetail/VehicleHisotry/HistoryCategory.swift,
+				Views/VehicleDetail/VehicleHisotry/VehicleArea.swift,
+				Views/VehicleDetail/VehicleOverview/ServiceReminder/ReminderType.swift,
+			);
+			target = E6626E032FFB283000540252 /* AntiCELWidget */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		E6626CC02FFB283000540252 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E6626E042FFB283000540252 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +102,7 @@
 			isa = PBXGroup;
 			children = (
 				E6626CC52FFB283000540252 /* AntiCEL */,
+				E6626E022FFB283000540252 /* AntiCELWidget */,
 				E6626CC42FFB283000540252 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +111,7 @@
 			isa = PBXGroup;
 			children = (
 				E6626CC32FFB283000540252 /* AntiCEL.app */,
+				E6626E012FFB283000540252 /* AntiCELWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -55,10 +126,12 @@
 				E6626CBF2FFB283000540252 /* Sources */,
 				E6626CC02FFB283000540252 /* Frameworks */,
 				E6626CC12FFB283000540252 /* Resources */,
+				E6626E0F2FFB283000540252 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				E6626E0C2FFB283000540252 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				E6626CC52FFB283000540252 /* AntiCEL */,
@@ -69,6 +142,28 @@
 			productName = AntiCEL;
 			productReference = E6626CC32FFB283000540252 /* AntiCEL.app */;
 			productType = "com.apple.product-type.application";
+		};
+		E6626E032FFB283000540252 /* AntiCELWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E6626E092FFB283000540252 /* Build configuration list for PBXNativeTarget "AntiCELWidget" */;
+			buildPhases = (
+				E6626E052FFB283000540252 /* Sources */,
+				E6626E042FFB283000540252 /* Frameworks */,
+				E6626E062FFB283000540252 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E6626E022FFB283000540252 /* AntiCELWidget */,
+			);
+			name = AntiCELWidget;
+			packageProductDependencies = (
+			);
+			productName = AntiCELWidget;
+			productReference = E6626E012FFB283000540252 /* AntiCELWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -81,6 +176,9 @@
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
 					E6626CC22FFB283000540252 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					E6626E032FFB283000540252 = {
 						CreatedOnToolsVersion = 26.6;
 					};
 				};
@@ -100,12 +198,20 @@
 			projectRoot = "";
 			targets = (
 				E6626CC22FFB283000540252 /* AntiCEL */,
+				E6626E032FFB283000540252 /* AntiCELWidget */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		E6626CC12FFB283000540252 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E6626E062FFB283000540252 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +228,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E6626E052FFB283000540252 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E6626E0C2FFB283000540252 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E6626E032FFB283000540252 /* AntiCELWidget */;
+			targetProxy = E6626E0D2FFB283000540252 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		E6626CCE2FFB283200540252 /* Debug */ = {
@@ -251,6 +372,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = AntiCEL/AntiCEL.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = N27ND9NXBV;
@@ -283,6 +405,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = AntiCEL/AntiCEL.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = N27ND9NXBV;
@@ -310,6 +433,70 @@
 			};
 			name = Release;
 		};
+		E6626E072FFB283000540252 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = AntiCELWidget/AntiCELWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N27ND9NXBV;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AntiCELWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Mileage;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = SRKSolutions.AntiCEL.MileageWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		E6626E082FFB283000540252 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = AntiCELWidget/AntiCELWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = N27ND9NXBV;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AntiCELWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Mileage;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = SRKSolutions.AntiCEL.MileageWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -327,6 +514,15 @@
 			buildConfigurations = (
 				E6626CD12FFB283200540252 /* Debug */,
 				E6626CD22FFB283200540252 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E6626E092FFB283000540252 /* Build configuration list for PBXNativeTarget "AntiCELWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E6626E072FFB283000540252 /* Debug */,
+				E6626E082FFB283000540252 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

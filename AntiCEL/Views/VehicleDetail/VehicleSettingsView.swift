@@ -124,6 +124,7 @@ struct VehicleSettingsView: View {
         vehicle.updatedAt = Date()
 
         didSave = true
+        WidgetReloader.reload()
     }
 }
 

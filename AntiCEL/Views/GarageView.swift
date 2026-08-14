@@ -85,6 +85,7 @@ struct GarageView: View {
                 Button("Remove", role: .destructive) {
                     if let vehiclePendingDelete {
                         modelContext.delete(vehiclePendingDelete)
+                        WidgetReloader.reload()
                     }
                     vehiclePendingDelete = nil
                 }

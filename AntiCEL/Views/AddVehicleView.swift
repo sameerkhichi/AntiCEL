@@ -66,6 +66,7 @@ struct AddVehicleView: View {
         )
 
         modelContext.insert(vehicle)
+        WidgetReloader.reload()
         dismiss()
     }
 }
