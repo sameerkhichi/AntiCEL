@@ -28,7 +28,6 @@ struct VehicleHeaderView: View {
                 showingUpdateMileage = true
             } label: {
                 OdometerView(mileage: vehicle.currentMileage)
-                    .padding(.trailing, 26)
                     .contentShape(Rectangle())
             }
             .buttonStyle(OdometerTapStyle())

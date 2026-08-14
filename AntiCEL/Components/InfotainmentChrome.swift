@@ -7,6 +7,7 @@ struct InfotainmentScaffold<Content: View>: View {
     let title: String
     var confirmTitle: String = "Save"
     var confirmEnabled: Bool = true
+    var scrolls: Bool = true
     let onCancel: () -> Void
     let onConfirm: () -> Void
     @ViewBuilder var content: () -> Content
@@ -15,17 +16,26 @@ struct InfotainmentScaffold<Content: View>: View {
         VStack(spacing: 0) {
             header
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    content()
+            if scrolls {
+                ScrollView {
+                    contentStack
                 }
-                .padding(20)
-                .padding(.bottom, 24)
+            } else {
+                contentStack
+                Spacer(minLength: 0)
             }
         }
         .background(theme.infotainment.ignoresSafeArea())
         .presentationBackground(theme.infotainment)
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var contentStack: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            content()
+        }
+        .padding(20)
+        .padding(.bottom, 24)
     }
 
     private var header: some View {

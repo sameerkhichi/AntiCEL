@@ -9,6 +9,8 @@ struct UpdateMileageView: View {
 
     @State private var mileage: String
 
+    private let digitCount = 6
+
     init(vehicle: Vehicle) {
         self.vehicle = vehicle
         _mileage = State(initialValue: String(vehicle.currentMileage))
@@ -25,21 +27,44 @@ struct UpdateMileageView: View {
         parsedMileage != nil
     }
 
+    private var mileageValueBinding: Binding<Int> {
+        Binding(
+            get: { parsedMileage ?? 0 },
+            set: { mileage = String($0) }
+        )
+    }
+
     var body: some View {
         InfotainmentScaffold(
             title: "Update Mileage",
             confirmEnabled: canSave,
+            scrolls: false,
             onCancel: { dismiss() },
             onConfirm: saveMileage
         ) {
             OdometerView(mileage: parsedMileage ?? 0)
                 .frame(maxWidth: .infinity)
-                .padding(.trailing, 26)
                 .padding(.vertical, 8)
+
+            InfotainmentSectionHeader(title: "Digits")
+
+            MileageDigitScroller(
+                mileage: mileageValueBinding,
+                digitCount: digitCount
+            )
+            .frame(maxWidth: .infinity)
 
             InfotainmentField(label: "Mileage") {
                 TextField("Current mileage", text: $mileage)
                     .keyboardType(.numberPad)
+                    .onChange(of: mileage) { _, newValue in
+                        let digitsOnly = newValue.filter(\.isNumber)
+                        if digitsOnly.count > digitCount {
+                            mileage = String(digitsOnly.prefix(digitCount))
+                        } else if digitsOnly != newValue {
+                            mileage = digitsOnly
+                        }
+                    }
             }
         }
         .appTheme()
