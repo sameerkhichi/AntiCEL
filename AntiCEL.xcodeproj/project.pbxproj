@@ -43,6 +43,7 @@
 		E6626CC52FFB283000540252 /* AntiCEL */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				E6626E112FFB283000540252 /* Exceptions for "AntiCEL" folder in "AntiCEL" target */,
 				E6626E0E2FFB283000540252 /* Exceptions for "AntiCEL" folder in "AntiCELWidget" target */,
 			);
 			path = AntiCEL;
@@ -50,6 +51,9 @@
 		};
 		E6626E022FFB283000540252 /* AntiCELWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E6626E102FFB283000540252 /* Exceptions for "AntiCELWidget" folder in "AntiCELWidget" target */,
+			);
 			path = AntiCELWidget;
 			sourceTree = "<group>";
 		};
@@ -77,6 +81,21 @@
 				Views/VehicleDetail/VehicleOverview/ServiceReminder/ReminderType.swift,
 			);
 			target = E6626E032FFB283000540252 /* AntiCELWidget */;
+		};
+		E6626E102FFB283000540252 /* Exceptions for "AntiCELWidget" folder in "AntiCELWidget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				AntiCELWidget.entitlements,
+				Info.plist,
+			);
+			target = E6626E032FFB283000540252 /* AntiCELWidget */;
+		};
+		E6626E112FFB283000540252 /* Exceptions for "AntiCEL" folder in "AntiCEL" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				AntiCEL.entitlements,
+			);
+			target = E6626CC22FFB283000540252 /* AntiCEL */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -438,6 +457,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = AntiCELWidget/AntiCELWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -470,6 +490,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = AntiCELWidget/AntiCELWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
