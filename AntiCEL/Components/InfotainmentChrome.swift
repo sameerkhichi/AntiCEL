@@ -22,7 +22,6 @@ struct InfotainmentScaffold<Content: View>: View {
                 }
             } else {
                 contentStack
-                Spacer(minLength: 0)
             }
         }
         .background(theme.infotainment.ignoresSafeArea())
@@ -36,6 +35,7 @@ struct InfotainmentScaffold<Content: View>: View {
         }
         .padding(20)
         .padding(.bottom, 24)
+        .frame(maxWidth: .infinity, maxHeight: scrolls ? nil : .infinity, alignment: .top)
     }
 
     private var header: some View {

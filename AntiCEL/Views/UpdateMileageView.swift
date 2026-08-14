@@ -46,14 +46,6 @@ struct UpdateMileageView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
 
-            InfotainmentSectionHeader(title: "Digits")
-
-            MileageDigitScroller(
-                mileage: mileageValueBinding,
-                digitCount: digitCount
-            )
-            .frame(maxWidth: .infinity)
-
             InfotainmentField(label: "Mileage") {
                 TextField("Current mileage", text: $mileage)
                     .keyboardType(.numberPad)
@@ -66,6 +58,16 @@ struct UpdateMileageView: View {
                         }
                     }
             }
+
+            Spacer(minLength: 12)
+
+            MileageDigitScroller(
+                mileage: mileageValueBinding,
+                digitCount: digitCount
+            )
+            .frame(maxWidth: .infinity)
+
+            Spacer(minLength: 12)
         }
         .appTheme()
     }
