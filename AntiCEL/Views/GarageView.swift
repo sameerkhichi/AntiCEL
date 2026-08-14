@@ -10,6 +10,7 @@ struct GarageView: View {
 
     @State private var showingAddVehicle = false
     @State private var vehiclePendingDelete: Vehicle?
+    @State private var vehicleForMileageUpdate: Vehicle?
 
     private var columns: [GridItem] {
         let count = sizeClass == .regular ? 2 : 1
@@ -31,14 +32,24 @@ struct GarageView: View {
 
                     LazyVGrid(columns: columns, spacing: 18) {
                         ForEach(vehicles) { vehicle in
-                            NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
-                                GarageBayCard(vehicle: vehicle)
-                            }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                Button("Remove from Garage", role: .destructive) {
-                                    vehiclePendingDelete = vehicle
+                            ZStack(alignment: .topTrailing) {
+                                NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
+                                    GarageBayCard(vehicle: vehicle)
                                 }
+                                .buttonStyle(.plain)
+                                .contextMenu {
+                                    Button("Remove from Garage", role: .destructive) {
+                                        vehiclePendingDelete = vehicle
+                                    }
+                                }
+
+                                DashButton(kind: .compact) {
+                                    vehicleForMileageUpdate = vehicle
+                                } label: {
+                                    Image(systemName: "gauge")
+                                }
+                                .padding(10)
+                                .accessibilityLabel("Update mileage")
                             }
                         }
 
@@ -59,6 +70,9 @@ struct GarageView: View {
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingAddVehicle) {
                 AddVehicleView()
+            }
+            .sheet(item: $vehicleForMileageUpdate) { vehicle in
+                UpdateMileageView(vehicle: vehicle)
             }
             .confirmationDialog(
                 "Remove this vehicle from the garage?",

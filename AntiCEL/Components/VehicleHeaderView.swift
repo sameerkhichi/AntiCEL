@@ -4,6 +4,8 @@ struct VehicleHeaderView: View {
 
     let vehicle: Vehicle
 
+    @State private var showingUpdateMileage = false
+
     var body: some View {
         VStack(spacing: 14) {
             Image(systemName: "car.side.fill")
@@ -22,9 +24,44 @@ struct VehicleHeaderView: View {
                     .font(.title2.weight(.semibold).width(.condensed))
             }
 
-            OdometerView(mileage: vehicle.currentMileage)
+            Button {
+                showingUpdateMileage = true
+            } label: {
+                OdometerView(mileage: vehicle.currentMileage)
+                    .padding(.trailing, 26)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(OdometerTapStyle())
+            .accessibilityHint("Updates current mileage")
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
+        .sheet(isPresented: $showingUpdateMileage) {
+            UpdateMileageView(vehicle: vehicle)
+        }
+    }
+}
+
+private struct OdometerTapStyle: ButtonStyle {
+
+    func makeBody(configuration: Configuration) -> some View {
+        OdometerTapChrome(isPressed: configuration.isPressed) {
+            configuration.label
+        }
+    }
+}
+
+private struct OdometerTapChrome<Label: View>: View {
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let isPressed: Bool
+    @ViewBuilder var label: () -> Label
+
+    var body: some View {
+        label()
+            .opacity(isPressed ? 0.7 : 1)
+            .scaleEffect((isPressed && !reduceMotion) ? 0.97 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: isPressed)
     }
 }
