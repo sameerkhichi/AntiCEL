@@ -18,7 +18,7 @@ struct VehicleModel3DView: UIViewRepresentable {
         view.allowsCameraControl = true
         view.defaultCameraController.interactionMode = .orbitTurntable
         view.defaultCameraController.minimumVerticalAngle = -10
-        view.defaultCameraController.maximumVerticalAngle = 70
+        view.defaultCameraController.maximumVerticalAngle = 89
         view.backgroundColor = .clear
         view.isOpaque = false
         view.antialiasingMode = .multisampling4X
@@ -79,21 +79,12 @@ struct VehicleModel3DView: UIViewRepresentable {
     }
 
     private func resetCamera(in view: SCNView) {
-        guard let camera = view.pointOfView ?? view.scene?.rootNode.childNode(
-            withName: GenericSedanSceneBuilder.cameraNodeName,
-            recursively: true
-        ) else {
-            return
-        }
-
-        view.pointOfView = camera
-
-        SCNTransaction.begin()
-        SCNTransaction.animationDuration = 0.35
-        camera.position = GenericSedanSceneBuilder.defaultCameraPosition
-        camera.eulerAngles = SCNVector3Zero
-        camera.look(at: GenericSedanSceneBuilder.defaultCameraTarget)
-        SCNTransaction.commit()
+        frameCamera(
+            in: view,
+            position: GenericSedanSceneBuilder.defaultCameraPosition,
+            target: GenericSedanSceneBuilder.defaultCameraTarget,
+            animated: true
+        )
     }
 
     private func applySelection(
@@ -102,6 +93,7 @@ struct VehicleModel3DView: UIViewRepresentable {
         animated: Bool,
         coordinator: Coordinator
     ) {
+        let previousArea = coordinator.lastSelectedArea
         coordinator.lastSelectedArea = area
 
         guard let sedan = view.scene?.rootNode.childNode(
@@ -119,6 +111,10 @@ struct VehicleModel3DView: UIViewRepresentable {
             withName: GenericSedanSceneBuilder.hotspotsNodeName,
             recursively: false
         )
+
+        if let model {
+            coordinator.cacheRestPosesIfNeeded(in: model)
+        }
 
         //keep the USDZ model fully visible; tint hotspot overlays for feedback
         if animated {
@@ -150,6 +146,120 @@ struct VehicleModel3DView: UIViewRepresentable {
         if animated {
             SCNTransaction.commit()
         }
+
+        applyPartMotion(area, in: model, animated: animated, coordinator: coordinator)
+        applyCameraFraming(
+            area,
+            previousArea: previousArea,
+            in: view,
+            animated: animated
+        )
+    }
+
+    private func applyPartMotion(
+        _ area: VehicleArea?,
+        in model: SCNNode?,
+        animated: Bool,
+        coordinator: Coordinator
+    ) {
+        guard let model else { return }
+
+        let hood = GenericSedanSceneBuilder.hoodNode(in: model)
+        let trunk = GenericSedanSceneBuilder.trunkNode(in: model)
+        let wheels = GenericSedanSceneBuilder.wheelNodes(in: model)
+
+        let hoodAngle: Float = area == .drivetrain
+            ? GenericSedanSceneBuilder.hoodOpenRadians
+            : 0
+        let trunkAngle: Float = area == .misc
+            ? GenericSedanSceneBuilder.trunkOpenRadians
+            : 0
+
+        if animated {
+            SCNTransaction.begin()
+            SCNTransaction.animationDuration = 0.35
+        }
+
+        if let hood {
+            let rest = coordinator.restEuler(for: hood)
+            hood.eulerAngles = SCNVector3(rest.x + hoodAngle, rest.y, rest.z)
+        }
+
+        if let trunk {
+            let rest = coordinator.restEuler(for: trunk)
+            trunk.eulerAngles = SCNVector3(rest.x + trunkAngle, rest.y, rest.z)
+        }
+
+        if animated {
+            SCNTransaction.commit()
+        }
+
+        for wheel in wheels {
+            wheel.removeAction(forKey: GenericSedanSceneBuilder.wheelSpinActionKey)
+            if area == .wheels {
+                let spin = SCNAction.repeatForever(
+                    SCNAction.rotateBy(x: .pi * 2, y: 0, z: 0, duration: 1.15)
+                )
+                wheel.runAction(spin, forKey: GenericSedanSceneBuilder.wheelSpinActionKey)
+            } else {
+                wheel.eulerAngles = coordinator.restEuler(for: wheel)
+            }
+        }
+    }
+
+    private func applyCameraFraming(
+        _ area: VehicleArea?,
+        previousArea: VehicleArea?,
+        in view: SCNView,
+        animated: Bool
+    ) {
+        if area == .body {
+            frameCamera(
+                in: view,
+                position: GenericSedanSceneBuilder.overheadCameraPosition,
+                target: GenericSedanSceneBuilder.overheadCameraTarget,
+                animated: animated
+            )
+            return
+        }
+
+        guard previousArea == .body else { return }
+
+        frameCamera(
+            in: view,
+            position: GenericSedanSceneBuilder.defaultCameraPosition,
+            target: GenericSedanSceneBuilder.defaultCameraTarget,
+            animated: animated
+        )
+    }
+
+    private func frameCamera(
+        in view: SCNView,
+        position: SCNVector3,
+        target: SCNVector3,
+        animated: Bool
+    ) {
+        guard let camera = view.pointOfView ?? view.scene?.rootNode.childNode(
+            withName: GenericSedanSceneBuilder.cameraNodeName,
+            recursively: true
+        ) else {
+            return
+        }
+
+        view.pointOfView = camera
+
+        if animated {
+            SCNTransaction.begin()
+            SCNTransaction.animationDuration = 0.4
+        }
+
+        camera.position = position
+        camera.eulerAngles = SCNVector3Zero
+        camera.look(at: target)
+
+        if animated {
+            SCNTransaction.commit()
+        }
     }
 
     private func highlightColor(for area: VehicleArea) -> UIColor {
@@ -166,10 +276,62 @@ struct VehicleModel3DView: UIViewRepresentable {
         var lastSelectedArea: VehicleArea?
         var lastCameraResetID: UUID?
         var didBindScrollGestures = false
+        var restEulerByNode = [ObjectIdentifier: SCNVector3]()
+        var didDumpPartNames = false
+        var didCacheRestPoses = false
         weak var scnView: SCNView?
 
         init(onSelect: @escaping (VehicleArea) -> Void) {
             self.onSelect = onSelect
+        }
+
+        func cacheRestPosesIfNeeded(in model: SCNNode) {
+            #if DEBUG
+            if !didDumpPartNames {
+                didDumpPartNames = true
+                model.enumerateChildNodes { node, _ in
+                    guard let name = node.name?.lowercased(),
+                          name.contains("hood")
+                            || name.contains("trunk")
+                            || name.contains("wheel")
+                            || name.contains("tire")
+                            || name.contains("door")
+                    else {
+                        return
+                    }
+                    print("AntiCEL part node: \(node.name ?? "")")
+                }
+            }
+            #endif
+
+            guard !didCacheRestPoses else { return }
+            didCacheRestPoses = true
+
+            if let hood = GenericSedanSceneBuilder.hoodNode(in: model) {
+                restEulerByNode[ObjectIdentifier(hood)] = hood.eulerAngles
+            }
+            if let trunk = GenericSedanSceneBuilder.trunkNode(in: model) {
+                restEulerByNode[ObjectIdentifier(trunk)] = trunk.eulerAngles
+            }
+            let wheels = GenericSedanSceneBuilder.wheelNodes(in: model)
+            for wheel in wheels {
+                restEulerByNode[ObjectIdentifier(wheel)] = wheel.eulerAngles
+            }
+
+            #if DEBUG
+            print(
+                "AntiCEL parts hood=\(GenericSedanSceneBuilder.hoodNode(in: model)?.name ?? "nil") trunk=\(GenericSedanSceneBuilder.trunkNode(in: model)?.name ?? "nil") wheels=\(wheels.compactMap(\.name))"
+            )
+            #endif
+        }
+
+        func restEuler(for node: SCNNode) -> SCNVector3 {
+            let key = ObjectIdentifier(node)
+            if let rest = restEulerByNode[key] {
+                return rest
+            }
+            restEulerByNode[key] = node.eulerAngles
+            return node.eulerAngles
         }
 
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {

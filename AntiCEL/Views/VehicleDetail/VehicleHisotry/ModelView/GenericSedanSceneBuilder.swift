@@ -11,6 +11,12 @@ enum GenericSedanSceneBuilder {
 
     static let defaultCameraPosition = SCNVector3(3.8, 2.0, 4.6)
     static let defaultCameraTarget = SCNVector3(0, 0.6, 0)
+    static let overheadCameraPosition = SCNVector3(0, 7.2, 0.12)
+    static let overheadCameraTarget = SCNVector3(0, 0.6, 0)
+
+    static let hoodOpenRadians: Float = 45 * .pi / 180
+    static let trunkOpenRadians: Float = 60 * .pi / 180
+    static let wheelSpinActionKey = "wheelSpin"
 
     private static let modelResourceName = "Generic_Sedan_Car"
 
@@ -38,6 +44,66 @@ enum GenericSedanSceneBuilder {
         scene.rootNode.addChildNode(sedan)
         addLighting(to: scene)
         return scene
+    }
+
+    // MARK: - Animated parts
+
+    static func hoodNode(in model: SCNNode) -> SCNNode? {
+        rootMost(
+            of: namedNodes(in: model) { name in
+                name.contains("hood") && !name.contains("windshield")
+            }
+        ).first
+    }
+
+    static func trunkNode(in model: SCNNode) -> SCNNode? {
+        rootMost(
+            of: namedNodes(in: model) { name in
+                name.contains("trunk") && !name.contains("light") && !name.contains("tail")
+            }
+        ).first
+    }
+
+    static func wheelNodes(in model: SCNNode) -> [SCNNode] {
+        let wheels = namedNodes(in: model) { name in
+            name.contains("wheel") && !name.contains("well") && !name.contains("arch")
+        }
+        let leaves = leafMost(of: wheels)
+        if !leaves.isEmpty { return leaves }
+
+        return leafMost(
+            of: namedNodes(in: model) { name in
+                name.contains("tire")
+            }
+        )
+    }
+
+    private static func namedNodes(
+        in root: SCNNode,
+        matching: (String) -> Bool
+    ) -> [SCNNode] {
+        var matches: [SCNNode] = []
+        root.enumerateChildNodes { node, _ in
+            guard let name = node.name?.lowercased(), matching(name) else { return }
+            matches.append(node)
+        }
+        return matches
+    }
+
+    private static func rootMost(of nodes: [SCNNode]) -> [SCNNode] {
+        nodes.filter { node in
+            !nodes.contains { candidate in
+                candidate !== node && node.hasAncestor(candidate)
+            }
+        }
+    }
+
+    private static func leafMost(of nodes: [SCNNode]) -> [SCNNode] {
+        nodes.filter { node in
+            !nodes.contains { candidate in
+                candidate !== node && candidate.hasAncestor(node)
+            }
+        }
     }
 
     // MARK: - Load / normalize
@@ -254,5 +320,16 @@ enum GenericSedanSceneBuilder {
         fill.light?.intensity = 350
         fill.eulerAngles = SCNVector3(-0.2, -1.0, 0)
         scene.rootNode.addChildNode(fill)
+    }
+}
+
+private extension SCNNode {
+    func hasAncestor(_ ancestor: SCNNode) -> Bool {
+        var current = parent
+        while let node = current {
+            if node === ancestor { return true }
+            current = node.parent
+        }
+        return false
     }
 }
