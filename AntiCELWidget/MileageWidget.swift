@@ -132,7 +132,7 @@ struct MileageWidgetView: View {
         kind: DashButtonKind
     ) -> some View {
         Button(intent: AddMileageIntent(vehicle: vehicle, kilometers: kilometers)) {
-            Text("+\(kilometers)")
+            Text(kind == .compact ? "\(kilometers)" : "+\(kilometers)")
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
