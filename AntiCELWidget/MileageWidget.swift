@@ -109,32 +109,39 @@ struct MileageWidgetView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
         default:
-            //small: compact keys stay horizontal — full-width keys wrap "+100" vertically
-            VStack(spacing: 8) {
-                vehicleHeader(snapshot.name)
+            //small: mileage up top, full-width keys stacked so "+100" has room
+            VStack(spacing: 6) {
                 OdometerView(mileage: snapshot.mileage, compact: true)
-                incrementRow(vehicle: vehicle, kind: .compact)
+                    .frame(maxWidth: .infinity)
+
+                VStack(spacing: 5) {
+                    incrementButton(vehicle: vehicle, kilometers: 10, kind: .key, showsPlus: true)
+                    incrementButton(vehicle: vehicle, kilometers: 50, kind: .key, showsPlus: true)
+                    incrementButton(vehicle: vehicle, kilometers: 100, kind: .key, showsPlus: true)
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
 
     private func incrementRow(vehicle: VehicleEntity, kind: DashButtonKind) -> some View {
-        HStack(spacing: kind == .compact ? 6 : 8) {
-            incrementButton(vehicle: vehicle, kilometers: 10, kind: kind)
-            incrementButton(vehicle: vehicle, kilometers: 50, kind: kind)
-            incrementButton(vehicle: vehicle, kilometers: 100, kind: kind)
+        HStack(spacing: 8) {
+            incrementButton(vehicle: vehicle, kilometers: 10, kind: kind, showsPlus: true)
+            incrementButton(vehicle: vehicle, kilometers: 50, kind: kind, showsPlus: true)
+            incrementButton(vehicle: vehicle, kilometers: 100, kind: kind, showsPlus: true)
         }
     }
 
     private func incrementButton(
         vehicle: VehicleEntity,
         kilometers: Int,
-        kind: DashButtonKind
+        kind: DashButtonKind,
+        showsPlus: Bool
     ) -> some View {
         Button(intent: AddMileageIntent(vehicle: vehicle, kilometers: kilometers)) {
-            Text(kind == .compact ? "\(kilometers)" : "+\(kilometers)")
+            Text(showsPlus ? "+\(kilometers)" : "\(kilometers)")
                 .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                .minimumScaleFactor(0.8)
         }
         //unselected dash keys use primary label colour (selected forces accent blue)
         .buttonStyle(DashButtonStyle(isSelected: false, kind: kind))
