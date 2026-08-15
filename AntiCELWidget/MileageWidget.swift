@@ -94,7 +94,7 @@ struct MileageWidgetView: View {
                 vehicleHeader(snapshot.name)
                 OdometerView(mileage: snapshot.mileage, compact: true)
                     .frame(maxWidth: .infinity)
-                incrementRow(vehicle: vehicle)
+                incrementRow(vehicle: vehicle, kind: .key)
             }
             .padding(.vertical, 2)
 
@@ -109,27 +109,35 @@ struct MileageWidgetView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
         default:
+            //small: compact keys stay horizontal — full-width keys wrap "+100" vertically
             VStack(spacing: 8) {
                 vehicleHeader(snapshot.name)
                 OdometerView(mileage: snapshot.mileage, compact: true)
-                incrementRow(vehicle: vehicle)
+                incrementRow(vehicle: vehicle, kind: .compact)
             }
         }
     }
 
-    private func incrementRow(vehicle: VehicleEntity) -> some View {
-        HStack(spacing: 8) {
-            incrementButton(vehicle: vehicle, kilometers: 10)
-            incrementButton(vehicle: vehicle, kilometers: 50)
-            incrementButton(vehicle: vehicle, kilometers: 100)
+    private func incrementRow(vehicle: VehicleEntity, kind: DashButtonKind) -> some View {
+        HStack(spacing: kind == .compact ? 6 : 8) {
+            incrementButton(vehicle: vehicle, kilometers: 10, kind: kind)
+            incrementButton(vehicle: vehicle, kilometers: 50, kind: kind)
+            incrementButton(vehicle: vehicle, kilometers: 100, kind: kind)
         }
     }
 
-    private func incrementButton(vehicle: VehicleEntity, kilometers: Int) -> some View {
+    private func incrementButton(
+        vehicle: VehicleEntity,
+        kilometers: Int,
+        kind: DashButtonKind
+    ) -> some View {
         Button(intent: AddMileageIntent(vehicle: vehicle, kilometers: kilometers)) {
             Text("+\(kilometers)")
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
         }
-        .buttonStyle(DashButtonStyle(isSelected: true, kind: .key))
+        //unselected dash keys use primary label colour (selected forces accent blue)
+        .buttonStyle(DashButtonStyle(isSelected: false, kind: kind))
         .invalidatableContent()
     }
 
@@ -149,16 +157,14 @@ struct MileageWidgetView: View {
     }
 
     private func vehicleHeader(_ name: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: "car.side.fill")
-                .foregroundStyle(Color.accentColor)
-            Text(name)
-                .font(.appBadge)
-                .tracking(1.1)
-                .textCase(.uppercase)
-                .lineLimit(1)
-            Spacer(minLength: 0)
-        }
+        Text(name)
+            .font(.appBadge)
+            .tracking(1.1)
+            .textCase(.uppercase)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
     }
 }
 
