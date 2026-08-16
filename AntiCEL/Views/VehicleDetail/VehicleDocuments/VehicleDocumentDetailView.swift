@@ -121,11 +121,13 @@ struct VehicleDocumentDetailView: View {
         }
 
         dismiss()
+        ReminderNotifications.refresh(using: modelContext)
     }
 
     private func deleteDocument() {
         guard let document else { return }
         modelContext.delete(document)
+        ReminderNotifications.refresh(using: modelContext)
         dismiss()
     }
 }

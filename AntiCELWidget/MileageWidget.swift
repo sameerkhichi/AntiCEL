@@ -13,7 +13,7 @@ struct MileageWidget: Widget {
                 .appTheme()
         }
         .configurationDisplayName("Odometer")
-        .description("Check a vehicle’s mileage. Tap to type a new reading, or use the dash keys to add kilometers.")
+        .description("Check a vehicle’s mileage. Tap to type a new reading, or use the dash keys to add distance.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
     }
 }
@@ -103,7 +103,7 @@ struct MileageWidgetView: View {
                 Text(snapshot.name)
                     .font(.headline)
                     .lineLimit(1)
-                Text("\(snapshot.mileage.formatted()) km")
+                Text(AppSettings.shared.formattedMileage(snapshot.mileage))
                     .font(.system(.title3, design: .monospaced).weight(.medium))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -115,9 +115,9 @@ struct MileageWidgetView: View {
                     .frame(maxWidth: .infinity)
 
                 VStack(spacing: 5) {
-                    incrementButton(vehicle: vehicle, kilometers: 10, kind: .key, showsPlus: true)
-                    incrementButton(vehicle: vehicle, kilometers: 50, kind: .key, showsPlus: true)
-                    incrementButton(vehicle: vehicle, kilometers: 100, kind: .key, showsPlus: true)
+                    incrementButton(vehicle: vehicle, amount: 10, kind: .key, showsPlus: true)
+                    incrementButton(vehicle: vehicle, amount: 50, kind: .key, showsPlus: true)
+                    incrementButton(vehicle: vehicle, amount: 100, kind: .key, showsPlus: true)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -126,20 +126,21 @@ struct MileageWidgetView: View {
 
     private func incrementRow(vehicle: VehicleEntity, kind: DashButtonKind) -> some View {
         HStack(spacing: 8) {
-            incrementButton(vehicle: vehicle, kilometers: 10, kind: kind, showsPlus: true)
-            incrementButton(vehicle: vehicle, kilometers: 50, kind: kind, showsPlus: true)
-            incrementButton(vehicle: vehicle, kilometers: 100, kind: kind, showsPlus: true)
+            incrementButton(vehicle: vehicle, amount: 10, kind: kind, showsPlus: true)
+            incrementButton(vehicle: vehicle, amount: 50, kind: kind, showsPlus: true)
+            incrementButton(vehicle: vehicle, amount: 100, kind: kind, showsPlus: true)
         }
     }
 
     private func incrementButton(
         vehicle: VehicleEntity,
-        kilometers: Int,
+        amount: Int,
         kind: DashButtonKind,
         showsPlus: Bool
     ) -> some View {
+        let kilometers = AppSettings.shared.mileageUnit.storedKilometers(fromDisplay: amount)
         Button(intent: AddMileageIntent(vehicle: vehicle, kilometers: kilometers)) {
-            Text(showsPlus ? "+\(kilometers)" : "\(kilometers)")
+            Text(showsPlus ? "+\(amount)" : "\(amount)")
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }

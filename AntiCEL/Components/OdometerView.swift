@@ -3,22 +3,27 @@ import SwiftUI
 struct OdometerView: View {
 
     @Environment(\.appTheme) private var theme
+    @Environment(AppSettings.self) private var settings
 
     let mileage: Int
     var digitCount: Int = 6
     var compact: Bool = false
 
+    private var displayMileage: Int {
+        settings.mileageUnit.displayValue(fromStoredKilometers: mileage)
+    }
+
     var body: some View {
         digitCluster
             .overlay(alignment: .trailing) {
-                Text("km")
+                Text(settings.mileageUnit.abbreviation)
                     .font(.appBadge)
                     .tracking(1.2)
                     .foregroundStyle(.secondary)
                     .offset(x: compact ? 22 : 26)
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(mileage.formatted()) kilometers")
+            .accessibilityLabel("\(displayMileage.formatted()) \(settings.mileageUnit.accessibilityName)")
     }
 
     private var digitCluster: some View {
@@ -48,7 +53,7 @@ struct OdometerView: View {
     }
 
     private var paddedDigits: [Character] {
-        let raw = String(max(mileage, 0))
+        let raw = String(max(displayMileage, 0))
         let pad = String(repeating: "0", count: max(digitCount - raw.count, 0))
         return Array((pad + raw).suffix(digitCount))
     }

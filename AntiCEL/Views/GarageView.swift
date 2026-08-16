@@ -9,6 +9,7 @@ struct GarageView: View {
     @Query private var vehicles: [Vehicle]
 
     @State private var showingAddVehicle = false
+    @State private var showingSettings = false
     @State private var vehiclePendingDelete: Vehicle?
     @State private var vehicleForMileageUpdate: Vehicle?
     @Binding var pendingMileageVehicleID: UUID?
@@ -20,7 +21,8 @@ struct GarageView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ZStack(alignment: .topTrailing) {
+                ScrollView {
                 VStack(spacing: 22) {
                     overheadLights
                     wordmark
@@ -66,11 +68,24 @@ struct GarageView: View {
                 }
                 .padding(.top, 8)
             }
+
+            DashButton(kind: .compact) {
+                showingSettings = true
+            } label: {
+                Image(systemName: "gearshape.fill")
+            }
+            .padding(.top, 12)
+            .padding(.trailing, 20)
+            .accessibilityLabel("Settings")
+            }
             .appCanvas()
             .navigationTitle("Garage")
             .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingAddVehicle) {
                 AddVehicleView()
+            }
+            .sheet(isPresented: $showingSettings) {
+                AppSettingsView()
             }
             .sheet(item: $vehicleForMileageUpdate) { vehicle in
                 UpdateMileageView(vehicle: vehicle)
@@ -102,6 +117,7 @@ struct GarageView: View {
             }
             .onAppear {
                 openPendingMileageUpdate()
+                ReminderNotifications.refresh(using: modelContext)
             }
         }
     }

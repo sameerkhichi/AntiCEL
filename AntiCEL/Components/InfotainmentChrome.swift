@@ -6,6 +6,7 @@ struct InfotainmentScaffold<Content: View>: View {
 
     let title: String
     var confirmTitle: String = "Save"
+    var cancelTitle: String = "Cancel"
     var confirmEnabled: Bool = true
     var scrolls: Bool = true
     let onCancel: () -> Void
@@ -41,7 +42,7 @@ struct InfotainmentScaffold<Content: View>: View {
     private var header: some View {
         HStack(spacing: 12) {
             DashButton(kind: .compact, action: onCancel) {
-                Text("Cancel")
+                Text(cancelTitle)
             }
 
             Spacer(minLength: 8)

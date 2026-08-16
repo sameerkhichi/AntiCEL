@@ -5,6 +5,7 @@ struct HistoryEntryDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppSettings.self) private var settings
 
     @Bindable var vehicle: Vehicle
 
@@ -62,7 +63,7 @@ struct HistoryEntryDetailView: View {
                 .datePickerStyle(.compact)
             }
 
-            InfotainmentField(label: "Mileage") {
+            InfotainmentField(label: "Mileage (\(settings.mileageUnit.abbreviation))") {
                 TextField("Mileage", text: $mileage)
                     .keyboardType(.numberPad)
             }
@@ -82,7 +83,7 @@ struct HistoryEntryDetailView: View {
                 notes = historyEntry.details
 
                 if let mileageValue = historyEntry.mileage {
-                    mileage = String(mileageValue)
+                    mileage = String(settings.mileageUnit.displayValue(fromStoredKilometers: mileageValue))
                 }
             } else {
                 title = initialTitle ?? ""
@@ -92,7 +93,7 @@ struct HistoryEntryDetailView: View {
                 notes = ""
 
                 if let initialMileage {
-                    mileage = String(initialMileage)
+                    mileage = String(settings.mileageUnit.displayValue(fromStoredKilometers: initialMileage))
                 }
             }
         }
@@ -105,13 +106,13 @@ struct HistoryEntryDetailView: View {
             historyEntry.vehicleArea = vehicleArea
             historyEntry.date = date
             historyEntry.details = notes
-            historyEntry.mileage = Int(mileage)
+            historyEntry.mileage = Int(mileage).map { settings.mileageUnit.storedKilometers(fromDisplay: $0) }
         } else {
             let newEntry = HistoryEntry(
                 title: title,
                 details: notes,
                 date: date,
-                mileage: Int(mileage),
+                mileage: Int(mileage).map { settings.mileageUnit.storedKilometers(fromDisplay: $0) },
                 category: category,
                 vehicleArea: vehicleArea,
                 vehicle: vehicle
@@ -124,6 +125,7 @@ struct HistoryEntryDetailView: View {
                 modelContext.delete(completedReminder)
             }
         }
+        ReminderNotifications.refresh(using: modelContext)
         dismiss()
     }
 }

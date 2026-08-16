@@ -2,6 +2,8 @@ import SwiftUI
 
 struct QuickInfoCard: View {
 
+    @Environment(AppSettings.self) private var settings
+
     let vehicle: Vehicle
 
     var body: some View {
@@ -18,7 +20,7 @@ struct QuickInfoCard: View {
 
                 infoRow(
                     title: "Mileage",
-                    value: "\(vehicle.currentMileage.formatted()) km"
+                    value: settings.formattedMileage(vehicle.currentMileage)
                 )
 
                 infoRow(

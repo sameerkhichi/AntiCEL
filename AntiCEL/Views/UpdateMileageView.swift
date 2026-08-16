@@ -6,6 +6,7 @@ struct UpdateMileageView: View {
     @Bindable var vehicle: Vehicle
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppSettings.self) private var settings
 
     @State private var mileage: String
 
@@ -13,7 +14,11 @@ struct UpdateMileageView: View {
 
     init(vehicle: Vehicle) {
         self.vehicle = vehicle
-        _mileage = State(initialValue: String(vehicle.currentMileage))
+        _mileage = State(
+            initialValue: String(
+                AppSettings.shared.mileageUnit.displayValue(fromStoredKilometers: vehicle.currentMileage)
+            )
+        )
     }
 
     private var parsedMileage: Int? {
@@ -42,11 +47,13 @@ struct UpdateMileageView: View {
             onCancel: { dismiss() },
             onConfirm: saveMileage
         ) {
-            OdometerView(mileage: parsedMileage ?? 0)
+            OdometerView(
+                mileage: settings.mileageUnit.storedKilometers(fromDisplay: parsedMileage ?? 0)
+            )
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
 
-            InfotainmentField(label: "Mileage") {
+            InfotainmentField(label: "Mileage (\(settings.mileageUnit.abbreviation))") {
                 TextField("Current mileage", text: $mileage)
                     .keyboardType(.numberPad)
                     .onChange(of: mileage) { _, newValue in
@@ -77,7 +84,7 @@ struct UpdateMileageView: View {
             return
         }
 
-        vehicle.currentMileage = parsedMileage
+        vehicle.currentMileage = settings.mileageUnit.storedKilometers(fromDisplay: parsedMileage)
         vehicle.updatedAt = Date()
         WidgetReloader.reload()
         dismiss()

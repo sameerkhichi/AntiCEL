@@ -4,6 +4,8 @@ import SwiftUI
 
 struct HistoryTimelineNode: View {
 
+    @Environment(AppSettings.self) private var settings
+
     let entry: HistoryEntry
     let isLast: Bool
 
@@ -66,7 +68,7 @@ struct HistoryTimelineNode: View {
                     .foregroundStyle(.secondary)
 
                 if let mileage = entry.mileage {
-                    Text("\(mileage.formatted()) km")
+                    Text(settings.formattedMileage(mileage))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }

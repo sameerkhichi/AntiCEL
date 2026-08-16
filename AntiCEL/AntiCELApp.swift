@@ -14,7 +14,6 @@ struct AntiCELApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .tint(Color.accentColor)
         }
         .modelContainer(sharedModelContainer)
     }

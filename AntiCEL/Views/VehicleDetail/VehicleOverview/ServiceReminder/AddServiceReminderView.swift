@@ -7,6 +7,7 @@ struct AddServiceReminderView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppSettings.self) private var settings
 
     @State private var name = ""
     @State private var reminderType: ReminderType = .date
@@ -59,7 +60,7 @@ struct AddServiceReminderView: View {
                 }
 
             case .mileage:
-                InfotainmentField(label: "Due Mileage") {
+                InfotainmentField(label: "Due Mileage (\(settings.mileageUnit.abbreviation))") {
                     TextField("Due Mileage", text: $dueMileage)
                         .keyboardType(.numberPad)
                 }
@@ -75,7 +76,7 @@ struct AddServiceReminderView: View {
                     .datePickerStyle(.compact)
                 }
 
-                InfotainmentField(label: "Due Mileage") {
+                InfotainmentField(label: "Due Mileage (\(settings.mileageUnit.abbreviation))") {
                     TextField("Due Mileage", text: $dueMileage)
                         .keyboardType(.numberPad)
                 }
@@ -94,7 +95,7 @@ struct AddServiceReminderView: View {
             return
         }
 
-        let mileage = Int(dueMileage)
+        let mileage = Int(dueMileage).map { settings.mileageUnit.storedKilometers(fromDisplay: $0) }
 
         let reminder = ServiceReminder(
             name: name,
@@ -107,6 +108,7 @@ struct AddServiceReminderView: View {
 
         reminder.vehicle = vehicle
         modelContext.insert(reminder)
+        ReminderNotifications.refresh(using: modelContext)
         dismiss()
     }
 }

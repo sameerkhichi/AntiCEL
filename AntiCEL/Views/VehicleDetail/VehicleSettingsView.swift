@@ -5,6 +5,8 @@ struct VehicleSettingsView: View {
 
     @Bindable var vehicle: Vehicle
 
+    @Environment(AppSettings.self) private var settings
+
     @State private var year = ""
     @State private var make = ""
     @State private var model = ""
@@ -65,7 +67,7 @@ struct VehicleSettingsView: View {
                         .fill(.quaternary)
                         .frame(height: 1)
 
-                    TextField("Mileage", text: $mileage)
+                    TextField("Mileage (\(settings.mileageUnit.abbreviation))", text: $mileage)
                         .keyboardType(.numberPad)
                 }
             }
@@ -103,7 +105,9 @@ struct VehicleSettingsView: View {
         model = vehicle.model
         nickname = vehicle.nickname
         vin = vehicle.vin
-        mileage = String(vehicle.currentMileage)
+        mileage = String(
+            settings.mileageUnit.displayValue(fromStoredKilometers: vehicle.currentMileage)
+        )
         didSave = false
     }
 
@@ -120,7 +124,7 @@ struct VehicleSettingsView: View {
         vehicle.model = model.trimmingCharacters(in: .whitespacesAndNewlines)
         vehicle.nickname = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
         vehicle.vin = vin.trimmingCharacters(in: .whitespacesAndNewlines)
-        vehicle.currentMileage = mileageValue
+        vehicle.currentMileage = settings.mileageUnit.storedKilometers(fromDisplay: mileageValue)
         vehicle.updatedAt = Date()
 
         didSave = true

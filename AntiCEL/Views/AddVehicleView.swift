@@ -5,6 +5,7 @@ struct AddVehicleView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppSettings.self) private var settings
 
     @State private var year = ""
     @State private var make = ""
@@ -42,7 +43,7 @@ struct AddVehicleView: View {
                 TextField("Optional", text: $nickname)
             }
 
-            InfotainmentField(label: "Mileage") {
+            InfotainmentField(label: "Mileage (\(settings.mileageUnit.abbreviation))") {
                 TextField("Mileage", text: $mileage)
                     .keyboardType(.numberPad)
             }
@@ -62,7 +63,7 @@ struct AddVehicleView: View {
             model: model,
             year: year,
             nickname: nickname,
-            currentMileage: mileage
+            currentMileage: settings.mileageUnit.storedKilometers(fromDisplay: mileage)
         )
 
         modelContext.insert(vehicle)

@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ServiceReminderCard: View {
 
+    @Environment(AppSettings.self) private var settings
+
     let vehicle: Vehicle
 
     @State private var showingAddReminder = false
@@ -53,7 +55,7 @@ struct ServiceReminderCard: View {
 
                                     case .mileage:
                                         if let mileage = reminder.dueMileage {
-                                            Text("Due at \(mileage.formatted()) km")
+                                            Text("Due at \(settings.formattedMileage(mileage))")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
@@ -66,7 +68,7 @@ struct ServiceReminderCard: View {
                                         }
 
                                         if let mileage = reminder.dueMileage {
-                                            Text("Mileage: \(mileage.formatted()) km")
+                                            Text("Mileage: \(settings.formattedMileage(mileage))")
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }

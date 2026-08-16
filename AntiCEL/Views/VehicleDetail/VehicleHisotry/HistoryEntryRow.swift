@@ -2,6 +2,8 @@ import SwiftUI
 
 struct HistoryEntryRow: View {
 
+    @Environment(AppSettings.self) private var settings
+
     let entry: HistoryEntry
 
     private var formattedDate: String {
@@ -52,7 +54,7 @@ struct HistoryEntryRow: View {
                         .foregroundStyle(.tertiary)
 
                     if let mileage = entry.mileage {
-                        Text("\(mileage.formatted()) km")
+                        Text(settings.formattedMileage(mileage))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }

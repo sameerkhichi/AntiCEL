@@ -5,6 +5,7 @@ struct ServiceReminderDetailView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppSettings.self) private var settings
 
     @State private var showDeleteAlert = false
     @State private var showCompletionSheet = false
@@ -38,7 +39,7 @@ struct ServiceReminderDetailView: View {
                     case .mileage:
                         infoRow(
                             title: "Due Mileage",
-                            value: reminder.dueMileage?.formatted() ?? "Not Set"
+                            value: settings.formattedMileage(reminder.dueMileage)
                         )
 
                     case .whicheverComesFirst:
@@ -52,7 +53,7 @@ struct ServiceReminderDetailView: View {
 
                         infoRow(
                             title: "Due Mileage",
-                            value: reminder.dueMileage?.formatted() ?? "Not Set"
+                            value: settings.formattedMileage(reminder.dueMileage)
                         )
                     }
 
@@ -110,6 +111,7 @@ struct ServiceReminderDetailView: View {
         ) {
             Button("Delete", role: .destructive) {
                 modelContext.delete(reminder)
+                ReminderNotifications.refresh(using: modelContext)
                 dismiss()
             }
             Button("Cancel", role: .cancel) {}
@@ -139,6 +141,7 @@ struct ServiceReminderDetailView: View {
         modelContext.insert(newEntry)
         vehicle.historyEntries.append(newEntry)
         modelContext.delete(reminder)
+        ReminderNotifications.refresh(using: modelContext)
         dismiss()
     }
 

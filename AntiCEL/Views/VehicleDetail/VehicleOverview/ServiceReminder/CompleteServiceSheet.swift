@@ -3,6 +3,7 @@ import SwiftUI
 struct CompleteServiceSheet: View {
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppSettings.self) private var settings
 
     let reminder: ServiceReminder
     let onContinue: (Date, Int?) -> Void
@@ -22,7 +23,9 @@ struct CompleteServiceSheet: View {
         )
 
         _completionMileage = State(
-            initialValue: reminder.dueMileage.map(String.init) ?? ""
+            initialValue: reminder.dueMileage.map {
+                String(AppSettings.shared.mileageUnit.displayValue(fromStoredKilometers: $0))
+            } ?? ""
         )
     }
 
@@ -34,7 +37,7 @@ struct CompleteServiceSheet: View {
             onConfirm: {
                 onContinue(
                     completionDate,
-                    Int(completionMileage)
+                    Int(completionMileage).map { settings.mileageUnit.storedKilometers(fromDisplay: $0) }
                 )
                 dismiss()
             }
@@ -49,7 +52,7 @@ struct CompleteServiceSheet: View {
                 .datePickerStyle(.compact)
             }
 
-            InfotainmentField(label: "Mileage") {
+            InfotainmentField(label: "Mileage (\(settings.mileageUnit.abbreviation))") {
                 TextField("Current mileage", text: $completionMileage)
                     .keyboardType(.numberPad)
             }

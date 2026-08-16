@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AppTheme {
     let scheme: ColorScheme
+    var accent: AccentOption
 
     var isDark: Bool { scheme == .dark }
 
@@ -42,9 +43,7 @@ struct AppTheme {
     }
 
     var keyFaceSelected: Color {
-        isDark
-            ? Color(red: 0.26, green: 0.11, blue: 0.09)
-            : Color(red: 0.98, green: 0.93, blue: 0.82)
+        accent.selectedKeyFace(for: scheme)
     }
 
     var highlight: Color {
@@ -93,7 +92,7 @@ struct AppTheme {
 }
 
 private struct AppThemeKey: EnvironmentKey {
-    static let defaultValue = AppTheme(scheme: .dark)
+    static let defaultValue = AppTheme(scheme: .dark, accent: .amberRed)
 }
 
 extension EnvironmentValues {
@@ -104,10 +103,22 @@ extension EnvironmentValues {
 }
 
 struct AppThemeInjector: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
-
     func body(content: Content) -> some View {
-        content.environment(\.appTheme, AppTheme(scheme: colorScheme))
+        AppThemeApplying(content: content)
+    }
+}
+
+private struct AppThemeApplying<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var settings = AppSettings.shared
+    var content: Content
+
+    var body: some View {
+        let option = settings.accentOption(for: colorScheme)
+        content
+            .environment(settings)
+            .environment(\.appTheme, AppTheme(scheme: colorScheme, accent: option))
+            .tint(option.color(for: colorScheme))
     }
 }
 

@@ -2,6 +2,8 @@ import SwiftUI
 
 struct VehicleAreaHistoryPanel: View {
 
+    @Environment(AppSettings.self) private var settings
+
     @Bindable var vehicle: Vehicle
     let area: VehicleArea
 
@@ -76,7 +78,7 @@ struct VehicleAreaHistoryPanel: View {
                                     .foregroundStyle(.secondary)
 
                                     if let mileage = entry.mileage {
-                                        Text("\(mileage.formatted()) km")
+                                        Text(settings.formattedMileage(mileage))
                                             .font(.caption2)
                                             .foregroundStyle(.tertiary)
                                     }
