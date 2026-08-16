@@ -15,14 +15,15 @@ enum GenericSedanSceneBuilder {
     static let overheadCameraTarget = SCNVector3(0, 0.6, 0)
     static let overheadCameraUp = SCNVector3(0, 0, 1)
 
-    static let engineBayCameraPosition = SCNVector3(0.2, 1.55, 3.4)
+    static let engineBayCameraPosition = SCNVector3(0.2, 1.55, 3.85)
     static let engineBayCameraTarget = SCNVector3(0, 0.7, 1.4)
 
-    static let trunkInteriorCameraPosition = SCNVector3(0.15, 1.75, -3.2)
-    static let trunkInteriorCameraTarget = SCNVector3(0, 0.9, -0.2)
+    static let trunkInteriorCameraPosition = SCNVector3(0.1, 1.15, -3.95)
+    static let trunkInteriorCameraTarget = SCNVector3(0, 0.7, -0.45)
 
-    static let driverRearWheelCameraPosition = SCNVector3(-2.4, 0.72, -1.9)
-    static let driverRearWheelCameraTarget = SCNVector3(-0.95, 0.38, -1.55)
+    static let passengerRearWheelCameraPosition = SCNVector3(2.55, 0.38, -1.55)
+    static let passengerRearWheelCameraTarget = SCNVector3(0.95, 0.38, -1.55)
+    static let passengerRearWheelCameraUp = SCNVector3(0, 1, 0)
 
     static let hoodOpenRadians: Float = -45 * .pi / 180
     static let trunkOpenRadians: Float = 60 * .pi / 180
@@ -42,21 +43,21 @@ enum GenericSedanSceneBuilder {
                 position: engineBayCameraPosition,
                 target: engineBayCameraTarget,
                 up: nil,
-                fieldOfView: 32
+                fieldOfView: 36
             )
         case .misc:
             return CameraFrame(
                 position: trunkInteriorCameraPosition,
                 target: trunkInteriorCameraTarget,
                 up: nil,
-                fieldOfView: 32
+                fieldOfView: 36
             )
         case .wheels:
             return CameraFrame(
-                position: driverRearWheelCameraPosition,
-                target: driverRearWheelCameraTarget,
-                up: nil,
-                fieldOfView: 30
+                position: passengerRearWheelCameraPosition,
+                target: passengerRearWheelCameraTarget,
+                up: passengerRearWheelCameraUp,
+                fieldOfView: 28
             )
         case .body:
             return CameraFrame(
