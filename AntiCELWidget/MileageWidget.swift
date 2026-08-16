@@ -139,7 +139,7 @@ struct MileageWidgetView: View {
         showsPlus: Bool
     ) -> some View {
         let kilometers = AppSettings.shared.mileageUnit.storedKilometers(fromDisplay: amount)
-        Button(intent: AddMileageIntent(vehicle: vehicle, kilometers: kilometers)) {
+        return Button(intent: AddMileageIntent(vehicle: vehicle, kilometers: kilometers)) {
             Text(showsPlus ? "+\(amount)" : "\(amount)")
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
