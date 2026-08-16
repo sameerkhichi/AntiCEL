@@ -28,7 +28,7 @@ struct VehicleModel3DView: UIViewRepresentable {
         camera.name = GenericSedanSceneBuilder.cameraNodeName
         camera.camera = SCNCamera()
         camera.camera?.fieldOfView = 40
-        camera.camera?.wantsHDR = true
+        camera.camera?.wantsHDR = false
         camera.position = GenericSedanSceneBuilder.defaultCameraPosition
         camera.look(at: GenericSedanSceneBuilder.defaultCameraTarget)
         view.pointOfView = camera
@@ -80,9 +80,8 @@ struct VehicleModel3DView: UIViewRepresentable {
 
     private func resetCamera(in view: SCNView) {
         frameCamera(
+            GenericSedanSceneBuilder.cameraFrame(for: nil),
             in: view,
-            position: GenericSedanSceneBuilder.defaultCameraPosition,
-            target: GenericSedanSceneBuilder.defaultCameraTarget,
             animated: true
         )
     }
@@ -93,7 +92,6 @@ struct VehicleModel3DView: UIViewRepresentable {
         animated: Bool,
         coordinator: Coordinator
     ) {
-        let previousArea = coordinator.lastSelectedArea
         coordinator.lastSelectedArea = area
 
         guard let sedan = view.scene?.rootNode.childNode(
@@ -107,53 +105,13 @@ struct VehicleModel3DView: UIViewRepresentable {
             withName: GenericSedanSceneBuilder.modelNodeName,
             recursively: false
         )
-        let hotspots = sedan.childNode(
-            withName: GenericSedanSceneBuilder.hotspotsNodeName,
-            recursively: false
-        )
 
         if let model {
             coordinator.cacheRestPosesIfNeeded(in: model)
         }
 
-        //keep the USDZ model fully visible; tint hotspot overlays for feedback
-        if animated {
-            SCNTransaction.begin()
-            SCNTransaction.animationDuration = 0.25
-        }
-
-        model?.opacity = 1
-
-        hotspots?.enumerateChildNodes { node, _ in
-            guard let name = node.name,
-                  let part = VehicleArea(rawValue: name)
-            else {
-                return
-            }
-
-            if let area {
-                let isSelected = part == area
-                node.geometry?.firstMaterial?.diffuse.contents = isSelected
-                    ? highlightColor(for: part)
-                    : UIColor.clear
-                node.opacity = isSelected ? 0.22 : 0.01
-            } else {
-                node.geometry?.firstMaterial?.diffuse.contents = UIColor.clear
-                node.opacity = 0.01
-            }
-        }
-
-        if animated {
-            SCNTransaction.commit()
-        }
-
         applyPartMotion(area, in: model, animated: animated, coordinator: coordinator)
-        applyCameraFraming(
-            area,
-            previousArea: previousArea,
-            in: view,
-            animated: animated
-        )
+        applyCameraFraming(area, in: view, animated: animated)
     }
 
     private func applyPartMotion(
@@ -209,34 +167,19 @@ struct VehicleModel3DView: UIViewRepresentable {
 
     private func applyCameraFraming(
         _ area: VehicleArea?,
-        previousArea: VehicleArea?,
         in view: SCNView,
         animated: Bool
     ) {
-        if area == .body {
-            frameCamera(
-                in: view,
-                position: GenericSedanSceneBuilder.overheadCameraPosition,
-                target: GenericSedanSceneBuilder.overheadCameraTarget,
-                animated: animated
-            )
-            return
-        }
-
-        guard previousArea == .body else { return }
-
         frameCamera(
+            GenericSedanSceneBuilder.cameraFrame(for: area),
             in: view,
-            position: GenericSedanSceneBuilder.defaultCameraPosition,
-            target: GenericSedanSceneBuilder.defaultCameraTarget,
             animated: animated
         )
     }
 
     private func frameCamera(
+        _ frame: GenericSedanSceneBuilder.CameraFrame,
         in view: SCNView,
-        position: SCNVector3,
-        target: SCNVector3,
         animated: Bool
     ) {
         guard let camera = view.pointOfView ?? view.scene?.rootNode.childNode(
@@ -250,24 +193,20 @@ struct VehicleModel3DView: UIViewRepresentable {
 
         if animated {
             SCNTransaction.begin()
-            SCNTransaction.animationDuration = 0.4
+            SCNTransaction.animationDuration = 0.45
         }
 
-        camera.position = position
+        camera.camera?.fieldOfView = frame.fieldOfView
+        camera.position = frame.position
         camera.eulerAngles = SCNVector3Zero
-        camera.look(at: target)
+        if let up = frame.up {
+            camera.look(at: frame.target, up: up, localFront: SCNVector3(0, 0, -1))
+        } else {
+            camera.look(at: frame.target)
+        }
 
         if animated {
             SCNTransaction.commit()
-        }
-    }
-
-    private func highlightColor(for area: VehicleArea) -> UIColor {
-        switch area {
-        case .drivetrain: return UIColor.systemOrange
-        case .body: return UIColor.systemBlue
-        case .wheels: return UIColor.systemGreen
-        case .misc: return UIColor.systemBrown
         }
     }
 

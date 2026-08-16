@@ -11,12 +11,69 @@ enum GenericSedanSceneBuilder {
 
     static let defaultCameraPosition = SCNVector3(3.8, 2.0, 4.6)
     static let defaultCameraTarget = SCNVector3(0, 0.6, 0)
-    static let overheadCameraPosition = SCNVector3(0, 7.2, 0.12)
+    static let overheadCameraPosition = SCNVector3(0, 7.6, 0)
     static let overheadCameraTarget = SCNVector3(0, 0.6, 0)
+    static let overheadCameraUp = SCNVector3(0, 0, 1)
 
-    static let hoodOpenRadians: Float = 45 * .pi / 180
+    static let engineBayCameraPosition = SCNVector3(0.2, 1.55, 3.4)
+    static let engineBayCameraTarget = SCNVector3(0, 0.7, 1.4)
+
+    static let trunkInteriorCameraPosition = SCNVector3(0.15, 1.75, -3.2)
+    static let trunkInteriorCameraTarget = SCNVector3(0, 0.9, -0.2)
+
+    static let driverRearWheelCameraPosition = SCNVector3(-2.4, 0.72, -1.9)
+    static let driverRearWheelCameraTarget = SCNVector3(-0.95, 0.38, -1.55)
+
+    static let hoodOpenRadians: Float = -45 * .pi / 180
     static let trunkOpenRadians: Float = 60 * .pi / 180
     static let wheelSpinActionKey = "wheelSpin"
+
+    struct CameraFrame {
+        var position: SCNVector3
+        var target: SCNVector3
+        var up: SCNVector3?
+        var fieldOfView: CGFloat
+    }
+
+    static func cameraFrame(for area: VehicleArea?) -> CameraFrame {
+        switch area {
+        case .drivetrain:
+            return CameraFrame(
+                position: engineBayCameraPosition,
+                target: engineBayCameraTarget,
+                up: nil,
+                fieldOfView: 32
+            )
+        case .misc:
+            return CameraFrame(
+                position: trunkInteriorCameraPosition,
+                target: trunkInteriorCameraTarget,
+                up: nil,
+                fieldOfView: 32
+            )
+        case .wheels:
+            return CameraFrame(
+                position: driverRearWheelCameraPosition,
+                target: driverRearWheelCameraTarget,
+                up: nil,
+                fieldOfView: 30
+            )
+        case .body:
+            return CameraFrame(
+                position: overheadCameraPosition,
+                target: overheadCameraTarget,
+                up: overheadCameraUp,
+                fieldOfView: 40
+            )
+        case nil:
+            return CameraFrame(
+                position: defaultCameraPosition,
+                target: defaultCameraTarget,
+                up: nil,
+                fieldOfView: 40
+            )
+        }
+    }
 
     private static let modelResourceName = "Generic_Sedan_Car"
 
@@ -30,6 +87,7 @@ enum GenericSedanSceneBuilder {
         if let model = loadCarModel() {
             model.name = modelNodeName
             normalize(model, into: sedan)
+            restoreBodyPaint(on: model)
             addHotspots(to: sedan, around: model)
         } else {
             //fallback placeholder if the asset is missing from the bundle
@@ -176,6 +234,56 @@ enum GenericSedanSceneBuilder {
             model.position.y - bounds.min.y,
             model.position.z - (bounds.min.z + bounds.max.z) / 2
         )
+    }
+
+    private static func restoreBodyPaint(on root: SCNNode) {
+        let paintHints = ["body", "hood", "trunk", "door", "bumper", "fender", "paint", "roof"]
+        let skipHints = ["glass", "window", "windshield", "light", "lens", "tire", "wheel", "chrome"]
+
+        root.enumerateChildNodes { node, _ in
+            let name = node.name?.lowercased() ?? ""
+            if skipHints.contains(where: name.contains) { return }
+            guard let materials = node.geometry?.materials else { return }
+
+            let looksLikePaint = paintHints.contains(where: name.contains)
+
+            for material in materials {
+                if material.transparency < 0.98 { continue }
+
+                let redDiffuse = isStronglyRed(material.diffuse.contents)
+                let missingAlbedo = !hasImageContents(material.diffuse.contents)
+
+                guard redDiffuse || (looksLikePaint && missingAlbedo) else { continue }
+
+                material.lightingModel = .physicallyBased
+                material.diffuse.contents = UIColor(white: 0.14, alpha: 1)
+                material.metalness.contents = 0.72
+                material.roughness.contents = 0.32
+                material.emission.contents = UIColor.black
+                material.multiply.contents = UIColor.white
+            }
+        }
+    }
+
+    private static func hasImageContents(_ contents: Any?) -> Bool {
+        contents is UIImage || contents is CGImage
+    }
+
+    private static func isStronglyRed(_ contents: Any?) -> Bool {
+        if let color = contents as? UIColor {
+            var red: CGFloat = 0
+            var green: CGFloat = 0
+            var blue: CGFloat = 0
+            var alpha: CGFloat = 0
+            color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+            return red > 0.45 && red > green + 0.18 && red > blue + 0.18
+        }
+
+        if let vector = contents as? SCNVector3 {
+            return vector.x > 0.45 && vector.x > vector.y + 0.18 && vector.x > vector.z + 0.18
+        }
+
+        return false
     }
 
     private static func size(of bounds: (min: SCNVector3, max: SCNVector3)) -> SCNVector3 {
