@@ -41,7 +41,7 @@ struct HistoryModelView: View {
                 }
                 .padding(.top, 4)
 
-                HStack(spacing: 4) {
+                HStack(spacing: 3) {
                     ForEach(VehicleArea.allCases) { area in
                         Button {
                             withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
@@ -50,12 +50,12 @@ struct HistoryModelView: View {
                         } label: {
                             VStack(spacing: 3) {
                                 Image(systemName: area.iconName)
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.system(size: 11, weight: .semibold))
 
                                 Text(area.shortLabel)
-                                    .font(.system(size: 9, weight: .semibold))
+                                    .font(.system(size: 8, weight: .semibold).width(.condensed))
                                     .lineLimit(1)
-                                    .minimumScaleFactor(0.7)
+                                    .minimumScaleFactor(0.65)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 2)
@@ -63,7 +63,7 @@ struct HistoryModelView: View {
                         .buttonStyle(DashButtonStyle(isSelected: selectedArea == area, kind: .key))
                     }
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 10)
 
                 if let selectedArea {
                     VehicleAreaHistoryPanel(

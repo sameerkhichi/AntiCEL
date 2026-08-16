@@ -24,6 +24,7 @@ struct HistoryEntryDetailView: View {
     @State private var date = Date()
     @State private var mileage = ""
     @State private var notes = ""
+    @State private var showingRelatedToHelp = false
 
     private var isEditing: Bool {
         historyEntry != nil
@@ -50,7 +51,8 @@ struct HistoryEntryDetailView: View {
                 title: "Related To",
                 selection: $vehicleArea,
                 options: Array(VehicleArea.allCases),
-                itemTitle: { $0.displayName }
+                itemTitle: { $0.displayName },
+                onHelp: { showingRelatedToHelp = true }
             )
 
             InfotainmentField(label: "Date") {
@@ -74,6 +76,9 @@ struct HistoryEntryDetailView: View {
             }
         }
         .appTheme()
+        .sheet(isPresented: $showingRelatedToHelp) {
+            VehicleAreaHelpSheet()
+        }
         .onAppear {
             if let historyEntry {
                 title = historyEntry.title

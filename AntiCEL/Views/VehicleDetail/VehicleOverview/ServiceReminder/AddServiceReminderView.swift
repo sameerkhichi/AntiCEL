@@ -15,6 +15,7 @@ struct AddServiceReminderView: View {
     @State private var dueDate = Date()
     @State private var dueMileage = ""
     @State private var notes = ""
+    @State private var showingRelatedToHelp = false
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -42,7 +43,8 @@ struct AddServiceReminderView: View {
                 title: "Related To",
                 selection: $vehicleArea,
                 options: Array(VehicleArea.allCases),
-                itemTitle: { $0.displayName }
+                itemTitle: { $0.displayName },
+                onHelp: { showingRelatedToHelp = true }
             )
 
             InfotainmentSectionHeader(title: "Due")
@@ -88,6 +90,9 @@ struct AddServiceReminderView: View {
             }
         }
         .appTheme()
+        .sheet(isPresented: $showingRelatedToHelp) {
+            VehicleAreaHelpSheet()
+        }
     }
 
     private func saveReminder() {

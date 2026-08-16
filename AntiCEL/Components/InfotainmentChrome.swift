@@ -130,10 +130,23 @@ struct InfotainmentChipPicker<Option: Hashable>: View {
     @Binding var selection: Option
     let options: [Option]
     let itemTitle: (Option) -> String
+    var onHelp: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            InfotainmentSectionHeader(title: title)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                InfotainmentSectionHeader(title: title)
+
+                if let onHelp {
+                    Button(action: onHelp) {
+                        Image(systemName: "questionmark.circle")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(theme.accentColor)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("About \(title)")
+                }
+            }
 
             ChipFlowLayout(spacing: 8) {
                 ForEach(options, id: \.self) { option in

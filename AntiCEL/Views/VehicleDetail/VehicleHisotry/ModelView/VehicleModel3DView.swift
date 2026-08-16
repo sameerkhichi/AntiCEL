@@ -292,6 +292,11 @@ struct VehicleModel3DView: UIViewRepresentable {
                 return
             }
 
+            if let interior = firstArea(in: hits, matching: .interior) {
+                onSelect(interior)
+                return
+            }
+
             if let area = firstArea(in: hits) {
                 onSelect(area)
             }

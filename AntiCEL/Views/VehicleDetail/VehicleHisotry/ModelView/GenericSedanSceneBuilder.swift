@@ -29,6 +29,9 @@ enum GenericSedanSceneBuilder {
     static let chassisCameraTarget = SCNVector3(0, 0.22, 0.1)
     static let chassisCameraUp = SCNVector3(0, 1, 0)
 
+    static let cabinCameraPosition = SCNVector3(-2.55, 1.2, 0.2)
+    static let cabinCameraTarget = SCNVector3(0.1, 0.85, 0.15)
+
     static let hoodOpenRadians: Float = -45 * .pi / 180
     static let trunkOpenRadians: Float = 60 * .pi / 180
     static let wheelSpinActionKey = "wheelSpin"
@@ -69,6 +72,13 @@ enum GenericSedanSceneBuilder {
                 target: chassisCameraTarget,
                 up: chassisCameraUp,
                 fieldOfView: 32
+            )
+        case .interior:
+            return CameraFrame(
+                position: cabinCameraPosition,
+                target: cabinCameraTarget,
+                up: nil,
+                fieldOfView: 38
             )
         case .body:
             return CameraFrame(
@@ -343,6 +353,17 @@ enum GenericSedanSceneBuilder {
                 height: height * 0.7,
                 length: length * 0.36,
                 position: SCNVector3(midX, midY * 1.05, (minB.z + maxB.z) / 2 + length * 0.02)
+            )
+        )
+
+        //cabin interior — inside the greenhouse, smaller than the body shell
+        hotspots.addChildNode(
+            hotspot(
+                area: .interior,
+                width: width * 0.52,
+                height: height * 0.32,
+                length: length * 0.28,
+                position: SCNVector3(midX, midY * 1.12, (minB.z + maxB.z) / 2 + length * 0.04)
             )
         )
 
