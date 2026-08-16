@@ -266,7 +266,9 @@ enum GenericSedanSceneBuilder {
     }
 
     private static func hasImageContents(_ contents: Any?) -> Bool {
-        contents is UIImage || contents is CGImage
+        if contents is UIImage || contents is String { return true }
+        guard let object = contents else { return false }
+        return CFGetTypeID(object as CFTypeRef) == CGImage.typeID
     }
 
     private static func isStronglyRed(_ contents: Any?) -> Bool {
