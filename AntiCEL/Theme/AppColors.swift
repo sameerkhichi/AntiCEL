@@ -46,6 +46,10 @@ struct AppTheme {
         accent.selectedKeyFace(for: scheme)
     }
 
+    var accentColor: Color {
+        accent.color(for: scheme)
+    }
+
     var highlight: Color {
         isDark
             ? Color.white.opacity(0.16)

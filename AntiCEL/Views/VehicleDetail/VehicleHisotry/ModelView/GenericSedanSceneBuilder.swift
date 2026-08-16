@@ -25,6 +25,10 @@ enum GenericSedanSceneBuilder {
     static let passengerRearWheelCameraTarget = SCNVector3(0.95, 0.38, -1.3)
     static let passengerRearWheelCameraUp = SCNVector3(0, 1, 0)
 
+    static let chassisCameraPosition = SCNVector3(3.4, 0.28, 1.6)
+    static let chassisCameraTarget = SCNVector3(0, 0.22, 0.1)
+    static let chassisCameraUp = SCNVector3(0, 1, 0)
+
     static let hoodOpenRadians: Float = -45 * .pi / 180
     static let trunkOpenRadians: Float = 60 * .pi / 180
     static let wheelSpinActionKey = "wheelSpin"
@@ -58,6 +62,13 @@ enum GenericSedanSceneBuilder {
                 target: passengerRearWheelCameraTarget,
                 up: passengerRearWheelCameraUp,
                 fieldOfView: 28
+            )
+        case .chassis:
+            return CameraFrame(
+                position: chassisCameraPosition,
+                target: chassisCameraTarget,
+                up: chassisCameraUp,
+                fieldOfView: 32
             )
         case .body:
             return CameraFrame(
@@ -343,6 +354,17 @@ enum GenericSedanSceneBuilder {
                 height: height * 0.5,
                 length: length * 0.24,
                 position: SCNVector3(midX, midY * 0.85, minB.z + length * 0.12)
+            )
+        )
+
+        //chassis — low, wide floorpan / rocker volume
+        hotspots.addChildNode(
+            hotspot(
+                area: .chassis,
+                width: width * 0.72,
+                height: height * 0.18,
+                length: length * 0.52,
+                position: SCNVector3(midX, minB.y + height * 0.12, (minB.z + maxB.z) / 2)
             )
         )
 

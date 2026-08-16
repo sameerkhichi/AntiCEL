@@ -61,7 +61,7 @@ private struct DashButtonChrome<Label: View>: View {
                             .strokeBorder(theme.edge, lineWidth: 1)
                     }
                     .shadow(
-                        color: isSelected ? Color.accentColor.opacity(0.45) : theme.shadow,
+                        color: isSelected ? theme.accentColor.opacity(0.45) : theme.shadow,
                         radius: isSelected ? 8 : 4,
                         y: isPressed ? 1 : 3
                     )
@@ -77,7 +77,7 @@ private struct DashButtonChrome<Label: View>: View {
             return .red
         }
         if isSelected {
-            return Color.accentColor
+            return theme.accentColor
         }
         return Color.primary.opacity(0.9)
     }
@@ -101,12 +101,14 @@ struct DashButton<Label: View>: View {
 
 struct DashLED: View {
 
+    @Environment(\.appTheme) private var theme
+
     var isOn: Bool
 
     var body: some View {
         Circle()
-            .fill(isOn ? Color.accentColor : Color.primary.opacity(0.18))
+            .fill(isOn ? theme.accentColor : Color.primary.opacity(0.18))
             .frame(width: 5, height: 5)
-            .shadow(color: isOn ? Color.accentColor.opacity(0.95) : .clear, radius: 4)
+            .shadow(color: isOn ? theme.accentColor.opacity(0.95) : .clear, radius: 4)
     }
 }

@@ -27,6 +27,7 @@ struct InfotainmentScaffold<Content: View>: View {
         }
         .background(theme.infotainment.ignoresSafeArea())
         .presentationBackground(theme.infotainment)
+        .tint(theme.accentColor)
         .toolbar(.hidden, for: .navigationBar)
     }
 
@@ -58,6 +59,7 @@ struct InfotainmentScaffold<Content: View>: View {
                 Text(confirmTitle)
             }
             .disabled(!confirmEnabled)
+            .tint(theme.accentColor)
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
