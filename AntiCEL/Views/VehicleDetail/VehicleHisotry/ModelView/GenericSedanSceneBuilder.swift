@@ -65,17 +65,27 @@ enum GenericSedanSceneBuilder {
     }
 
     static func wheelNodes(in model: SCNNode) -> [SCNNode] {
-        let wheels = namedNodes(in: model) { name in
-            name.contains("wheel") && !name.contains("well") && !name.contains("arch")
-        }
-        let leaves = leafMost(of: wheels)
-        if !leaves.isEmpty { return leaves }
-
-        return leafMost(
+        let wheelLeaves = leafMost(
+            of: namedNodes(in: model) { name in
+                name.contains("wheel") && !name.contains("well") && !name.contains("arch")
+            }
+        )
+        let tireLeaves = leafMost(
             of: namedNodes(in: model) { name in
                 name.contains("tire")
             }
         )
+
+        var nodes = wheelLeaves
+        for tire in tireLeaves {
+            let alreadySpinning = nodes.contains { spinning in
+                spinning === tire || tire.hasAncestor(spinning)
+            }
+            if !alreadySpinning {
+                nodes.append(tire)
+            }
+        }
+        return nodes
     }
 
     private static func namedNodes(
@@ -139,29 +149,40 @@ enum GenericSedanSceneBuilder {
     private static func normalize(_ model: SCNNode, into parent: SCNNode) {
         parent.addChildNode(model)
 
-        let (minVec, maxVec) = model.boundingBox
-        let size = SCNVector3(
-            maxVec.x - minVec.x,
-            maxVec.y - minVec.y,
-            maxVec.z - minVec.z
-        )
+        let local = size(of: model.boundingBox)
 
-        let longest = max(size.x, size.z)
+        // Blender USD is Z-up (length on Y, height on Z). SceneKit is Y-up.
+        var euler = SCNVector3Zero
+        if local.y >= max(local.x, local.z) * 1.05 {
+            euler.x = -.pi / 2
+            model.eulerAngles = euler
+        }
+
+        var oriented = size(of: boundingBoxInParentSpace(of: model, parent: parent))
+        if oriented.x > oriented.z * 1.15 {
+            euler.y = .pi / 2
+            model.eulerAngles = euler
+            oriented = size(of: boundingBoxInParentSpace(of: model, parent: parent))
+        }
+
+        let longest = max(oriented.x, oriented.z)
         let targetLength: Float = 4.6
         let scale = longest > 0.001 ? targetLength / longest : 1
         model.scale = SCNVector3(scale, scale, scale)
 
-        //point the long axis down +Z when the asset is authored along X
-        if size.x > size.z * 1.15 {
-            model.eulerAngles.y = .pi / 2
-        }
-
-        //center on origin and plant on the ground using parent-space bounds
         let bounds = boundingBoxInParentSpace(of: model, parent: parent)
         model.position = SCNVector3(
             model.position.x - (bounds.min.x + bounds.max.x) / 2,
             model.position.y - bounds.min.y,
             model.position.z - (bounds.min.z + bounds.max.z) / 2
+        )
+    }
+
+    private static func size(of bounds: (min: SCNVector3, max: SCNVector3)) -> SCNVector3 {
+        SCNVector3(
+            bounds.max.x - bounds.min.x,
+            bounds.max.y - bounds.min.y,
+            bounds.max.z - bounds.min.z
         )
     }
 
