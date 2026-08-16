@@ -25,12 +25,12 @@ enum GenericSedanSceneBuilder {
     static let passengerRearWheelCameraTarget = SCNVector3(0.95, 0.38, -1.3)
     static let passengerRearWheelCameraUp = SCNVector3(0, 1, 0)
 
-    static let chassisCameraPosition = SCNVector3(3.4, 0.28, 1.6)
-    static let chassisCameraTarget = SCNVector3(0, 0.22, 0.1)
+    static let chassisCameraPosition = SCNVector3(-1.85, 0.05, -2.45)
+    static let chassisCameraTarget = SCNVector3(0.25, 0.32, 0.7)
     static let chassisCameraUp = SCNVector3(0, 1, 0)
 
-    static let cabinCameraPosition = SCNVector3(-2.55, 1.2, 0.2)
-    static let cabinCameraTarget = SCNVector3(0.1, 0.85, 0.15)
+    static let interiorCameraPosition = SCNVector3(0, 0.78, 0.05)
+    static let interiorCameraTarget = SCNVector3(0, 0.84, 1.45)
 
     static let hoodOpenRadians: Float = -45 * .pi / 180
     static let trunkOpenRadians: Float = 60 * .pi / 180
@@ -71,14 +71,14 @@ enum GenericSedanSceneBuilder {
                 position: chassisCameraPosition,
                 target: chassisCameraTarget,
                 up: chassisCameraUp,
-                fieldOfView: 32
+                fieldOfView: 36
             )
         case .interior:
             return CameraFrame(
-                position: cabinCameraPosition,
-                target: cabinCameraTarget,
+                position: interiorCameraPosition,
+                target: interiorCameraTarget,
                 up: nil,
-                fieldOfView: 38
+                fieldOfView: 52
             )
         case .body:
             return CameraFrame(
