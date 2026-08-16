@@ -21,8 +21,8 @@ enum GenericSedanSceneBuilder {
     static let trunkInteriorCameraPosition = SCNVector3(0.1, 1.15, -3.95)
     static let trunkInteriorCameraTarget = SCNVector3(0, 0.7, -0.45)
 
-    static let passengerRearWheelCameraPosition = SCNVector3(2.55, 0.38, -1.55)
-    static let passengerRearWheelCameraTarget = SCNVector3(0.95, 0.38, -1.55)
+    static let passengerRearWheelCameraPosition = SCNVector3(2.55, 0.38, -1.3)
+    static let passengerRearWheelCameraTarget = SCNVector3(0.95, 0.38, -1.3)
     static let passengerRearWheelCameraUp = SCNVector3(0, 1, 0)
 
     static let hoodOpenRadians: Float = -45 * .pi / 180
