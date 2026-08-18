@@ -6,6 +6,7 @@ struct GarageView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.appTheme) private var theme
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.scenePhase) private var scenePhase
     @Query private var vehicles: [Vehicle]
 
     @State private var showingAddVehicle = false
@@ -119,6 +120,11 @@ struct GarageView: View {
             .onAppear {
                 openPendingMileageUpdate()
                 ReminderNotifications.refresh(using: modelContext)
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active {
+                    ReminderNotifications.refresh(using: modelContext)
+                }
             }
         }
     }

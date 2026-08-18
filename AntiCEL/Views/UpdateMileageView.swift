@@ -6,6 +6,7 @@ struct UpdateMileageView: View {
     @Bindable var vehicle: Vehicle
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @Environment(AppSettings.self) private var settings
 
     @State private var mileage: String
@@ -87,6 +88,7 @@ struct UpdateMileageView: View {
         vehicle.currentMileage = settings.mileageUnit.storedKilometers(fromDisplay: parsedMileage)
         vehicle.updatedAt = Date()
         WidgetReloader.reload()
+        ReminderNotifications.refresh(using: modelContext)
         dismiss()
     }
 }

@@ -5,6 +5,7 @@ struct VehicleSettingsView: View {
 
     @Bindable var vehicle: Vehicle
 
+    @Environment(\.modelContext) private var modelContext
     @Environment(AppSettings.self) private var settings
 
     @State private var year = ""
@@ -154,6 +155,7 @@ struct VehicleSettingsView: View {
             didSave = true
             isSaving = false
             WidgetReloader.reload()
+            ReminderNotifications.refresh(using: modelContext)
         }
     }
 }

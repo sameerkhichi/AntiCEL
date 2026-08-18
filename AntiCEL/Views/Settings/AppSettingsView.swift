@@ -47,15 +47,31 @@ struct AppSettingsView: View {
 
             InfotainmentSectionHeader(title: "Notifications")
 
-            Text("Get a heads-up before a service is due or a document expires.")
+            Text("Get a heads-up before a service is due or a document expires, plus a reminder on the day or mileage itself.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
             notificationToggle(
                 title: "Service reminders",
-                subtitle: "Upcoming date-based services",
+                subtitle: "Upcoming services by date or mileage",
                 isOn: $settings.notifyServiceReminders
             )
+
+            if settings.notifyServiceReminders {
+                InfotainmentChipPicker(
+                    title: "Remind me by date",
+                    selection: $settings.notificationLeadDays,
+                    options: NotificationLeadDays.allCases,
+                    itemTitle: { "\($0.displayName) before" }
+                )
+
+                InfotainmentChipPicker(
+                    title: "Remind me by mileage",
+                    selection: $settings.serviceNotificationLeadMileage,
+                    options: NotificationLeadMileage.allCases,
+                    itemTitle: { "\($0.displayName(using: settings.mileageUnit)) before" }
+                )
+            }
 
             notificationToggle(
                 title: "Expiring documents",
@@ -63,10 +79,10 @@ struct AppSettingsView: View {
                 isOn: $settings.notifyExpiringDocuments
             )
 
-            if settings.notifyServiceReminders || settings.notifyExpiringDocuments {
+            if settings.notifyExpiringDocuments {
                 InfotainmentChipPicker(
-                    title: "Notify me",
-                    selection: $settings.notificationLeadDays,
+                    title: "Remind me",
+                    selection: $settings.documentNotificationLeadDays,
                     options: NotificationLeadDays.allCases,
                     itemTitle: { "\($0.displayName) before" }
                 )
@@ -113,6 +129,15 @@ struct AppSettingsView: View {
             Task { await handleNotificationToggle(enabled: isOn) }
         }
         .onChange(of: settings.notificationLeadDays) {
+            Task { await refreshNotifications() }
+        }
+        .onChange(of: settings.serviceNotificationLeadMileage) {
+            Task { await refreshNotifications() }
+        }
+        .onChange(of: settings.documentNotificationLeadDays) {
+            Task { await refreshNotifications() }
+        }
+        .onChange(of: settings.mileageUnit) {
             Task { await refreshNotifications() }
         }
         .onChange(of: settings.lowStorageMode) { _, isOn in

@@ -76,6 +76,7 @@ enum MileageWriter {
         vehicle.updatedAt = Date()
         try context.save()
         WidgetReloader.reload()
+        ReminderNotifications.refresh(using: context)
     }
 
     private static func fetchVehicles() throws -> [Vehicle] {

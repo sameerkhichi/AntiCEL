@@ -73,6 +73,19 @@ enum NotificationLeadDays: Int, CaseIterable, Identifiable, Codable {
     }
 }
 
+enum NotificationLeadMileage: Int, CaseIterable, Identifiable, Codable {
+    case oneHundred = 100
+    case twoFifty = 250
+    case fiveHundred = 500
+    case oneThousand = 1000
+
+    var id: Int { rawValue }
+
+    func displayName(using unit: MileageUnit) -> String {
+        "\(rawValue.formatted()) \(unit.abbreviation)"
+    }
+}
+
 @Observable
 final class AppSettings {
     static let shared = AppSettings()
@@ -104,6 +117,14 @@ final class AppSettings {
         didSet { defaults.set(notificationLeadDays.rawValue, forKey: Keys.notificationLeadDays) }
     }
 
+    var serviceNotificationLeadMileage: NotificationLeadMileage {
+        didSet { defaults.set(serviceNotificationLeadMileage.rawValue, forKey: Keys.serviceNotificationLeadMileage) }
+    }
+
+    var documentNotificationLeadDays: NotificationLeadDays {
+        didSet { defaults.set(documentNotificationLeadDays.rawValue, forKey: Keys.documentNotificationLeadDays) }
+    }
+
     var lowStorageMode: Bool {
         didSet { defaults.set(lowStorageMode, forKey: Keys.lowStorageMode) }
     }
@@ -123,6 +144,16 @@ final class AppSettings {
 
         let lead = defaults.object(forKey: Keys.notificationLeadDays) as? Int
         notificationLeadDays = NotificationLeadDays(rawValue: lead ?? 7) ?? .seven
+
+        let mileageLead = defaults.object(forKey: Keys.serviceNotificationLeadMileage) as? Int
+        serviceNotificationLeadMileage = NotificationLeadMileage(rawValue: mileageLead ?? 500) ?? .fiveHundred
+
+        if let documentLead = defaults.object(forKey: Keys.documentNotificationLeadDays) as? Int,
+           let parsed = NotificationLeadDays(rawValue: documentLead) {
+            documentNotificationLeadDays = parsed
+        } else {
+            documentNotificationLeadDays = notificationLeadDays
+        }
 
         if defaults.object(forKey: Keys.lowStorageMode) != nil {
             lowStorageMode = defaults.bool(forKey: Keys.lowStorageMode)
@@ -147,6 +178,8 @@ final class AppSettings {
         static let notifyService = "settings.notifyServiceReminders"
         static let notifyDocuments = "settings.notifyExpiringDocuments"
         static let notificationLeadDays = "settings.notificationLeadDays"
+        static let serviceNotificationLeadMileage = "settings.serviceNotificationLeadMileage"
+        static let documentNotificationLeadDays = "settings.documentNotificationLeadDays"
         static let savePhotosInApp = "settings.savePhotosInApp"
         static let lowStorageMode = "settings.lowStorageMode"
     }

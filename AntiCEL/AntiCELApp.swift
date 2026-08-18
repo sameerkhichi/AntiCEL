@@ -11,6 +11,10 @@ struct AntiCELApp: App {
         }
     }()
 
+    init() {
+        ReminderNotifications.configure()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
