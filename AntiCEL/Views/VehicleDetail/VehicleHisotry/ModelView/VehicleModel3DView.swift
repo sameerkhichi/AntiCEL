@@ -112,7 +112,7 @@ struct VehicleModel3DView: UIViewRepresentable {
 
         applyPartMotion(area, in: model, animated: animated, coordinator: coordinator)
         applyCameraFraming(area, in: view, animated: animated)
-        view.allowsCameraControl = area != .wheels
+        view.allowsCameraControl = area != .wheels && area != .interior
     }
 
     private func applyPartMotion(

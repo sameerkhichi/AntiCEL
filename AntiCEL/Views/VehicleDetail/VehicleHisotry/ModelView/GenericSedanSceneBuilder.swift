@@ -29,8 +29,8 @@ enum GenericSedanSceneBuilder {
     static let chassisCameraTarget = SCNVector3(0.25, 0.32, 0.7)
     static let chassisCameraUp = SCNVector3(0, 1, 0)
 
-    static let interiorCameraPosition = SCNVector3(0, 0.78, 0.05)
-    static let interiorCameraTarget = SCNVector3(0, 0.84, 1.45)
+    static let interiorCameraPosition = SCNVector3(0, 0.82, -0.45)
+    static let interiorCameraTarget = SCNVector3(0, 0.86, 0.65)
 
     static let hoodOpenRadians: Float = -45 * .pi / 180
     static let trunkOpenRadians: Float = 60 * .pi / 180
@@ -78,7 +78,7 @@ enum GenericSedanSceneBuilder {
                 position: interiorCameraPosition,
                 target: interiorCameraTarget,
                 up: nil,
-                fieldOfView: 52
+                fieldOfView: 48
             )
         case .body:
             return CameraFrame(
@@ -333,6 +333,12 @@ enum GenericSedanSceneBuilder {
         let length = maxB.z - minB.z
         let midX = (minB.x + maxB.x) / 2
         let midY = (minB.y + maxB.y) / 2
+        let midZ = (minB.z + maxB.z) / 2
+        let doorMidY = minB.y + height * 0.48
+        let cabinZ = midZ + length * 0.02
+        let cabinLength = length * 0.38
+        let windowY = minB.y + height * 0.78
+        let windowH = height * 0.28
 
         //front / drivetrain (hood + nose)
         hotspots.addChildNode(
@@ -345,27 +351,49 @@ enum GenericSedanSceneBuilder {
             )
         )
 
-        //cabin / body
+        //upper body — mid-door and up (roof, pillars, upper panels)
+        let bodyH = maxB.y - doorMidY
         hotspots.addChildNode(
             hotspot(
                 area: .body,
                 width: width * 0.9,
-                height: height * 0.7,
-                length: length * 0.36,
-                position: SCNVector3(midX, midY * 1.05, (minB.z + maxB.z) / 2 + length * 0.02)
+                height: bodyH,
+                length: cabinLength,
+                position: SCNVector3(midX, doorMidY + bodyH * 0.5, cabinZ)
             )
         )
 
-        //cabin interior — inside the greenhouse, smaller than the body shell
+        //windows — windshield, rear glass, and both side glass
         hotspots.addChildNode(
             hotspot(
                 area: .interior,
-                width: width * 0.52,
-                height: height * 0.32,
-                length: length * 0.28,
-                position: SCNVector3(midX, midY * 1.12, (minB.z + maxB.z) / 2 + length * 0.04)
+                width: width * 0.72,
+                height: windowH,
+                length: length * 0.07,
+                position: SCNVector3(midX, windowY, cabinZ + cabinLength * 0.42)
             )
         )
+        hotspots.addChildNode(
+            hotspot(
+                area: .interior,
+                width: width * 0.72,
+                height: windowH,
+                length: length * 0.07,
+                position: SCNVector3(midX, windowY, cabinZ - cabinLength * 0.42)
+            )
+        )
+        let sideWindowW = width * 0.08
+        for x in [minB.x + sideWindowW * 0.45, maxB.x - sideWindowW * 0.45] {
+            hotspots.addChildNode(
+                hotspot(
+                    area: .interior,
+                    width: sideWindowW,
+                    height: windowH,
+                    length: cabinLength * 0.85,
+                    position: SCNVector3(x, windowY, cabinZ)
+                )
+            )
+        }
 
         //rear / misc (trunk)
         hotspots.addChildNode(
@@ -378,14 +406,14 @@ enum GenericSedanSceneBuilder {
             )
         )
 
-        //chassis — low, wide floorpan / rocker volume
+        //chassis — lower body from mid-door down, including the underside
         hotspots.addChildNode(
             hotspot(
                 area: .chassis,
-                width: width * 0.72,
-                height: height * 0.18,
-                length: length * 0.52,
-                position: SCNVector3(midX, minB.y + height * 0.12, (minB.z + maxB.z) / 2)
+                width: width * 0.9,
+                height: doorMidY - minB.y + height * 0.04,
+                length: length * 0.58,
+                position: SCNVector3(midX, (minB.y + doorMidY) * 0.5, midZ)
             )
         )
 
