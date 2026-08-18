@@ -17,6 +17,8 @@ final class Vehicle {
     var nickname: String
     var vin: String
     var currentMileage: Int
+    //optional so older store rows (created before this field existed) do not crash on read
+    var photoFileName: String? = nil
     
     //this is for the service reminders (A vehicle can have many ServiceReminder)
     @Relationship(deleteRule: .cascade, inverse: \ServiceReminder.vehicle) //when the vehicle is deleted, so are all of these.
@@ -51,5 +53,6 @@ final class Vehicle {
         self.nickname = nickname
         self.vin = vin
         self.currentMileage = currentMileage
+        self.photoFileName = nil
     }
 }

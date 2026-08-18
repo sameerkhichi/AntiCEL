@@ -62,6 +62,10 @@ struct HistoryEntryRow: View {
 
                 Spacer()
 
+                if entry.photoFileName != nil {
+                    PhotoThumbnail(ref: entry.photoFileName)
+                }
+
                 Image(systemName: "chevron.right")
                     .foregroundStyle(.tertiary)
             }

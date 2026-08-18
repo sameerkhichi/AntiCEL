@@ -12,6 +12,8 @@ final class VehicleDocument {
     var category: DocumentCategory
     var date: Date
     var expirationDate: Date?
+    //optional so older store rows (created before this field existed) do not crash on read
+    var photoFileName: String? = nil
 
     var createdAt: Date
     var updatedAt: Date
@@ -24,6 +26,7 @@ final class VehicleDocument {
         category: DocumentCategory,
         date: Date = Date(),
         expirationDate: Date? = nil,
+        photoFileName: String? = nil,
         vehicle: Vehicle? = nil
     ) {
         self.id = UUID()
@@ -32,6 +35,7 @@ final class VehicleDocument {
         self.category = category
         self.date = date
         self.expirationDate = expirationDate
+        self.photoFileName = photoFileName
         self.createdAt = Date()
         self.updatedAt = Date()
         self.vehicle = vehicle

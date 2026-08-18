@@ -104,6 +104,10 @@ final class AppSettings {
         didSet { defaults.set(notificationLeadDays.rawValue, forKey: Keys.notificationLeadDays) }
     }
 
+    var savePhotosInApp: Bool {
+        didSet { defaults.set(savePhotosInApp, forKey: Keys.savePhotosInApp) }
+    }
+
     private let defaults: UserDefaults
 
     private init() {
@@ -117,6 +121,7 @@ final class AppSettings {
 
         let lead = defaults.object(forKey: Keys.notificationLeadDays) as? Int
         notificationLeadDays = NotificationLeadDays(rawValue: lead ?? 7) ?? .seven
+        savePhotosInApp = defaults.object(forKey: Keys.savePhotosInApp) as? Bool ?? true
     }
 
     func accentOption(for scheme: ColorScheme) -> AccentOption {
@@ -134,5 +139,6 @@ final class AppSettings {
         static let notifyService = "settings.notifyServiceReminders"
         static let notifyDocuments = "settings.notifyExpiringDocuments"
         static let notificationLeadDays = "settings.notificationLeadDays"
+        static let savePhotosInApp = "settings.savePhotosInApp"
     }
 }

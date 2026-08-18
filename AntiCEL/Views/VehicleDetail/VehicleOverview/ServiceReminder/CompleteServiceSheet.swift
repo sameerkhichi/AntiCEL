@@ -6,14 +6,15 @@ struct CompleteServiceSheet: View {
     @Environment(AppSettings.self) private var settings
 
     let reminder: ServiceReminder
-    let onContinue: (Date, Int?) -> Void
+    let onContinue: (Date, Int?, PhotoDraft) -> Void
 
     @State private var completionDate: Date
     @State private var completionMileage: String
+    @State private var photoDraft = PhotoDraft()
 
     init(
         reminder: ServiceReminder,
-        onContinue: @escaping (Date, Int?) -> Void
+        onContinue: @escaping (Date, Int?, PhotoDraft) -> Void
     ) {
         self.reminder = reminder
         self.onContinue = onContinue
@@ -37,7 +38,8 @@ struct CompleteServiceSheet: View {
             onConfirm: {
                 onContinue(
                     completionDate,
-                    Int(completionMileage).map { settings.mileageUnit.storedKilometers(fromDisplay: $0) }
+                    Int(completionMileage).map { settings.mileageUnit.storedKilometers(fromDisplay: $0) },
+                    photoDraft
                 )
                 dismiss()
             }
@@ -56,6 +58,12 @@ struct CompleteServiceSheet: View {
                 TextField("Current mileage", text: $completionMileage)
                     .keyboardType(.numberPad)
             }
+
+            PhotoAttachmentField(
+                label: "Photo",
+                footnote: "Optional. You can also add this later on the history record itself.",
+                draft: $photoDraft
+            )
         }
         .appTheme()
     }

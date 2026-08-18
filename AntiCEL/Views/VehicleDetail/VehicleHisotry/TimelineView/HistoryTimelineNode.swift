@@ -73,6 +73,10 @@ struct HistoryTimelineNode: View {
                         .foregroundStyle(.secondary)
                 }
 
+                if entry.photoFileName != nil {
+                    PhotoThumbnail(ref: entry.photoFileName, size: 56)
+                }
+
             }
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)

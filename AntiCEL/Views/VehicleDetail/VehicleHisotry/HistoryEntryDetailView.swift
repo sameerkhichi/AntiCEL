@@ -25,6 +25,8 @@ struct HistoryEntryDetailView: View {
     @State private var mileage = ""
     @State private var notes = ""
     @State private var showingRelatedToHelp = false
+    @State private var photoDraft = PhotoDraft()
+    @State private var isSaving = false
 
     private var isEditing: Bool {
         historyEntry != nil
@@ -33,6 +35,7 @@ struct HistoryEntryDetailView: View {
     var body: some View {
         InfotainmentScaffold(
             title: isEditing ? "Edit Entry" : "New Entry",
+            confirmEnabled: !isSaving,
             onCancel: { dismiss() },
             onConfirm: saveEntry
         ) {
@@ -74,6 +77,12 @@ struct HistoryEntryDetailView: View {
                 TextField("Notes", text: $notes, axis: .vertical)
                     .lineLimit(4...8)
             }
+
+            PhotoAttachmentField(
+                label: "Photo",
+                footnote: "Optional receipt or proof of the work.",
+                draft: $photoDraft
+            )
         }
         .appTheme()
         .sheet(isPresented: $showingRelatedToHelp) {
@@ -86,6 +95,7 @@ struct HistoryEntryDetailView: View {
                 vehicleArea = historyEntry.resolvedVehicleArea
                 date = historyEntry.date
                 notes = historyEntry.details
+                photoDraft.load(from: historyEntry.photoFileName)
 
                 if let mileageValue = historyEntry.mileage {
                     mileage = String(settings.mileageUnit.displayValue(fromStoredKilometers: mileageValue))
@@ -96,6 +106,7 @@ struct HistoryEntryDetailView: View {
                 vehicleArea = initialVehicleArea ?? .misc
                 date = initialDate ?? Date()
                 notes = ""
+                photoDraft = PhotoDraft()
 
                 if let initialMileage {
                     mileage = String(settings.mileageUnit.displayValue(fromStoredKilometers: initialMileage))
@@ -105,32 +116,44 @@ struct HistoryEntryDetailView: View {
     }
 
     private func saveEntry() {
-        if let historyEntry {
-            historyEntry.title = title
-            historyEntry.category = category
-            historyEntry.vehicleArea = vehicleArea
-            historyEntry.date = date
-            historyEntry.details = notes
-            historyEntry.mileage = Int(mileage).map { settings.mileageUnit.storedKilometers(fromDisplay: $0) }
-        } else {
-            let newEntry = HistoryEntry(
-                title: title,
-                details: notes,
-                date: date,
-                mileage: Int(mileage).map { settings.mileageUnit.storedKilometers(fromDisplay: $0) },
-                category: category,
-                vehicleArea: vehicleArea,
-                vehicle: vehicle
+        guard !isSaving else { return }
+        isSaving = true
+
+        Task {
+            let photoRef = await photoDraft.commit(
+                copyIntoApp: settings.savePhotosInApp,
+                kind: .attachment
             )
 
-            modelContext.insert(newEntry)
-            vehicle.historyEntries.append(newEntry)
+            if let historyEntry {
+                historyEntry.title = title
+                historyEntry.category = category
+                historyEntry.vehicleArea = vehicleArea
+                historyEntry.date = date
+                historyEntry.details = notes
+                historyEntry.mileage = Int(mileage).map { settings.mileageUnit.storedKilometers(fromDisplay: $0) }
+                historyEntry.photoFileName = photoRef
+            } else {
+                let newEntry = HistoryEntry(
+                    title: title,
+                    details: notes,
+                    date: date,
+                    mileage: Int(mileage).map { settings.mileageUnit.storedKilometers(fromDisplay: $0) },
+                    category: category,
+                    vehicleArea: vehicleArea,
+                    photoFileName: photoRef,
+                    vehicle: vehicle
+                )
 
-            if let completedReminder {
-                modelContext.delete(completedReminder)
+                modelContext.insert(newEntry)
+                vehicle.historyEntries.append(newEntry)
+
+                if let completedReminder {
+                    modelContext.delete(completedReminder)
+                }
             }
+            ReminderNotifications.refresh(using: modelContext)
+            dismiss()
         }
-        ReminderNotifications.refresh(using: modelContext)
-        dismiss()
     }
 }

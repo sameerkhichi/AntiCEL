@@ -10,6 +10,8 @@ struct AppSettingsView: View {
     @Query private var vehicles: [Vehicle]
 
     @State private var notificationDenied = false
+    @State private var showingClearPhotos = false
+    @State private var didClearPhotos = false
 
     var body: some View {
         @Bindable var settings = settings
@@ -74,6 +76,37 @@ struct AppSettingsView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
+
+            InfotainmentSectionHeader(title: "Photos")
+
+            Text("Vehicle photos, receipts, and document scans take up storage in this app. Turn this off to keep them in your Photos library instead.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            InfotainmentField {
+                Toggle(isOn: $settings.savePhotosInApp) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Keep photo copies in AntiCEL")
+                            .font(.body.weight(.medium))
+                        Text("Stores compressed copies on this device")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .tint(Color.accentColor)
+            }
+
+            DashButton(kind: .bar, isDestructive: true) {
+                showingClearPhotos = true
+            } label: {
+                Text("Remove Saved Photos")
+            }
+
+            if didClearPhotos {
+                Text("Saved photos were removed from AntiCEL.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
         .appTheme()
         .onChange(of: settings.notifyServiceReminders) { _, isOn in
@@ -84,6 +117,24 @@ struct AppSettingsView: View {
         }
         .onChange(of: settings.notificationLeadDays) {
             Task { await refreshNotifications() }
+        }
+        .onChange(of: settings.savePhotosInApp) { _, isOn in
+            if !isOn {
+                Task { await PhotoStore.requestPhotoLibraryAccessIfNeeded() }
+            }
+        }
+        .confirmationDialog(
+            "Remove photos saved in AntiCEL?",
+            isPresented: $showingClearPhotos,
+            titleVisibility: .visible
+        ) {
+            Button("Remove Photos", role: .destructive) {
+                PhotoStore.clearAppCopies(in: vehicles)
+                didClearPhotos = true
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This deletes copies stored in the app. Photos that only live in your library are not removed.")
         }
         .onDisappear {
             Task { await refreshNotifications() }

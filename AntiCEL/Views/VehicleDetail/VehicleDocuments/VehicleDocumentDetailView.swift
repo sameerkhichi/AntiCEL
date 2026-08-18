@@ -5,6 +5,7 @@ struct VehicleDocumentDetailView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppSettings.self) private var settings
 
     @Bindable var vehicle: Vehicle
     var document: VehicleDocument?
@@ -15,6 +16,8 @@ struct VehicleDocumentDetailView: View {
     @State private var hasExpirationDate = false
     @State private var expirationDate = Date()
     @State private var details = ""
+    @State private var photoDraft = PhotoDraft()
+    @State private var isSaving = false
 
     private var isEditing: Bool {
         document != nil
@@ -27,7 +30,7 @@ struct VehicleDocumentDetailView: View {
     var body: some View {
         InfotainmentScaffold(
             title: isEditing ? "Edit Document" : "New Document",
-            confirmEnabled: canSave,
+            confirmEnabled: canSave && !isSaving,
             onCancel: { dismiss() },
             onConfirm: saveDocument
         ) {
@@ -73,6 +76,12 @@ struct VehicleDocumentDetailView: View {
                     .lineLimit(4...8)
             }
 
+            PhotoAttachmentField(
+                label: "Photo",
+                footnote: "Optional photo of the document.",
+                draft: $photoDraft
+            )
+
             if isEditing {
                 DashButton(kind: .bar, isDestructive: true, action: deleteDocument) {
                     Text("Delete Document")
@@ -91,41 +100,56 @@ struct VehicleDocumentDetailView: View {
                     hasExpirationDate = true
                     expirationDate = expiration
                 }
+
+                photoDraft.load(from: document.photoFileName)
             }
         }
     }
 
     private func saveDocument() {
+        guard !isSaving else { return }
+        isSaving = true
+
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let expiration = hasExpirationDate ? expirationDate : nil
 
-        if let document {
-            document.title = trimmedTitle
-            document.category = category
-            document.date = date
-            document.details = details
-            document.expirationDate = expiration
-            document.updatedAt = Date()
-        } else {
-            let newDocument = VehicleDocument(
-                title: trimmedTitle,
-                details: details,
-                category: category,
-                date: date,
-                expirationDate: expiration,
-                vehicle: vehicle
+        Task {
+            let photoRef = await photoDraft.commit(
+                copyIntoApp: settings.savePhotosInApp,
+                kind: .attachment
             )
 
-            modelContext.insert(newDocument)
-            vehicle.documents.append(newDocument)
-        }
+            if let document {
+                document.title = trimmedTitle
+                document.category = category
+                document.date = date
+                document.details = details
+                document.expirationDate = expiration
+                document.photoFileName = photoRef
+                document.updatedAt = Date()
+            } else {
+                let newDocument = VehicleDocument(
+                    title: trimmedTitle,
+                    details: details,
+                    category: category,
+                    date: date,
+                    expirationDate: expiration,
+                    photoFileName: photoRef,
+                    vehicle: vehicle
+                )
 
-        dismiss()
-        ReminderNotifications.refresh(using: modelContext)
+                modelContext.insert(newDocument)
+                vehicle.documents.append(newDocument)
+            }
+
+            dismiss()
+            ReminderNotifications.refresh(using: modelContext)
+        }
     }
 
     private func deleteDocument() {
         guard let document else { return }
+        PhotoStore.deleteAppFile(document.photoFileName)
         modelContext.delete(document)
         ReminderNotifications.refresh(using: modelContext)
         dismiss()

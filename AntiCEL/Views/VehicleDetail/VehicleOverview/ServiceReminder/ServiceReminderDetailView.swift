@@ -9,6 +9,7 @@ struct ServiceReminderDetailView: View {
 
     @State private var showDeleteAlert = false
     @State private var showCompletionSheet = false
+    @State private var isCompleting = false
 
     let reminder: ServiceReminder
 
@@ -82,6 +83,7 @@ struct ServiceReminderDetailView: View {
                 } label: {
                     Text("Complete Service")
                 }
+                .disabled(isCompleting)
 
                 DashButton(kind: .bar, isDestructive: true) {
                     showDeleteAlert = true
@@ -98,10 +100,11 @@ struct ServiceReminderDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.clear, for: .navigationBar)
         .sheet(isPresented: $showCompletionSheet) {
-            CompleteServiceSheet(reminder: reminder) { date, mileage in
+            CompleteServiceSheet(reminder: reminder) { date, mileage, photoDraft in
                 completeService(
                     completionDate: date,
-                    completionMileage: mileage
+                    completionMileage: mileage,
+                    photoDraft: photoDraft
                 )
             }
         }
@@ -122,27 +125,38 @@ struct ServiceReminderDetailView: View {
 
     private func completeService(
         completionDate: Date,
-        completionMileage: Int?
+        completionMileage: Int?,
+        photoDraft: PhotoDraft
     ) {
-        guard let vehicle = reminder.vehicle else {
+        guard let vehicle = reminder.vehicle, !isCompleting else {
             return
         }
 
-        let newEntry = HistoryEntry(
-            title: reminder.name,
-            details: reminder.notes,
-            date: completionDate,
-            mileage: completionMileage,
-            category: .maintenance,
-            vehicleArea: reminder.resolvedVehicleArea,
-            vehicle: vehicle
-        )
+        isCompleting = true
 
-        modelContext.insert(newEntry)
-        vehicle.historyEntries.append(newEntry)
-        modelContext.delete(reminder)
-        ReminderNotifications.refresh(using: modelContext)
-        dismiss()
+        Task {
+            let photoRef = await photoDraft.commit(
+                copyIntoApp: settings.savePhotosInApp,
+                kind: .attachment
+            )
+
+            let newEntry = HistoryEntry(
+                title: reminder.name,
+                details: reminder.notes,
+                date: completionDate,
+                mileage: completionMileage,
+                category: .maintenance,
+                vehicleArea: reminder.resolvedVehicleArea,
+                photoFileName: photoRef,
+                vehicle: vehicle
+            )
+
+            modelContext.insert(newEntry)
+            vehicle.historyEntries.append(newEntry)
+            modelContext.delete(reminder)
+            ReminderNotifications.refresh(using: modelContext)
+            dismiss()
+        }
     }
 
     @ViewBuilder

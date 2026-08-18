@@ -12,9 +12,11 @@ struct AddVehicleView: View {
     @State private var model = ""
     @State private var nickname = ""
     @State private var mileage = ""
+    @State private var photoDraft = PhotoDraft()
+    @State private var isSaving = false
 
     private var canSave: Bool {
-        Int(year) != nil && Int(mileage) != nil
+        Int(year) != nil && Int(mileage) != nil && !isSaving
     }
 
     var body: some View {
@@ -25,6 +27,13 @@ struct AddVehicleView: View {
             onConfirm: saveVehicle
         ) {
             InfotainmentSectionHeader(title: "Vehicle Information")
+
+            PhotoAttachmentField(
+                label: "Vehicle Photo",
+                footnote: "Used as the icon in your garage.",
+                style: .vehicleIcon,
+                draft: $photoDraft
+            )
 
             InfotainmentField(label: "Year") {
                 TextField("Year", text: $year)
@@ -53,10 +62,13 @@ struct AddVehicleView: View {
 
     private func saveVehicle() {
         guard let year = Int(year),
-              let mileage = Int(mileage)
+              let mileage = Int(mileage),
+              !isSaving
         else {
             return
         }
+
+        isSaving = true
 
         let vehicle = Vehicle(
             make: make,
@@ -66,9 +78,15 @@ struct AddVehicleView: View {
             currentMileage: settings.mileageUnit.storedKilometers(fromDisplay: mileage)
         )
 
-        modelContext.insert(vehicle)
-        WidgetReloader.reload()
-        dismiss()
+        Task {
+            vehicle.photoFileName = await photoDraft.commit(
+                copyIntoApp: settings.savePhotosInApp,
+                kind: .vehicleIcon
+            )
+            modelContext.insert(vehicle)
+            WidgetReloader.reload()
+            dismiss()
+        }
     }
 }
 

@@ -14,6 +14,8 @@ struct VehicleSettingsView: View {
     @State private var vin = ""
     @State private var mileage = ""
     @State private var didSave = false
+    @State private var photoDraft = PhotoDraft()
+    @State private var isSaving = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -21,6 +23,18 @@ struct VehicleSettingsView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Identification")
                         .font(.title3.weight(.semibold).width(.condensed))
+
+                    Rectangle()
+                        .fill(.quaternary)
+                        .frame(height: 1)
+
+                    PhotoAttachmentField(
+                        label: "Vehicle Photo",
+                        footnote: "Used as the icon in your garage.",
+                        style: .vehicleIcon,
+                        usesInfotainmentChrome: false,
+                        draft: $photoDraft
+                    )
 
                     Rectangle()
                         .fill(.quaternary)
@@ -76,7 +90,7 @@ struct VehicleSettingsView: View {
             DashButton(isSelected: canSave, kind: .bar, action: saveChanges) {
                 Text("Save Changes")
             }
-            .disabled(!canSave)
+            .disabled(!canSave || isSaving)
             .padding(.horizontal)
 
             if didSave {
@@ -108,16 +122,20 @@ struct VehicleSettingsView: View {
         mileage = String(
             settings.mileageUnit.displayValue(fromStoredKilometers: vehicle.currentMileage)
         )
+        photoDraft.load(from: vehicle.photoFileName)
         didSave = false
     }
 
     private func saveChanges() {
         guard
+            !isSaving,
             let yearValue = Int(year),
             let mileageValue = Int(mileage)
         else {
             return
         }
+
+        isSaving = true
 
         vehicle.year = yearValue
         vehicle.make = make.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -127,8 +145,16 @@ struct VehicleSettingsView: View {
         vehicle.currentMileage = settings.mileageUnit.storedKilometers(fromDisplay: mileageValue)
         vehicle.updatedAt = Date()
 
-        didSave = true
-        WidgetReloader.reload()
+        Task {
+            vehicle.photoFileName = await photoDraft.commit(
+                copyIntoApp: settings.savePhotosInApp,
+                kind: .vehicleIcon
+            )
+            photoDraft.load(from: vehicle.photoFileName)
+            didSave = true
+            isSaving = false
+            WidgetReloader.reload()
+        }
     }
 }
 

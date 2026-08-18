@@ -86,6 +86,10 @@ struct VehicleAreaHistoryPanel: View {
 
                                 Spacer()
 
+                                if entry.photoFileName != nil {
+                                    PhotoThumbnail(ref: entry.photoFileName, size: 32)
+                                }
+
                                 Image(systemName: "chevron.right")
                                     .font(.caption)
                                     .foregroundStyle(.tertiary)

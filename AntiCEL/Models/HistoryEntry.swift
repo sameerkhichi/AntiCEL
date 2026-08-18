@@ -12,6 +12,7 @@ final class HistoryEntry {
     var category: HistoryCategory
     //optional so older store rows (created before this field existed) do not crash on read
     var vehicleArea: VehicleArea?
+    var photoFileName: String? = nil
     var vehicle: Vehicle?
 
     var resolvedVehicleArea: VehicleArea {
@@ -25,6 +26,7 @@ final class HistoryEntry {
         mileage: Int? = nil,
         category: HistoryCategory,
         vehicleArea: VehicleArea = .misc,
+        photoFileName: String? = nil,
         vehicle: Vehicle? = nil
     ) {
         self.id = UUID()
@@ -34,6 +36,7 @@ final class HistoryEntry {
         self.mileage = mileage
         self.category = category
         self.vehicleArea = vehicleArea
+        self.photoFileName = photoFileName
         self.vehicle = vehicle
     }
 }

@@ -37,10 +37,13 @@ struct GarageBayCard: View {
 
     private func vehicleContent(_ vehicle: Vehicle) -> some View {
         VStack(spacing: 10) {
-            Image(systemName: "car.side.fill")
-                .font(.system(size: 44, weight: .regular))
-                .foregroundStyle(Color.primary.opacity(0.88))
-                .shadow(color: Color.accentColor.opacity(0.25), radius: 8, y: 2)
+            VehiclePhotoIcon(
+                photoFileName: vehicle.photoFileName,
+                width: 86,
+                height: 56,
+                symbolSize: 44
+            )
+            .shadow(color: Color.accentColor.opacity(0.25), radius: 8, y: 2)
 
             VStack(spacing: 2) {
                 Text("\(String(vehicle.year))  \(vehicle.make.uppercased())  \(vehicle.model.uppercased())")

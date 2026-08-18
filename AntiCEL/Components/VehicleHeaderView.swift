@@ -2,17 +2,21 @@ import SwiftUI
 
 struct VehicleHeaderView: View {
 
-    let vehicle: Vehicle
+    @Bindable var vehicle: Vehicle
 
     @State private var showingUpdateMileage = false
 
     var body: some View {
         VStack(spacing: 14) {
-            Image(systemName: "car.side.fill")
-                .font(.system(size: 56, weight: .regular))
-                .foregroundStyle(Color.primary.opacity(0.92))
-                .shadow(color: Color.accentColor.opacity(0.35), radius: 12, y: 4)
-                .padding(.top, 8)
+            VehiclePhotoIcon(
+                photoFileName: vehicle.photoFileName,
+                width: 112,
+                height: 74,
+                symbolSize: 56,
+                cornerRadius: 14
+            )
+            .shadow(color: Color.accentColor.opacity(0.35), radius: 12, y: 4)
+            .padding(.top, 8)
 
             Text("\(String(vehicle.year))  \(vehicle.make.uppercased())  \(vehicle.model.uppercased())")
                 .font(.appBadge)

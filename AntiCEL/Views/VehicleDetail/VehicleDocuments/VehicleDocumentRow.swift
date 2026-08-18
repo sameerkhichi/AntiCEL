@@ -39,6 +39,10 @@ struct VehicleDocumentRow: View {
 
                 Spacer()
 
+                if document.photoFileName != nil {
+                    PhotoThumbnail(ref: document.photoFileName)
+                }
+
                 Image(systemName: "chevron.right")
                     .foregroundStyle(.tertiary)
             }

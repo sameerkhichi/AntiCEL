@@ -100,6 +100,7 @@ struct GarageView: View {
             ) {
                 Button("Remove", role: .destructive) {
                     if let vehiclePendingDelete {
+                        PhotoStore.deleteAll(for: vehiclePendingDelete)
                         modelContext.delete(vehiclePendingDelete)
                         WidgetReloader.reload()
                     }
