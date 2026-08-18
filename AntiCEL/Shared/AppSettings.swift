@@ -143,7 +143,8 @@ final class AppSettings {
         notifyExpiringDocuments = defaults.object(forKey: Keys.notifyDocuments) as? Bool ?? false
 
         let lead = defaults.object(forKey: Keys.notificationLeadDays) as? Int
-        notificationLeadDays = NotificationLeadDays(rawValue: lead ?? 7) ?? .seven
+        let leadDays = NotificationLeadDays(rawValue: lead ?? 7) ?? .seven
+        notificationLeadDays = leadDays
 
         let mileageLead = defaults.object(forKey: Keys.serviceNotificationLeadMileage) as? Int
         serviceNotificationLeadMileage = NotificationLeadMileage(rawValue: mileageLead ?? 500) ?? .fiveHundred
@@ -152,7 +153,7 @@ final class AppSettings {
            let parsed = NotificationLeadDays(rawValue: documentLead) {
             documentNotificationLeadDays = parsed
         } else {
-            documentNotificationLeadDays = notificationLeadDays
+            documentNotificationLeadDays = leadDays
         }
 
         if defaults.object(forKey: Keys.lowStorageMode) != nil {
