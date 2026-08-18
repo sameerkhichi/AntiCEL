@@ -104,9 +104,11 @@ final class AppSettings {
         didSet { defaults.set(notificationLeadDays.rawValue, forKey: Keys.notificationLeadDays) }
     }
 
-    var savePhotosInApp: Bool {
-        didSet { defaults.set(savePhotosInApp, forKey: Keys.savePhotosInApp) }
+    var lowStorageMode: Bool {
+        didSet { defaults.set(lowStorageMode, forKey: Keys.lowStorageMode) }
     }
+
+    var savePhotosInApp: Bool { !lowStorageMode }
 
     private let defaults: UserDefaults
 
@@ -121,7 +123,13 @@ final class AppSettings {
 
         let lead = defaults.object(forKey: Keys.notificationLeadDays) as? Int
         notificationLeadDays = NotificationLeadDays(rawValue: lead ?? 7) ?? .seven
-        savePhotosInApp = defaults.object(forKey: Keys.savePhotosInApp) as? Bool ?? true
+
+        if defaults.object(forKey: Keys.lowStorageMode) != nil {
+            lowStorageMode = defaults.bool(forKey: Keys.lowStorageMode)
+        } else {
+            let saveInApp = defaults.object(forKey: Keys.savePhotosInApp) as? Bool ?? true
+            lowStorageMode = !saveInApp
+        }
     }
 
     func accentOption(for scheme: ColorScheme) -> AccentOption {
@@ -140,5 +148,6 @@ final class AppSettings {
         static let notifyDocuments = "settings.notifyExpiringDocuments"
         static let notificationLeadDays = "settings.notificationLeadDays"
         static let savePhotosInApp = "settings.savePhotosInApp"
+        static let lowStorageMode = "settings.lowStorageMode"
     }
 }

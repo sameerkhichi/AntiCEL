@@ -75,14 +75,29 @@ struct InfotainmentScaffold<Content: View>: View {
 
 struct InfotainmentSectionHeader: View {
 
+    @Environment(\.appTheme) private var theme
+
     let title: String
+    var onHelp: (() -> Void)? = nil
 
     var body: some View {
-        Text(title)
-            .font(.appBadge)
-            .tracking(1.6)
-            .textCase(.uppercase)
-            .foregroundStyle(.secondary)
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(title)
+                .font(.appBadge)
+                .tracking(1.6)
+                .textCase(.uppercase)
+                .foregroundStyle(.secondary)
+
+            if let onHelp {
+                Button(action: onHelp) {
+                    Image(systemName: "questionmark.circle")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(theme.accentColor)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("About \(title)")
+            }
+        }
     }
 }
 

@@ -148,8 +148,8 @@ struct PhotoAttachmentField: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if !settings.savePhotosInApp {
-                Text("Photos stay in your library and aren’t copied into AntiCEL.")
+            if settings.lowStorageMode {
+                Text("Low Storage Mode is on, so this stays in your camera roll.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -251,6 +251,8 @@ struct StoredPhotoView<Placeholder: View>: View {
                 placeholder()
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
         .task(id: ref) {
             image = await PhotoStore.load(ref)
         }

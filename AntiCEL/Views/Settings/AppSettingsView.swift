@@ -11,6 +11,7 @@ struct AppSettingsView: View {
 
     @State private var notificationDenied = false
     @State private var showingClearPhotos = false
+    @State private var showingPhotoHelp = false
     @State private var didClearPhotos = false
 
     var body: some View {
@@ -77,18 +78,14 @@ struct AppSettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            InfotainmentSectionHeader(title: "Photos")
-
-            Text("Vehicle photos, receipts, and document scans take up storage in this app. Turn this off to keep them in your Photos library instead.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            InfotainmentSectionHeader(title: "Photos", onHelp: { showingPhotoHelp = true })
 
             InfotainmentField {
-                Toggle(isOn: $settings.savePhotosInApp) {
+                Toggle(isOn: $settings.lowStorageMode) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Keep photo copies in AntiCEL")
+                        Text("Low Storage Mode")
                             .font(.body.weight(.medium))
-                        Text("Stores compressed copies on this device")
+                        Text("Uses your camera roll instead of storing copies in AntiCEL")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -118,23 +115,22 @@ struct AppSettingsView: View {
         .onChange(of: settings.notificationLeadDays) {
             Task { await refreshNotifications() }
         }
-        .onChange(of: settings.savePhotosInApp) { _, isOn in
-            if !isOn {
+        .onChange(of: settings.lowStorageMode) { _, isOn in
+            if isOn {
                 Task { await PhotoStore.requestPhotoLibraryAccessIfNeeded() }
             }
         }
-        .confirmationDialog(
-            "Remove photos saved in AntiCEL?",
-            isPresented: $showingClearPhotos,
-            titleVisibility: .visible
-        ) {
+        .sheet(isPresented: $showingPhotoHelp) {
+            PhotoStorageHelpSheet()
+        }
+        .alert("Remove Saved Photos?", isPresented: $showingClearPhotos) {
             Button("Remove Photos", role: .destructive) {
                 PhotoStore.clearAppCopies(in: vehicles)
                 didClearPhotos = true
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This deletes copies stored in the app. Photos that only live in your library are not removed.")
+            Text("This deletes all photos stored on AntiCEL. Photos stored on this app, and not in your camera roll, will be permanently deleted.")
         }
         .onDisappear {
             Task { await refreshNotifications() }

@@ -6,10 +6,66 @@ struct VehicleHeaderView: View {
 
     @State private var showingUpdateMileage = false
 
+    private var hasPhoto: Bool {
+        vehicle.photoFileName != nil
+    }
+
+    private var headerHeight: CGFloat {
+        hasPhoto ? 300 : 210
+    }
+
     var body: some View {
+        Group {
+            if hasPhoto {
+                photoHeader
+            } else {
+                compactHeader
+            }
+        }
+        .sheet(isPresented: $showingUpdateMileage) {
+            UpdateMileageView(vehicle: vehicle)
+        }
+    }
+
+    private var photoHeader: some View {
+        GeometryReader { geo in
+            let minY = geo.frame(in: .scrollView(axis: .vertical)).minY
+            let stretch = max(minY, 0)
+
+            ZStack(alignment: .bottom) {
+                Color.clear
+                    .overlay {
+                        StoredPhotoView(ref: vehicle.photoFileName) {
+                            Color.black.opacity(0.25)
+                        }
+                    }
+                    .overlay {
+                        LinearGradient(
+                            colors: [
+                                Color.black.opacity(0.18),
+                                Color.black.opacity(0.05),
+                                Color.black.opacity(0.58)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    }
+                    .frame(width: geo.size.width, height: headerHeight + stretch)
+                    .clipped()
+                    .offset(y: -stretch)
+
+                identityOverlay(onPhoto: true)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 18)
+            }
+        }
+        .frame(height: headerHeight)
+    }
+
+    private var compactHeader: some View {
         VStack(spacing: 14) {
             VehiclePhotoIcon(
-                photoFileName: vehicle.photoFileName,
+                photoFileName: nil,
                 width: 112,
                 height: 74,
                 symbolSize: 56,
@@ -18,14 +74,24 @@ struct VehicleHeaderView: View {
             .shadow(color: Color.accentColor.opacity(0.35), radius: 12, y: 4)
             .padding(.top, 8)
 
+            identityOverlay(onPhoto: false)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+    }
+
+    private func identityOverlay(onPhoto: Bool) -> some View {
+        VStack(spacing: onPhoto ? 10 : 8) {
             Text("\(String(vehicle.year))  \(vehicle.make.uppercased())  \(vehicle.model.uppercased())")
                 .font(.appBadge)
                 .tracking(1.8)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(onPhoto ? Color.white.opacity(0.82) : Color.secondary)
 
             if !vehicle.nickname.isEmpty {
                 Text(vehicle.nickname)
                     .font(.title2.weight(.semibold).width(.condensed))
+                    .foregroundStyle(onPhoto ? Color.white : Color.primary)
+                    .shadow(color: onPhoto ? .black.opacity(0.45) : .clear, radius: 6, y: 1)
             }
 
             Button {
@@ -38,10 +104,6 @@ struct VehicleHeaderView: View {
             .accessibilityHint("Updates current mileage")
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .sheet(isPresented: $showingUpdateMileage) {
-            UpdateMileageView(vehicle: vehicle)
-        }
     }
 }
 

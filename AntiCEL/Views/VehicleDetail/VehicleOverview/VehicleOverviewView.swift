@@ -15,7 +15,8 @@ struct VehicleOverviewView: View {
             VehicleNotesCard(vehicle: vehicle)
 
         }
-        .padding(.vertical)
+        .padding(.bottom)
+        .padding(.top, 12)
     }
 }
 

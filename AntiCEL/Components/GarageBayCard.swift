@@ -7,38 +7,97 @@ struct GarageBayCard: View {
     var vehicle: Vehicle?
     var isAddBay = false
 
+    private var hasPhoto: Bool {
+        vehicle?.photoFileName != nil
+    }
+
     var body: some View {
-        VStack(spacing: 16) {
+        ZStack(alignment: .bottom) {
             ZStack {
                 ParkingStallShape()
-                    .stroke(theme.stallPaint, style: StrokeStyle(lineWidth: 3, lineCap: .square, lineJoin: .miter))
+                    .stroke(stallStroke, style: StrokeStyle(lineWidth: 3, lineCap: .square, lineJoin: .miter))
                     .padding(10)
 
                 if let vehicle {
-                    vehicleContent(vehicle)
+                    if !hasPhoto {
+                        vehicleContent(vehicle)
+                    }
                 } else {
                     emptyContent
                 }
             }
-            .frame(minHeight: 168)
+            .frame(minHeight: hasPhoto ? 210 : 168)
+
+            if let vehicle, hasPhoto {
+                photoOverlay(vehicle)
+            }
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 6)
         .background {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(theme.panel.opacity(0.55))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(theme.edge, lineWidth: 1)
-                }
-                .shadow(color: theme.shadow, radius: 12, y: 6)
+            cardBackground
         }
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(hasPhoto ? Color.black : theme.panel.opacity(0.55))
+            .overlay {
+                if let vehicle, hasPhoto {
+                    StoredPhotoView(ref: vehicle.photoFileName) {
+                        theme.panel.opacity(0.55)
+                    }
+                    .overlay {
+                        LinearGradient(
+                            colors: [
+                                Color.black.opacity(0.12),
+                                Color.black.opacity(0.08),
+                                Color.black.opacity(0.62)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(theme.edge, lineWidth: 1)
+            }
+            .shadow(color: theme.shadow, radius: 12, y: 6)
+    }
+
+    private var stallStroke: Color {
+        hasPhoto ? Color.white.opacity(0.72) : theme.stallPaint
+    }
+
+    private func photoOverlay(_ vehicle: Vehicle) -> some View {
+        VStack(spacing: 6) {
+            Text("\(String(vehicle.year))  \(vehicle.make.uppercased())  \(vehicle.model.uppercased())")
+                .font(.appBadge)
+                .tracking(1.4)
+                .foregroundStyle(Color.white.opacity(0.9))
+
+            if !vehicle.nickname.isEmpty {
+                Text(vehicle.nickname)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.white)
+                    .shadow(color: .black.opacity(0.4), radius: 4, y: 1)
+            }
+
+            OdometerView(mileage: vehicle.currentMileage, compact: true)
+        }
+        .padding(.horizontal, 28)
+        .padding(.bottom, 18)
+        .frame(maxWidth: .infinity)
     }
 
     private func vehicleContent(_ vehicle: Vehicle) -> some View {
         VStack(spacing: 10) {
             VehiclePhotoIcon(
-                photoFileName: vehicle.photoFileName,
+                photoFileName: nil,
                 width: 86,
                 height: 56,
                 symbolSize: 44
