@@ -74,6 +74,8 @@
 				Shared/AppSettings.swift,
 				Shared/MileageIntents.swift,
 				Shared/MileageWriter.swift,
+				Shared/PhotoFraming.swift,
+				Shared/PhotoStore.swift,
 				Shared/SharedModelContainer.swift,
 				Shared/VehicleEntity.swift,
 				Theme/AccentOption.swift,

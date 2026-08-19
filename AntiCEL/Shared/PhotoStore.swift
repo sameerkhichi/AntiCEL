@@ -244,6 +244,10 @@ enum PhotoStore {
         }
     }
 
+    static func preparedForWidget(_ image: UIImage, maxDimension: CGFloat = 720) -> UIImage {
+        resized(image, maxDimension: maxDimension)
+    }
+
     private static func jpegData(from image: UIImage, maxDimension: CGFloat, quality: CGFloat = 0.72) -> Data? {
         resized(image, maxDimension: maxDimension).jpegData(compressionQuality: quality)
     }

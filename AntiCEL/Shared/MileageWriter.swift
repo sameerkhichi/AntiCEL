@@ -38,7 +38,9 @@ enum MileageWriter {
         return MileageSnapshot(
             vehicleID: vehicle.id,
             name: displayName(for: vehicle),
-            mileage: vehicle.currentMileage
+            mileage: vehicle.currentMileage,
+            photoRef: vehicle.photoFileName,
+            photoFraming: vehicle.photoFraming
         )
     }
 
@@ -96,4 +98,6 @@ struct MileageSnapshot {
     var vehicleID: UUID
     var name: String
     var mileage: Int
+    var photoRef: String? = nil
+    var photoFraming: PhotoFraming = .identity
 }

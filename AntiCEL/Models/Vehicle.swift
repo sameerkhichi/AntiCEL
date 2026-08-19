@@ -19,6 +19,24 @@ final class Vehicle {
     var currentMileage: Int
     //optional so older store rows (created before this field existed) do not crash on read
     var photoFileName: String? = nil
+    var photoScale: Double? = nil
+    var photoOffsetX: Double? = nil
+    var photoOffsetY: Double? = nil
+
+    var photoFraming: PhotoFraming {
+        PhotoFraming(
+            scale: photoScale ?? 1,
+            offsetX: photoOffsetX ?? 0,
+            offsetY: photoOffsetY ?? 0
+        ).clamped
+    }
+
+    func applyPhotoFraming(_ framing: PhotoFraming) {
+        let clamped = framing.clamped
+        photoScale = clamped.scale
+        photoOffsetX = clamped.offsetX
+        photoOffsetY = clamped.offsetY
+    }
     
     //this is for the service reminders (A vehicle can have many ServiceReminder)
     @Relationship(deleteRule: .cascade, inverse: \ServiceReminder.vehicle) //when the vehicle is deleted, so are all of these.
@@ -54,5 +72,8 @@ final class Vehicle {
         self.vin = vin
         self.currentMileage = currentMileage
         self.photoFileName = nil
+        self.photoScale = nil
+        self.photoOffsetX = nil
+        self.photoOffsetY = nil
     }
 }

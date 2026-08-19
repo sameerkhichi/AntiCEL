@@ -8,6 +8,7 @@ struct PhotoDraft: Equatable {
     var libraryIdentifier: String?
     var originalRef: String?
     var didChange = false
+    var pickGeneration = 0
 
     var hasPhoto: Bool {
         preview != nil || (!didChange && originalRef != nil)
@@ -24,6 +25,7 @@ struct PhotoDraft: Equatable {
         preview = image
         libraryIdentifier = libraryID
         didChange = true
+        pickGeneration += 1
     }
 
     mutating func remove() {
@@ -61,6 +63,7 @@ struct PhotoAttachmentField: View {
     var footnote: String? = nil
     var style: PhotoPreviewStyle = .wide
     var usesInfotainmentChrome = true
+    var showsImagePreview = true
 
     @Binding var draft: PhotoDraft
 
@@ -68,6 +71,7 @@ struct PhotoAttachmentField: View {
     @State private var showingLibrary = false
     @State private var showingCamera = false
     @State private var showingSource = false
+    @State private var showingPreview = false
 
     var body: some View {
         Group {
@@ -110,6 +114,9 @@ struct PhotoAttachmentField: View {
             }
             .ignoresSafeArea()
         }
+        .fullScreenCover(isPresented: $showingPreview) {
+            PhotoLightbox(image: draft.preview, ref: draft.originalRef)
+        }
         .task(id: draft.originalRef) {
             guard draft.preview == nil, !draft.didChange, let ref = draft.originalRef else { return }
             draft.preview = await PhotoStore.load(ref)
@@ -118,7 +125,9 @@ struct PhotoAttachmentField: View {
 
     private var fieldContent: some View {
         VStack(alignment: .leading, spacing: 12) {
-            preview
+            if showsImagePreview {
+                preview
+            }
 
             HStack(spacing: 10) {
                 Button {
@@ -195,13 +204,29 @@ struct PhotoAttachmentField: View {
     @ViewBuilder
     private var widePreview: some View {
         if let preview = draft.preview {
-            Image(uiImage: preview)
-                .resizable()
-                .scaledToFill()
-                .frame(maxWidth: .infinity)
-                .frame(height: 148)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            Button {
+                showingPreview = true
+            } label: {
+                ZStack(alignment: .bottomTrailing) {
+                    Image(uiImage: preview)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 148)
+                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(7)
+                        .background(.black.opacity(0.45), in: Circle())
+                        .padding(8)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Preview photo")
+            .accessibilityHint("Opens a full screen preview")
         } else {
             HStack(spacing: 10) {
                 Image(systemName: "photo")
@@ -237,6 +262,7 @@ struct StoredPhotoView<Placeholder: View>: View {
 
     let ref: String?
     var contentMode: ContentMode = .fill
+    var framing: PhotoFraming = .identity
     @ViewBuilder var placeholder: () -> Placeholder
 
     @State private var image: UIImage?
@@ -244,9 +270,13 @@ struct StoredPhotoView<Placeholder: View>: View {
     var body: some View {
         Group {
             if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: contentMode)
+                if contentMode == .fill {
+                    FramedPhotoView(image: image, framing: framing)
+                } else {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: contentMode)
+                }
             } else {
                 placeholder()
             }
@@ -292,19 +322,32 @@ struct PhotoThumbnail: View {
 
     let ref: String?
     var size: CGFloat = 40
+    var allowsPreview = true
+
+    @State private var showingPreview = false
 
     var body: some View {
-        StoredPhotoView(ref: ref) {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.primary.opacity(0.06))
-                .overlay {
-                    Image(systemName: "photo")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
+        Button {
+            showingPreview = true
+        } label: {
+            StoredPhotoView(ref: ref) {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.primary.opacity(0.06))
+                    .overlay {
+                        Image(systemName: "photo")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+            }
+            .frame(width: size, height: size)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .buttonStyle(.borderless)
+        .disabled(!allowsPreview || ref == nil)
+        .accessibilityLabel("Preview photo")
+        .fullScreenCover(isPresented: $showingPreview) {
+            PhotoLightbox(ref: ref)
+        }
     }
 }
 

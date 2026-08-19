@@ -1,5 +1,6 @@
 import AppIntents
 import SwiftUI
+import UIKit
 import WidgetKit
 
 struct MileageWidget: Widget {
@@ -21,6 +22,7 @@ struct MileageWidget: Widget {
 struct MileageEntry: TimelineEntry {
     let date: Date
     let snapshot: MileageSnapshot?
+    var photo: UIImage? = nil
 }
 
 struct MileageTimelineProvider: AppIntentTimelineProvider {
@@ -55,7 +57,10 @@ struct MileageTimelineProvider: AppIntentTimelineProvider {
 
     private func entry(for configuration: MileageWidgetConfiguration) -> MileageEntry {
         let snapshot = try? MileageWriter.snapshot(for: configuration.vehicle?.id)
-        return MileageEntry(date: Date(), snapshot: snapshot)
+        let photo = snapshot.flatMap { snap in
+            PhotoStore.loadSync(snap.photoRef).map(PhotoStore.preparedForWidget)
+        }
+        return MileageEntry(date: Date(), snapshot: snapshot, photo: photo)
     }
 }
 
@@ -75,11 +80,7 @@ struct MileageWidgetView: View {
             }
         }
         .containerBackground(for: .widget) {
-            LinearGradient(
-                colors: [theme.canvasTop, theme.canvas],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            widgetBackground
         }
         .widgetURL(entry.snapshot.map { AntiCELDeepLink.mileage(vehicleID: $0.vehicleID) })
     }
@@ -91,7 +92,7 @@ struct MileageWidgetView: View {
         switch family {
         case .systemMedium:
             VStack(alignment: .leading, spacing: 10) {
-                vehicleHeader(snapshot.name)
+                vehicleHeader(snapshot.name, onPhoto: usesPhotoBackdrop)
                 OdometerView(mileage: snapshot.mileage, compact: true)
                     .frame(maxWidth: .infinity)
                 incrementRow(vehicle: vehicle, kind: .key)
@@ -164,11 +165,37 @@ struct MileageWidgetView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func vehicleHeader(_ name: String) -> some View {
+    private var usesPhotoBackdrop: Bool {
+        family == .systemMedium && entry.photo != nil
+    }
+
+    @ViewBuilder
+    private var widgetBackground: some View {
+        if usesPhotoBackdrop, let photo = entry.photo {
+            ZStack {
+                Color.black
+                FramedPhotoView(
+                    image: photo,
+                    framing: entry.snapshot?.photoFraming ?? .identity
+                )
+                VehiclePhotoScrim()
+            }
+        } else {
+            LinearGradient(
+                colors: [theme.canvasTop, theme.canvas],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+    }
+
+    private func vehicleHeader(_ name: String, onPhoto: Bool = false) -> some View {
         Text(name)
             .font(.appBadge)
             .tracking(1.1)
             .textCase(.uppercase)
+            .foregroundStyle(onPhoto ? Color.white.opacity(0.92) : Color.primary)
+            .shadow(color: onPhoto ? .black.opacity(0.45) : .clear, radius: 4, y: 1)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
             .frame(maxWidth: .infinity)

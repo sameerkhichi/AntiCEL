@@ -30,7 +30,7 @@ struct AddVehicleView: View {
 
             PhotoAttachmentField(
                 label: "Vehicle Photo",
-                footnote: "Used as the icon in your garage.",
+                footnote: "Used as the garage bay background. You can reframe it later in vehicle settings.",
                 style: .vehicleIcon,
                 draft: $photoDraft
             )

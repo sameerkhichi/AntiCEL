@@ -45,19 +45,11 @@ struct GarageBayCard: View {
             .fill(hasPhoto ? Color.black : theme.panel.opacity(0.55))
             .overlay {
                 if let vehicle, hasPhoto {
-                    StoredPhotoView(ref: vehicle.photoFileName) {
+                    StoredPhotoView(ref: vehicle.photoFileName, framing: vehicle.photoFraming) {
                         theme.panel.opacity(0.55)
                     }
                     .overlay {
-                        LinearGradient(
-                            colors: [
-                                Color.black.opacity(0.12),
-                                Color.black.opacity(0.08),
-                                Color.black.opacity(0.62)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+                        VehiclePhotoScrim()
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }

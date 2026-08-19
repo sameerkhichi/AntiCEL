@@ -35,7 +35,7 @@ struct VehicleHeaderView: View {
             ZStack(alignment: .bottom) {
                 Color.clear
                     .overlay {
-                        StoredPhotoView(ref: vehicle.photoFileName) {
+                        StoredPhotoView(ref: vehicle.photoFileName, framing: vehicle.photoFraming) {
                             Color.black.opacity(0.25)
                         }
                     }

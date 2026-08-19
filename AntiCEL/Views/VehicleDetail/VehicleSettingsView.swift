@@ -16,7 +16,9 @@ struct VehicleSettingsView: View {
     @State private var mileage = ""
     @State private var didSave = false
     @State private var photoDraft = PhotoDraft()
+    @State private var photoFraming = PhotoFraming.identity
     @State private var isSaving = false
+    @State private var showingPhotoFramer = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -31,11 +33,16 @@ struct VehicleSettingsView: View {
 
                     PhotoAttachmentField(
                         label: "Vehicle Photo",
-                        footnote: "Used as the icon in your garage.",
+                        footnote: "Used as the garage bay background. You can reframe it below.",
                         style: .vehicleIcon,
                         usesInfotainmentChrome: false,
+                        showsImagePreview: false,
                         draft: $photoDraft
                     )
+
+                    if photoDraft.hasPhoto {
+                        vehiclePhotoFramingPreview
+                    }
 
                     Rectangle()
                         .fill(.quaternary)
@@ -105,6 +112,67 @@ struct VehicleSettingsView: View {
         .onAppear {
             loadValues()
         }
+        .onChange(of: photoDraft.pickGeneration) {
+            photoFraming = .identity
+        }
+        .sheet(isPresented: $showingPhotoFramer) {
+            if let image = photoDraft.preview {
+                PhotoFramingEditorSheet(
+                    image: image,
+                    framing: $photoFraming,
+                    year: Int(year) ?? vehicle.year,
+                    make: make.isEmpty ? vehicle.make : make,
+                    model: model.isEmpty ? vehicle.model : model,
+                    nickname: nickname,
+                    mileage: vehicle.currentMileage
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var vehiclePhotoFramingPreview: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                showingPhotoFramer = photoDraft.preview != nil
+            } label: {
+                ZStack(alignment: .bottom) {
+                    Color.black
+
+                    if let preview = photoDraft.preview {
+                        FramedPhotoView(image: preview, framing: photoFraming)
+                    } else {
+                        StoredPhotoView(ref: photoDraft.originalRef, framing: photoFraming) {
+                            Color.black.opacity(0.35)
+                        }
+                    }
+
+                    VehiclePhotoScrim()
+
+                    VStack(spacing: 4) {
+                        Text("Tap to adjust frame")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.white.opacity(0.92))
+                            .shadow(color: .black.opacity(0.45), radius: 4, y: 1)
+                    }
+                    .padding(.bottom, 14)
+                }
+                .frame(maxWidth: .infinity)
+                .aspectRatio(1.5, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(photoDraft.preview == nil)
+
+            Text("Drag and pinch in the editor if the roof or nose is getting cropped in the garage.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var canSave: Bool {
@@ -124,6 +192,7 @@ struct VehicleSettingsView: View {
             settings.mileageUnit.displayValue(fromStoredKilometers: vehicle.currentMileage)
         )
         photoDraft.load(from: vehicle.photoFileName)
+        photoFraming = vehicle.photoFraming
         didSave = false
     }
 
@@ -151,6 +220,11 @@ struct VehicleSettingsView: View {
                 copyIntoApp: settings.savePhotosInApp,
                 kind: .vehicleIcon
             )
+            if vehicle.photoFileName == nil {
+                vehicle.applyPhotoFraming(.identity)
+            } else {
+                vehicle.applyPhotoFraming(photoFraming)
+            }
             photoDraft.load(from: vehicle.photoFileName)
             didSave = true
             isSaving = false
