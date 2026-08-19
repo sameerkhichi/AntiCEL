@@ -5,6 +5,7 @@ enum VehicleDetailSection: String, CaseIterable, Identifiable {
     case overview = "Overview"
     case history = "History"
     case documents = "Documents"
+    case album = "Album"
     case settings = "Settings"
 
     var id: Self { self }
@@ -17,6 +18,8 @@ enum VehicleDetailSection: String, CaseIterable, Identifiable {
             return "clock.fill"
         case .documents:
             return "folder.fill"
+        case .album:
+            return "photo.on.rectangle.fill"
         case .settings:
             return "slider.horizontal.3"
         }

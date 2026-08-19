@@ -9,7 +9,8 @@ enum SharedModelContainer {
         VehicleNote.self,
         VehicleShop.self,
         HistoryEntry.self,
-        VehicleDocument.self
+        VehicleDocument.self,
+        VehicleAlbumPhoto.self
     ])
 
     static func make() throws -> ModelContainer {

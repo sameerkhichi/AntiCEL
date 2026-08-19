@@ -5,16 +5,19 @@ struct PhotoLightbox: View {
 
     var image: UIImage? = nil
     var ref: String? = nil
+    var showsSaveButton = false
 
     @Environment(\.dismiss) private var dismiss
     @State private var loadedImage: UIImage?
+    @State private var isSaving = false
+    @State private var saveMessage: String?
 
     private var displayedImage: UIImage? {
         image ?? loadedImage
     }
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
+        ZStack(alignment: .top) {
             Color.black.ignoresSafeArea()
 
             if let displayedImage {
@@ -25,12 +28,40 @@ struct PhotoLightbox: View {
                     .tint(.white)
             }
 
-            DashButton(kind: .compact, action: { dismiss() }) {
-                Image(systemName: "xmark")
+            HStack {
+                if showsSaveButton {
+                    DashButton(kind: .compact, action: saveToLibrary) {
+                        if isSaving {
+                            ProgressView()
+                                .controlSize(.small)
+                                .tint(.primary)
+                        } else {
+                            Image(systemName: "square.and.arrow.down")
+                        }
+                    }
+                    .disabled(isSaving || ref == nil)
+                    .accessibilityLabel("Save to Photos")
+                }
+
+                Spacer()
+
+                DashButton(kind: .compact, action: { dismiss() }) {
+                    Image(systemName: "xmark")
+                }
+                .accessibilityLabel("Close preview")
             }
             .padding(.top, 12)
-            .padding(.trailing, 16)
-            .accessibilityLabel("Close preview")
+            .padding(.horizontal, 16)
+
+            if let saveMessage {
+                Text(saveMessage)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.black.opacity(0.55), in: Capsule())
+                    .padding(.top, 64)
+            }
         }
         .background(Color.black.ignoresSafeArea())
         .presentationBackground(.black)
@@ -39,6 +70,20 @@ struct PhotoLightbox: View {
         .task(id: ref) {
             guard image == nil else { return }
             loadedImage = await PhotoStore.load(ref)
+        }
+    }
+
+    private func saveToLibrary() {
+        guard !isSaving, ref != nil else { return }
+        isSaving = true
+        saveMessage = nil
+
+        Task {
+            let saved = await PhotoStore.saveOriginalToDeviceLibrary(ref)
+            await MainActor.run {
+                isSaving = false
+                saveMessage = saved ? "Saved to Photos" : "Couldn’t save photo"
+            }
         }
     }
 }

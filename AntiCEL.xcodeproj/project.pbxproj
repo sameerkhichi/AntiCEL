@@ -68,6 +68,7 @@
 				Models/HistoryEntry.swift,
 				Models/ServiceReminders/ServiceReminder.swift,
 				Models/Vehicle.swift,
+				Models/VehicleAlbumPhoto.swift,
 				Models/VehicleDocument.swift,
 				Models/VehicleNote.swift,
 				Shared/AppGroup.swift,

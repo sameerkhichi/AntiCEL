@@ -34,6 +34,11 @@ struct VehicleDetailView: View {
                         VehicleDocumentsView(vehicle: vehicle)
                     }
 
+                case .album:
+                    ScrollView {
+                        VehicleAlbumView(vehicle: vehicle)
+                    }
+
                 case .settings:
                     ScrollView {
                         VehicleSettingsView(vehicle: vehicle)

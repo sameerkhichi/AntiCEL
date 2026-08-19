@@ -47,7 +47,7 @@ struct PhotoStorageHelpSheet: View {
 
                     helpBlock(
                         title: "Sharing a Vehicle",
-                        body: "When photos are not stored on the app itself, they will be excluded if you share a vehicle. Sharing will send a copy of the vehicle, and photos that aren’t local to AntiCEL can’t be included."
+                        body: "When photos are not stored on the app itself, they will be excluded if you share a vehicle. Sharing will send a copy of the vehicle, and photos that aren’t local to AntiCEL can’t be included. Album photos follow this same storage rule."
                     )
                 }
                 .padding(20)

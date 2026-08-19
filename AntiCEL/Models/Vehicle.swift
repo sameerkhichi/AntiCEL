@@ -57,6 +57,9 @@ final class Vehicle {
     @Relationship(deleteRule: .cascade, inverse: \VehicleDocument.vehicle)
     var documents: [VehicleDocument] = []
 
+    @Relationship(deleteRule: .cascade, inverse: \VehicleAlbumPhoto.vehicle)
+    var albumPhotos: [VehicleAlbumPhoto] = []
+
     init(
         make: String,
         model: String,
@@ -82,7 +85,8 @@ final class Vehicle {
     }
 }
 
-// Shops the user uses for this vehicle (mechanic, tint, tires, etc.).
+//Shops the user uses for this vehicle - this is in here because it was causing some build issues when in its own file
+//It was doing this because it wouldnt build the shop file at the target for some reason. This was built so I put it here.
 
 @Model
 final class VehicleShop {

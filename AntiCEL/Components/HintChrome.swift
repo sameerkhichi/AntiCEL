@@ -7,6 +7,7 @@ enum HintTopic: Hashable {
     case quickInfo
     case history
     case documents
+    case album
 
     var title: String {
         switch self {
@@ -16,6 +17,7 @@ enum HintTopic: Hashable {
         case .quickInfo: return "Quick Info"
         case .history: return "History"
         case .documents: return "Documents"
+        case .album: return "Album"
         }
     }
 
@@ -85,6 +87,21 @@ enum HintTopic: Hashable {
                 (
                     "Expiry dates",
                     "You can add an expiry date so AntiCEL can remind you when it's time to renew them."
+                )
+            ]
+        case .album:
+            return [
+                (
+                    "What to store here",
+                    "Keep favorite photos of this vehicle, like a gallery of shots you like and may want to send along if you share the vehicle later."
+                ),
+                (
+                    "Browsing photos",
+                    "Photos are shown in rows of three. Tap one to preview it full screen, or use the save button in the preview to copy it back to your camera roll at full quality."
+                ),
+                (
+                    "Low Storage Mode",
+                    "When Low Storage Mode is on, album photos stay as camera-roll links instead of copies in AntiCEL. Those linked photos cannot be included if you share the vehicle."
                 )
             ]
         }

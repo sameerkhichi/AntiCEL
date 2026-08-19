@@ -5,9 +5,9 @@
 	<key>NSCameraUsageDescription</key>
 	<string>AntiCEL uses the camera so you can photograph your vehicle, receipts, and documents.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>AntiCEL uses your photo library so you can choose a vehicle photo, receipt, or document scan.</string>
+	<string>AntiCEL uses your photo library so you can choose vehicle photos, receipts, and document scans.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>AntiCEL can save photos to your library when in-app copies are turned off.</string>
+	<string>AntiCEL can save album photos to your library, and can save photos there when in-app copies are turned off.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
