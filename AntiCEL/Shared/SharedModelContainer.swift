@@ -7,6 +7,7 @@ enum SharedModelContainer {
         Vehicle.self,
         ServiceReminder.self,
         VehicleNote.self,
+        VehicleShop.self,
         HistoryEntry.self,
         VehicleDocument.self
     ])

@@ -144,10 +144,10 @@ fileprivate final class ZoomableImageScrollView: UIScrollView, UIScrollViewDeleg
         }
 
         let point = gesture.location(in: imageView)
-        let zoom: CGFloat = 2.5
+        let zoomFactor: CGFloat = 2.5
         let size = bounds.size
-        let width = size.width / zoom
-        let height = size.height / zoom
+        let width = size.width / zoomFactor
+        let height = size.height / zoomFactor
         zoom(
             to: CGRect(x: point.x - width / 2, y: point.y - height / 2, width: width, height: height),
             animated: true

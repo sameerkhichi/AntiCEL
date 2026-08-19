@@ -45,6 +45,10 @@ final class Vehicle {
     //relationship for the notes related to the vehicle.
     @Relationship(deleteRule: .cascade, inverse: \VehicleNote.vehicle)
     var notes: [VehicleNote] = []
+
+    //shops used for this vehicle (mechanic, tint, tires, etc.).
+    @Relationship(deleteRule: .cascade, inverse: \VehicleShop.vehicle)
+    var shops: [VehicleShop] = []
     
     @Relationship(deleteRule: .cascade, inverse: \HistoryEntry.vehicle)
     var historyEntries: [HistoryEntry] = []

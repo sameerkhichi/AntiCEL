@@ -14,6 +14,8 @@ struct VehicleOverviewView: View {
 
             VehicleNotesCard(vehicle: vehicle)
 
+            VehicleShopsCard(vehicle: vehicle)
+
         }
         .padding(.bottom)
         .padding(.top, 12)

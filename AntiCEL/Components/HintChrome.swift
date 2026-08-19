@@ -3,6 +3,7 @@ import SwiftUI
 enum HintTopic: Hashable {
     case serviceReminders
     case vehicleNotes
+    case vehicleShops
     case quickInfo
     case history
     case documents
@@ -11,6 +12,7 @@ enum HintTopic: Hashable {
         switch self {
         case .serviceReminders: return "Service Reminders"
         case .vehicleNotes: return "Vehicle Notes"
+        case .vehicleShops: return "Vehicle Shops"
         case .quickInfo: return "Quick Info"
         case .history: return "History"
         case .documents: return "Documents"
@@ -39,6 +41,13 @@ enum HintTopic: Hashable {
                 (
                     "What to store here",
                     "Use notes for details or items related to the vehicle that you want to remember, but that aren't a service or a history event."
+                )
+            ]
+        case .vehicleShops:
+            return [
+                (
+                    "What to store here",
+                    "Keep a list of shops you use for this vehicle, such as a preferred mechanic, tint shop, or tire place. This is not a service reminder or a history event."
                 )
             ]
         case .quickInfo:
