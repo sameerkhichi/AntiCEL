@@ -70,7 +70,6 @@
 				Models/Vehicle.swift,
 				Models/VehicleDocument.swift,
 				Models/VehicleNote.swift,
-				Models/VehicleShop.swift,
 				Shared/AppGroup.swift,
 				Shared/AppSettings.swift,
 				Shared/MileageIntents.swift,
