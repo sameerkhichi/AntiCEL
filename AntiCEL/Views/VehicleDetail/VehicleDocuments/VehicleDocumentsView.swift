@@ -6,6 +6,7 @@ struct VehicleDocumentsView: View {
     @Bindable var vehicle: Vehicle
 
     @State private var showingNewDocument = false
+    @State private var showingHint = false
 
     private var sortedDocuments: [VehicleDocument] {
         vehicle.documents.sorted { $0.date > $1.date }
@@ -16,6 +17,10 @@ struct VehicleDocumentsView: View {
             HStack {
                 Text("Documents")
                     .font(.title3.weight(.semibold).width(.condensed))
+
+                HintButton(title: "Documents") {
+                    showingHint = true
+                }
 
                 Spacer()
 
@@ -58,6 +63,9 @@ struct VehicleDocumentsView: View {
         .padding(.vertical)
         .sheet(isPresented: $showingNewDocument) {
             VehicleDocumentDetailView(vehicle: vehicle)
+        }
+        .sheet(isPresented: $showingHint) {
+            HintSheet(topic: .documents)
         }
     }
 }

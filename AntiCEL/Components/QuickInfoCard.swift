@@ -6,11 +6,21 @@ struct QuickInfoCard: View {
 
     let vehicle: Vehicle
 
+    @State private var showingHint = false
+
     var body: some View {
         DashPanel {
             VStack(alignment: .leading, spacing: 16) {
-                Text("Quick Info")
-                    .font(.title3.weight(.semibold).width(.condensed))
+                HStack {
+                    Text("Quick Info")
+                        .font(.title3.weight(.semibold).width(.condensed))
+
+                    HintButton(title: "Quick Info") {
+                        showingHint = true
+                    }
+
+                    Spacer()
+                }
 
                 Rectangle()
                     .fill(.quaternary)
@@ -30,6 +40,9 @@ struct QuickInfoCard: View {
             }
         }
         .padding(.horizontal)
+        .sheet(isPresented: $showingHint) {
+            HintSheet(topic: .quickInfo)
+        }
     }
 
     @ViewBuilder

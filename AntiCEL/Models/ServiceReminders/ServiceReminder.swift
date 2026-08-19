@@ -45,4 +45,33 @@ final class ServiceReminder {
 
     }
 
+    /// Converts remaining mileage into a comparable date using ~40 km/day. Sort-only; not shown to the user.
+    private static let sortKilometersPerDay = 40.0
+
+    func nextDueSortDate(currentMileage: Int, now: Date = .now) -> Date {
+        switch type {
+        case .date:
+            return dueDate ?? .distantFuture
+        case .mileage:
+            return estimatedDueDate(fromMileage: dueMileage, currentMileage: currentMileage, now: now)
+        case .whicheverComesFirst:
+            let dateDue = dueDate ?? .distantFuture
+            let mileageDue = estimatedDueDate(
+                fromMileage: dueMileage,
+                currentMileage: currentMileage,
+                now: now
+            )
+            return min(dateDue, mileageDue)
+        }
+    }
+
+    private func estimatedDueDate(fromMileage dueMileage: Int?, currentMileage: Int, now: Date) -> Date {
+        guard let dueMileage else {
+            return .distantFuture
+        }
+
+        let remainingDays = Double(dueMileage - currentMileage) / Self.sortKilometersPerDay
+        return now.addingTimeInterval(remainingDays * 24 * 60 * 60)
+    }
+
 }

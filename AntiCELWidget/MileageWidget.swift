@@ -58,7 +58,7 @@ struct MileageTimelineProvider: AppIntentTimelineProvider {
     private func entry(for configuration: MileageWidgetConfiguration) -> MileageEntry {
         let snapshot = try? MileageWriter.snapshot(for: configuration.vehicle?.id)
         let photo = snapshot.flatMap { snap in
-            PhotoStore.loadSync(snap.photoRef).map(PhotoStore.preparedForWidget)
+            PhotoStore.loadSync(snap.photoRef).map { PhotoStore.preparedForWidget($0) }
         }
         return MileageEntry(date: Date(), snapshot: snapshot, photo: photo)
     }

@@ -129,6 +129,10 @@ final class AppSettings {
         didSet { defaults.set(lowStorageMode, forKey: Keys.lowStorageMode) }
     }
 
+    var showHints: Bool {
+        didSet { defaults.set(showHints, forKey: Keys.showHints) }
+    }
+
     var savePhotosInApp: Bool { !lowStorageMode }
 
     private let defaults: UserDefaults
@@ -162,6 +166,12 @@ final class AppSettings {
             let saveInApp = defaults.object(forKey: Keys.savePhotosInApp) as? Bool ?? true
             lowStorageMode = !saveInApp
         }
+
+        if defaults.object(forKey: Keys.showHints) != nil {
+            showHints = defaults.bool(forKey: Keys.showHints)
+        } else {
+            showHints = true
+        }
     }
 
     func accentOption(for scheme: ColorScheme) -> AccentOption {
@@ -183,5 +193,6 @@ final class AppSettings {
         static let documentNotificationLeadDays = "settings.documentNotificationLeadDays"
         static let savePhotosInApp = "settings.savePhotosInApp"
         static let lowStorageMode = "settings.lowStorageMode"
+        static let showHints = "settings.showHints"
     }
 }

@@ -7,6 +7,14 @@ struct ServiceReminderCard: View {
     let vehicle: Vehicle
 
     @State private var showingAddReminder = false
+    @State private var showingHint = false
+
+    private var sortedReminders: [ServiceReminder] {
+        vehicle.serviceReminders.sorted { lhs, rhs in
+            lhs.nextDueSortDate(currentMileage: vehicle.currentMileage)
+                < rhs.nextDueSortDate(currentMileage: vehicle.currentMileage)
+        }
+    }
 
     var body: some View {
         DashPanel {
@@ -14,6 +22,10 @@ struct ServiceReminderCard: View {
                 HStack {
                     Text("Service Reminders")
                         .font(.title3.weight(.semibold).width(.condensed))
+
+                    HintButton(title: "Service Reminders") {
+                        showingHint = true
+                    }
 
                     Spacer()
 
@@ -34,7 +46,7 @@ struct ServiceReminderCard: View {
                     Text("No service reminders.")
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(Array(vehicle.serviceReminders.enumerated()), id: \.element) { index, reminder in
+                    ForEach(Array(sortedReminders.enumerated()), id: \.element) { index, reminder in
                         VStack(alignment: .leading, spacing: 0) {
                             NavigationLink(destination: ServiceReminderDetailView(reminder: reminder)) {
                                 VStack(alignment: .leading, spacing: 6) {
@@ -79,7 +91,7 @@ struct ServiceReminderCard: View {
                             }
                             .buttonStyle(.plain)
 
-                            if index < vehicle.serviceReminders.count - 1 {
+                            if index < sortedReminders.count - 1 {
                                 Rectangle()
                                     .fill(.quaternary)
                                     .frame(height: 1)
@@ -93,6 +105,9 @@ struct ServiceReminderCard: View {
         .padding(.horizontal)
         .sheet(isPresented: $showingAddReminder) {
             AddServiceReminderView(vehicle: vehicle)
+        }
+        .sheet(isPresented: $showingHint) {
+            HintSheet(topic: .serviceReminders)
         }
     }
 }

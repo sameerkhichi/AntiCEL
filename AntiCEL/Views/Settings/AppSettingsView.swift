@@ -45,6 +45,21 @@ struct AppSettingsView: View {
                 itemTitle: { $0.displayName }
             )
 
+            InfotainmentSectionHeader(title: "Tips")
+
+            InfotainmentField {
+                Toggle(isOn: $settings.showHints) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Show Tips")
+                            .font(.body.weight(.medium))
+                        Text("Question-mark buttons that explain each section")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .tint(Color.accentColor)
+            }
+
             InfotainmentSectionHeader(title: "Notifications")
 
             Text("Get a heads-up before a service is due or a document expires, plus a reminder on the day or mileage itself.")

@@ -3,10 +3,13 @@ import SwiftData
 
 struct VehicleHistoryView: View {
 
+    @Environment(AppSettings.self) private var settings
+
     @Bindable var vehicle: Vehicle
 
     @State private var displayMode: HistoryDisplayMode = .model
     @State private var showingNewEntry = false
+    @State private var showingHint = false
 
     var body: some View {
 
@@ -27,6 +30,17 @@ struct VehicleHistoryView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .toolbar {
+
+            if settings.showHints {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showingHint = true
+                    } label: {
+                        Image(systemName: "questionmark.circle")
+                    }
+                    .accessibilityLabel("About History")
+                }
+            }
 
             ToolbarItem(placement: .topBarTrailing) {
 
@@ -54,6 +68,9 @@ struct VehicleHistoryView: View {
         }
         .sheet(isPresented: $showingNewEntry) {
             HistoryEntryDetailView(vehicle: vehicle)
+        }
+        .sheet(isPresented: $showingHint) {
+            HintSheet(topic: .history)
         }
 
     }

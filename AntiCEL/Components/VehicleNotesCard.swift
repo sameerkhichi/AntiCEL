@@ -5,6 +5,7 @@ struct VehicleNotesCard: View {
     let vehicle: Vehicle
 
     @State private var showingAddNote = false
+    @State private var showingHint = false
 
     var body: some View {
         DashPanel {
@@ -12,6 +13,10 @@ struct VehicleNotesCard: View {
                 HStack {
                     Text("Vehicle Notes")
                         .font(.title3.weight(.semibold).width(.condensed))
+
+                    HintButton(title: "Vehicle Notes") {
+                        showingHint = true
+                    }
 
                     Spacer()
 
@@ -54,6 +59,9 @@ struct VehicleNotesCard: View {
         .padding(.horizontal)
         .sheet(isPresented: $showingAddNote) {
             AddVehicleNoteView(vehicle: vehicle)
+        }
+        .sheet(isPresented: $showingHint) {
+            HintSheet(topic: .vehicleNotes)
         }
     }
 }

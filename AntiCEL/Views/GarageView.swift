@@ -82,6 +82,7 @@ struct GarageView: View {
             .appCanvas()
             .navigationTitle("Garage")
             .toolbar(.hidden, for: .navigationBar)
+            .keyboardDismissToolbar()
             .sheet(isPresented: $showingAddVehicle) {
                 AddVehicleView()
             }

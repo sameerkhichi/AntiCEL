@@ -14,21 +14,25 @@ struct InfotainmentScaffold<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
+        NavigationStack {
+            VStack(spacing: 0) {
+                header
 
-            if scrolls {
-                ScrollView {
+                if scrolls {
+                    ScrollView {
+                        contentStack
+                    }
+                    .scrollDismissesKeyboard(.interactively)
+                } else {
                     contentStack
                 }
-            } else {
-                contentStack
             }
+            .background(theme.infotainment.ignoresSafeArea())
+            .presentationBackground(theme.infotainment)
+            .tint(theme.accentColor)
+            .toolbar(.hidden, for: .navigationBar)
+            .keyboardDismissToolbar()
         }
-        .background(theme.infotainment.ignoresSafeArea())
-        .presentationBackground(theme.infotainment)
-        .tint(theme.accentColor)
-        .toolbar(.hidden, for: .navigationBar)
     }
 
     private var contentStack: some View {
@@ -75,8 +79,6 @@ struct InfotainmentScaffold<Content: View>: View {
 
 struct InfotainmentSectionHeader: View {
 
-    @Environment(\.appTheme) private var theme
-
     let title: String
     var onHelp: (() -> Void)? = nil
 
@@ -89,13 +91,7 @@ struct InfotainmentSectionHeader: View {
                 .foregroundStyle(.secondary)
 
             if let onHelp {
-                Button(action: onHelp) {
-                    Image(systemName: "questionmark.circle")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(theme.accentColor)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("About \(title)")
+                HintButton(title: title, compact: true, action: onHelp)
             }
         }
     }
@@ -149,19 +145,7 @@ struct InfotainmentChipPicker<Option: Hashable>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                InfotainmentSectionHeader(title: title)
-
-                if let onHelp {
-                    Button(action: onHelp) {
-                        Image(systemName: "questionmark.circle")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(theme.accentColor)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("About \(title)")
-                }
-            }
+            InfotainmentSectionHeader(title: title, onHelp: onHelp)
 
             ChipFlowLayout(spacing: 8) {
                 ForEach(options, id: \.self) { option in
