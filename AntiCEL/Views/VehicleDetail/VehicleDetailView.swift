@@ -4,6 +4,7 @@ struct VehicleDetailView: View {
 
     @Environment(\.appTheme) private var theme
     @State private var selectedSection: VehicleDetailSection = .overview
+    @State private var showingShare = false
 
     let vehicle: Vehicle
 
@@ -54,6 +55,21 @@ struct VehicleDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(theme.canvas, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .toolbar {
+            if selectedSection == .overview {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showingShare = true
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .accessibilityLabel("Share Vehicle")
+                }
+            }
+        }
+        .sheet(isPresented: $showingShare) {
+            ShareVehicleSheet(vehicle: vehicle)
+        }
     }
 }
 

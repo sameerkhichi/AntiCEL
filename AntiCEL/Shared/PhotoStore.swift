@@ -44,6 +44,39 @@ enum PhotoStore {
         return ref.hasPrefix(filePrefix)
     }
 
+    static func appFileURL(for ref: String?) -> URL? {
+        guard let ref, !ref.isEmpty, !ref.hasPrefix(libraryPrefix) else { return nil }
+        guard let url = fileURL(for: ref) else { return nil }
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return url
+    }
+
+    static func appFileSize(for ref: String?) -> Int64 {
+        guard let url = appFileURL(for: ref) else { return 0 }
+        let values = try? url.resourceValues(forKeys: [.fileSizeKey])
+        return Int64(values?.fileSize ?? 0)
+    }
+
+    static func importAppFile(data: Data, fileExtension: String? = nil) -> String? {
+        guard let directory = photosDirectory else { return nil }
+
+        let ext: String
+        if let fileExtension, !fileExtension.isEmpty {
+            ext = fileExtension
+        } else {
+            ext = Self.fileExtension(for: data)
+        }
+
+        let fileName = "\(UUID().uuidString).\(ext)"
+        let url = directory.appending(path: fileName)
+        do {
+            try data.write(to: url, options: .atomic)
+            return filePrefix + fileName
+        } catch {
+            return nil
+        }
+    }
+
     static func persist(
         image: UIImage?,
         libraryID: String?,

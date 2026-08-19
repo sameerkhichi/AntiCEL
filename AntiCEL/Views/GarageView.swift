@@ -13,6 +13,7 @@ struct GarageView: View {
     @State private var showingSettings = false
     @State private var vehiclePendingDelete: Vehicle?
     @State private var vehicleForMileageUpdate: Vehicle?
+    @State private var vehicleToShare: Vehicle?
     @Binding var pendingMileageVehicleID: UUID?
 
     private var columns: [GridItem] {
@@ -42,6 +43,11 @@ struct GarageView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .contextMenu {
+                                    Button {
+                                        vehicleToShare = vehicle
+                                    } label: {
+                                        Label("Share Vehicle", systemImage: "square.and.arrow.up")
+                                    }
                                     Button("Remove from Garage", role: .destructive) {
                                         vehiclePendingDelete = vehicle
                                     }
@@ -91,6 +97,14 @@ struct GarageView: View {
             }
             .sheet(item: $vehicleForMileageUpdate) { vehicle in
                 UpdateMileageView(vehicle: vehicle)
+            }
+            .sheet(isPresented: Binding(
+                get: { vehicleToShare != nil },
+                set: { if !$0 { vehicleToShare = nil } }
+            )) {
+                if let vehicleToShare {
+                    ShareVehicleSheet(vehicle: vehicleToShare)
+                }
             }
             .confirmationDialog(
                 "Remove this vehicle from the garage?",
