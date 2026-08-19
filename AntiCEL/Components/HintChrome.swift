@@ -33,10 +33,6 @@ enum HintTopic: Hashable {
                     "Completing a reminder",
                     "When you mark a service complete, AntiCEL automatically adds a matching history entry for that vehicle area."
                 ),
-                (
-                    "How they're ordered",
-                    "Reminders are listed soonest due first, with overdue items at the top."
-                )
             ]
         case .vehicleNotes:
             return [
@@ -92,16 +88,12 @@ enum HintTopic: Hashable {
         case .album:
             return [
                 (
-                    "What to store here",
-                    "Keep favorite photos of this vehicle, like a gallery of shots you like and may want to send along if you share the vehicle later."
-                ),
-                (
-                    "Browsing photos",
-                    "Photos are shown in rows of three. Tap one to preview it full screen, or use the save button in the preview to copy it back to your camera roll at full quality."
+                    "Photo Album",
+                    "Add your favourite shots of your car! These photos can be shared when you share the entire vehicle."
                 ),
                 (
                     "Low Storage Mode",
-                    "When Low Storage Mode is on, album photos stay as camera-roll links instead of copies in AntiCEL. Those linked photos cannot be included if you share the vehicle."
+                    "When Low Storage Mode is on, album photos are linked to your camera roll instead of copies in AntiCEL. Photos that are not copies on AntiCEL cannot be included if you share the vehicle."
                 )
             ]
         }
