@@ -155,7 +155,7 @@ struct VehicleConnectView: View {
                 }
             }
 
-            DashButton(isDestructive: true, kind: .bar) {
+            DashButton(kind: .bar, isDestructive: true) {
                 showingForgetConfirm = true
             } label: {
                 Text("Forget Adapter")

@@ -58,6 +58,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private var connectingVehicleID: UUID?
     private var connectingPeripheralID: UUID?
 
+    private let largeJumpKm = 80
     private var suppressReconnect = false
 
     override init() {
