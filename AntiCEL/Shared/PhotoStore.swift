@@ -142,6 +142,30 @@ enum PhotoStore {
         return nil
     }
 
+    static func captureDate(
+        ref: String?,
+        libraryID: String? = nil,
+        originalData: Data? = nil
+    ) async -> Date? {
+        if let libraryID, let date = await creationDateFromPhotoLibrary(libraryID) {
+            return date
+        }
+
+        if let ref, let identifier = libraryIdentifier(from: ref), let date = await creationDateFromPhotoLibrary(identifier) {
+            return date
+        }
+
+        if let originalData, let date = dateFromImageData(originalData) {
+            return date
+        }
+
+        if let ref, let url = fileURL(for: ref), let date = dateFromImageFile(url) {
+            return date
+        }
+
+        return nil
+    }
+
     static func load(_ ref: String?) async -> UIImage? {
         guard let ref, !ref.isEmpty else { return nil }
 
@@ -562,6 +586,70 @@ enum PhotoStore {
         return renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: newSize))
         }
+    }
+
+    private static func creationDateFromPhotoLibrary(_ identifier: String) async -> Date? {
+        await requestPhotoLibraryAccessIfNeeded()
+        let assets = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil)
+        return assets.firstObject?.creationDate
+    }
+
+    private static func dateFromImageFile(_ url: URL) -> Date? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        return dateFromImageSource(source)
+    }
+
+    private static func dateFromImageData(_ data: Data) -> Date? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        return dateFromImageSource(source)
+    }
+
+    private static func dateFromImageSource(_ source: CGImageSource) -> Date? {
+        guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] else {
+            return nil
+        }
+
+        if let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any] {
+            if let value = exif[kCGImagePropertyExifDateTimeOriginal] as? String, let date = parseExifDate(value) {
+                return date
+            }
+            if let value = exif[kCGImagePropertyExifDateTimeDigitized] as? String, let date = parseExifDate(value) {
+                return date
+            }
+        }
+
+        if let tiff = properties[kCGImagePropertyTIFFDictionary] as? [CFString: Any],
+           let value = tiff[kCGImagePropertyTIFFDateTime] as? String,
+           let date = parseExifDate(value) {
+            return date
+        }
+
+        return nil
+    }
+
+    private static func parseExifDate(_ value: String) -> Date? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let formats = [
+            "yyyy:MM:dd HH:mm:ss",
+            "yyyy:MM:dd HH:mm:ss.SSS",
+            "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd'T'HH:mm:ssZ"
+        ]
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+
+        for format in formats {
+            formatter.dateFormat = format
+            if let date = formatter.date(from: trimmed) {
+                return date
+            }
+        }
+
+        return nil
     }
 
     private static func fileExtension(for data: Data) -> String {

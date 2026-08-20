@@ -5,15 +5,21 @@ struct PhotoLightbox: View {
 
     var image: UIImage? = nil
     var ref: String? = nil
+    var capturedAt: Date? = nil
     var showsSaveButton = false
 
     @Environment(\.dismiss) private var dismiss
     @State private var loadedImage: UIImage?
     @State private var isSaving = false
     @State private var saveMessage: String?
+    @State private var resolvedCapturedAt: Date?
 
     private var displayedImage: UIImage? {
         image ?? loadedImage
+    }
+
+    private var displayedCapturedAt: Date? {
+        capturedAt ?? resolvedCapturedAt
     }
 
     var body: some View {
@@ -50,6 +56,26 @@ struct PhotoLightbox: View {
                 }
                 .accessibilityLabel("Close preview")
             }
+            .overlay {
+                if let displayedCapturedAt {
+                    VStack(spacing: 2) {
+                        Text(displayedCapturedAt.formatted(.dateTime.month(.wide).day().year()))
+                            .font(.subheadline.weight(.semibold))
+                        Text(displayedCapturedAt.formatted(date: .omitted, time: .shortened))
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.78))
+                    }
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.75)
+                    .lineLimit(2)
+                    .padding(.horizontal, 72)
+                    .shadow(color: .black.opacity(0.45), radius: 4, y: 1)
+                    .allowsHitTesting(false)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(displayedCapturedAt.formatted(date: .long, time: .shortened))
+                }
+            }
             .padding(.top, 12)
             .padding(.horizontal, 16)
 
@@ -68,8 +94,12 @@ struct PhotoLightbox: View {
         .statusBarHidden(false)
         .appTheme()
         .task(id: ref) {
-            guard image == nil else { return }
-            loadedImage = await PhotoStore.load(ref)
+            if image == nil {
+                loadedImage = await PhotoStore.load(ref)
+            }
+            if capturedAt == nil, showsSaveButton {
+                resolvedCapturedAt = await PhotoStore.captureDate(ref: ref)
+            }
         }
     }
 

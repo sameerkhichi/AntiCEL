@@ -94,6 +94,10 @@ enum HintTopic: Hashable {
                     "Add your favourite shots of your car! These photos can be shared when you share the entire vehicle."
                 ),
                 (
+                    "Browsing photos",
+                    "Photos are grouped by the month they were taken, like the iOS Photos app. Tap one to preview it and see the capture date."
+                ),
+                (
                     "Low Storage Mode",
                     "When Low Storage Mode is on, album photos are linked to your camera roll instead of copies in AntiCEL. Photos that are not copies on AntiCEL cannot be included if you share the vehicle."
                 )
@@ -102,7 +106,7 @@ enum HintTopic: Hashable {
             return [
                 (
                     "Optional connection",
-                    "Connect is optional. AntiCEL is not sponsored and does not require you to buy an adapter."
+                    "Connect is optional. AntiCEL is not sponsored and does not require you to buy an adapter to use the rest of the app.."
                 ),
                 (
                     "Recommended adapter",
@@ -110,15 +114,15 @@ enum HintTopic: Hashable {
                 ),
                 (
                     "Compatibility",
-                    "Not every OBD dongle works. Most BLE ELM327 adapters should. Classic Bluetooth, Wi-Fi-only, and dealer-level scanners are not supported."
+                    "Not every OBD dongle works. Most BLE ELM327 adapters should. Classic Bluetooth, Wi-Fi-only, and dealer scanners are not supported."
                 ),
                 (
                     "Mileage",
-                    "Automatic mileage is not exact on every model. It depends on whether the vehicle reports odometer data over OBD. Otherwise distance is estimated from speed and time."
+                    "Automatic mileage is not exact on every model. It depends on whether the vehicle reports odometer data over OBD. Otherwise distance is estimated from speed and time. A large mileage calculation will prompt you before saving."
                 ),
                 (
                     "Battery",
-                    "BLE adapters should not drain a healthy battery in normal use, but leaving one plugged in for days is still a risk. AntiCEL is not responsible for a dead battery."
+                    "BLE adapters should not drain a healthy battery in normal use, but leaving one plugged in for days is still a risk. AntiCEL is not responsible for a dead battery. Please take caution when using an adapter."
                 )
             ]
         }

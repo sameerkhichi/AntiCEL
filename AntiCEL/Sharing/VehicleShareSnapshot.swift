@@ -69,6 +69,7 @@ struct VehicleShareSnapshot: Codable {
         var photo: String?
         var createdAt: Date
         var updatedAt: Date
+        var capturedAt: Date?
     }
 
     struct ReminderSnapshot: Codable {

@@ -24,10 +24,19 @@ struct VehicleAlbumView: View {
         GridItem(.flexible(), spacing: 3)
     ]
 
-    private var sortedPhotos: [VehicleAlbumPhoto] {
-        vehicle.albumPhotos
+    private var groupedPhotos: [AlbumMonthSection] {
+        let photos = vehicle.albumPhotos
             .filter { $0.photoFileName != nil }
-            .sorted { $0.createdAt > $1.createdAt }
+            .sorted { $0.displayDate > $1.displayDate }
+
+        let grouped = Dictionary(grouping: photos) { photo in
+            AlbumMonthSection.monthID(for: photo.displayDate)
+        }
+
+        return grouped.keys.sorted(by: >).compactMap { key in
+            guard let photos = grouped[key] else { return nil }
+            return AlbumMonthSection(id: key, photos: photos)
+        }
     }
 
     var body: some View {
@@ -58,25 +67,38 @@ struct VehicleAlbumView: View {
                 .frame(height: 1)
                 .padding(.horizontal)
 
-            if sortedPhotos.isEmpty {
+            if groupedPhotos.isEmpty {
                 Text(isImporting ? "Adding photos…" : "No photos yet.")
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
                     .padding(.vertical, 8)
             } else {
-                LazyVGrid(columns: columns, spacing: 3) {
-                    ForEach(sortedPhotos) { photo in
-                        AlbumPhotoCell(photo: photo) {
-                            previewItem = AlbumPreviewItem(
-                                id: photo.persistentModelID,
-                                ref: photo.photoFileName
-                            )
-                        }
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                delete(photo)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                LazyVStack(alignment: .leading, spacing: 20) {
+                    ForEach(groupedPhotos) { section in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(section.title)
+                                .font(.appBadge)
+                                .tracking(1.6)
+                                .textCase(.uppercase)
+                                .foregroundStyle(.secondary)
+
+                            LazyVGrid(columns: columns, spacing: 3) {
+                                ForEach(section.photos) { photo in
+                                    AlbumPhotoCell(photo: photo) {
+                                        previewItem = AlbumPreviewItem(
+                                            id: photo.persistentModelID,
+                                            ref: photo.photoFileName,
+                                            capturedAt: photo.displayDate
+                                        )
+                                    }
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            delete(photo)
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -118,10 +140,13 @@ struct VehicleAlbumView: View {
             .ignoresSafeArea()
         }
         .fullScreenCover(item: $previewItem) { item in
-            PhotoLightbox(ref: item.ref, showsSaveButton: true)
+            PhotoLightbox(ref: item.ref, capturedAt: item.capturedAt, showsSaveButton: true)
         }
         .sheet(isPresented: $showingHint) {
             HintSheet(topic: .album)
+        }
+        .task {
+            await backfillCaptureDates()
         }
     }
 
@@ -137,9 +162,14 @@ struct VehicleAlbumView: View {
                 libraryID: item.itemIdentifier,
                 copyIntoApp: settings.savePhotosInApp
             )
+            let capturedAt = await PhotoStore.captureDate(
+                ref: ref,
+                libraryID: item.itemIdentifier,
+                originalData: data
+            )
             if let ref {
                 await MainActor.run {
-                    insertPhoto(ref: ref)
+                    insertPhoto(ref: ref, capturedAt: capturedAt)
                 }
             }
         }
@@ -158,18 +188,31 @@ struct VehicleAlbumView: View {
             libraryID: nil,
             copyIntoApp: settings.savePhotosInApp
         )
+        let capturedAt = await PhotoStore.captureDate(ref: ref) ?? Date()
         await MainActor.run {
             if let ref {
-                insertPhoto(ref: ref)
+                insertPhoto(ref: ref, capturedAt: capturedAt)
             }
             isImporting = false
         }
     }
 
-    private func insertPhoto(ref: String) {
-        let photo = VehicleAlbumPhoto(photoFileName: ref, vehicle: vehicle)
+    private func insertPhoto(ref: String, capturedAt: Date?) {
+        let photo = VehicleAlbumPhoto(
+            photoFileName: ref,
+            capturedAt: capturedAt ?? Date(),
+            vehicle: vehicle
+        )
         modelContext.insert(photo)
         vehicle.updatedAt = Date()
+    }
+
+    private func backfillCaptureDates() async {
+        let photos = vehicle.albumPhotos.filter { $0.capturedAt == nil && $0.photoFileName != nil }
+        for photo in photos {
+            let date = await PhotoStore.captureDate(ref: photo.photoFileName) ?? photo.createdAt
+            photo.capturedAt = date
+        }
     }
 
     private func delete(_ photo: VehicleAlbumPhoto) {
@@ -182,9 +225,35 @@ struct VehicleAlbumView: View {
     }
 }
 
+private struct AlbumMonthSection: Identifiable {
+    let id: String
+    let photos: [VehicleAlbumPhoto]
+
+    var title: String {
+        guard let date = Self.date(from: id) else { return id }
+        return date.formatted(.dateTime.month(.wide).year())
+    }
+
+    static func monthID(for date: Date) -> String {
+        let components = Calendar.current.dateComponents([.year, .month], from: date)
+        let year = components.year ?? 0
+        let month = components.month ?? 0
+        return String(format: "%04d-%02d", year, month)
+    }
+
+    static func date(from id: String) -> Date? {
+        let parts = id.split(separator: "-")
+        guard parts.count == 2, let year = Int(parts[0]), let month = Int(parts[1]) else {
+            return nil
+        }
+        return Calendar.current.date(from: DateComponents(year: year, month: month, day: 1))
+    }
+}
+
 private struct AlbumPreviewItem: Identifiable {
     let id: PersistentIdentifier
     let ref: String?
+    let capturedAt: Date?
 }
 
 private struct AlbumPhotoCell: View {
@@ -203,8 +272,12 @@ private struct AlbumPhotoCell: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Album photo")
+        .accessibilityLabel(accessibilityLabel)
         .accessibilityHint("Opens a full screen preview")
+    }
+
+    private var accessibilityLabel: String {
+        "Album photo, \(photo.displayDate.formatted(date: .abbreviated, time: .omitted))"
     }
 }
 

@@ -123,7 +123,8 @@ enum VehicleShareExporter {
                     return VehicleShareSnapshot.AlbumPhotoSnapshot(
                         photo: packed,
                         createdAt: photo.createdAt,
-                        updatedAt: photo.updatedAt
+                        updatedAt: photo.updatedAt,
+                        capturedAt: photo.capturedAt
                     )
                 }
                 : [],

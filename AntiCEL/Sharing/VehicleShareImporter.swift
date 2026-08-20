@@ -130,7 +130,11 @@ enum VehicleShareImporter {
         if preview.manifest.includeAlbum {
             for photo in snapshot.albumPhotos {
                 guard let ref = resolvedPhoto(photo.photo, map: photoMap) else { continue }
-                let imported = VehicleAlbumPhoto(photoFileName: ref, vehicle: vehicle)
+                let imported = VehicleAlbumPhoto(
+                    photoFileName: ref,
+                    capturedAt: photo.capturedAt,
+                    vehicle: vehicle
+                )
                 imported.createdAt = photo.createdAt
                 imported.updatedAt = photo.updatedAt
                 context.insert(imported)
