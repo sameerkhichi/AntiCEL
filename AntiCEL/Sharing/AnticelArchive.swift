@@ -60,6 +60,10 @@ enum AnticelArchive {
     static func readAll(from url: URL) throws -> [String: Data] {
         try ZipStoreReader.allFiles(in: url)
     }
+
+    static func payloadByteCount(from url: URL) throws -> Int64 {
+        try ZipStoreReader.totalUncompressedSize(in: url)
+    }
 }
 
 private struct ZipStoreWriter {
@@ -178,6 +182,12 @@ private struct ZipStoreWriter {
 private enum ZipStoreReader {
     static func allFiles(in url: URL) throws -> [String: Data] {
         try files(named: nil, in: url)
+    }
+
+    static func totalUncompressedSize(in url: URL) throws -> Int64 {
+        let data = try Data(contentsOf: url, options: [.mappedIfSafe])
+        let entries = try index(in: data)
+        return entries.reduce(0) { $0 + Int64($1.size) }
     }
 
     static func files(named names: Set<String>?, in url: URL) throws -> [String: Data] {

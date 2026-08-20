@@ -60,6 +60,12 @@ final class Vehicle {
     @Relationship(deleteRule: .cascade, inverse: \VehicleAlbumPhoto.vehicle)
     var albumPhotos: [VehicleAlbumPhoto] = []
 
+    @Relationship(deleteRule: .cascade, inverse: \PairedAdapter.vehicle)
+    var pairedAdapters: [PairedAdapter] = []
+
+    @Relationship(deleteRule: .cascade, inverse: \DiagnosticFault.vehicle)
+    var diagnosticFaults: [DiagnosticFault] = []
+
     init(
         make: String,
         model: String,

@@ -86,6 +86,7 @@ struct GarageView: View {
             .accessibilityLabel("Settings")
             }
             .appCanvas()
+            .environment(OBDSessionController.shared)
             .navigationTitle("Garage")
             .toolbar(.hidden, for: .navigationBar)
             .keyboardDismissToolbar()
@@ -135,10 +136,14 @@ struct GarageView: View {
             .onAppear {
                 openPendingMileageUpdate()
                 ReminderNotifications.refresh(using: modelContext)
+                OBDSessionController.shared.isForeground = true
+                OBDSessionController.shared.reconnectKnownAdapters()
             }
             .onChange(of: scenePhase) { _, phase in
+                OBDSessionController.shared.isForeground = phase == .active
                 if phase == .active {
                     ReminderNotifications.refresh(using: modelContext)
+                    OBDSessionController.shared.reconnectKnownAdapters()
                 }
             }
         }

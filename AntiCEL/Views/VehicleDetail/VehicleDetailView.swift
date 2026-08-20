@@ -3,6 +3,8 @@ import SwiftUI
 struct VehicleDetailView: View {
 
     @Environment(\.appTheme) private var theme
+    @Environment(OBDSessionController.self) private var obd
+    @Environment(AppSettings.self) private var settings
     @State private var selectedSection: VehicleDetailSection = .overview
     @State private var showingShare = false
 
@@ -40,9 +42,9 @@ struct VehicleDetailView: View {
                         VehicleAlbumView(vehicle: vehicle)
                     }
 
-                case .settings:
+                case .connect:
                     ScrollView {
-                        VehicleSettingsView(vehicle: vehicle)
+                        VehicleConnectView(vehicle: vehicle)
                     }
                 }
             }
@@ -57,7 +59,21 @@ struct VehicleDetailView: View {
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             if selectedSection == .overview {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    NavigationLink {
+                        ScrollView {
+                            VehicleSettingsView(vehicle: vehicle)
+                        }
+                        .appCanvas()
+                        .navigationTitle("Settings")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbarBackground(theme.canvas, for: .navigationBar)
+                        .toolbarBackground(.visible, for: .navigationBar)
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                    }
+                    .accessibilityLabel("Vehicle Settings")
+
                     Button {
                         showingShare = true
                     } label: {
@@ -69,6 +85,38 @@ struct VehicleDetailView: View {
         }
         .sheet(isPresented: $showingShare) {
             ShareVehicleSheet(vehicle: vehicle)
+        }
+        .alert(
+            "Update mileage?",
+            isPresented: Binding(
+                get: { obd.mileageJump?.vehicleID == vehicle.id },
+                set: { if !$0 { obd.declineMileageJump() } }
+            )
+        ) {
+            Button("Update") {
+                obd.confirmMileageJump(on: vehicle)
+            }
+            Button("Keep Current", role: .cancel) {
+                obd.declineMileageJump()
+            }
+        } message: {
+            if let jump = obd.mileageJump, jump.vehicleID == vehicle.id {
+                Text(
+                    "The \(jump.source) is \(settings.formattedMileage(jump.proposedKm)). Current mileage is \(settings.formattedMileage(jump.currentKm)). Large jumps are confirmed before they are saved."
+                )
+            }
+        }
+        .onChange(of: obd.appliedMileageKm) { _, newValue in
+            guard let newValue, obd.connectedVehicleID == vehicle.id else { return }
+            if newValue > vehicle.currentMileage {
+                vehicle.currentMileage = newValue
+                vehicle.updatedAt = Date()
+            }
+        }
+        .onAppear {
+            if OBDStore.pairedAdapter(on: vehicle) != nil, obd.connectionState == .disconnected {
+                obd.connectPairedAdapter(for: vehicle)
+            }
         }
     }
 }
@@ -86,4 +134,5 @@ struct VehicleDetailView: View {
         )
     }
     .appTheme()
+    .environment(OBDSessionController.shared)
 }

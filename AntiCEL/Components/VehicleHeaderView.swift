@@ -3,6 +3,7 @@ import SwiftUI
 struct VehicleHeaderView: View {
 
     @Bindable var vehicle: Vehicle
+    @Bindable private var obd = OBDSessionController.shared
 
     @State private var showingUpdateMileage = false
 
@@ -11,7 +12,8 @@ struct VehicleHeaderView: View {
     }
 
     private var headerHeight: CGFloat {
-        hasPhoto ? 300 : 210
+        let extra: CGFloat = (obd.isConnected(to: vehicle.id) && obd.fuelPercent != nil) ? 36 : 0
+        return (hasPhoto ? 300 : 210) + extra
     }
 
     var body: some View {
@@ -102,6 +104,10 @@ struct VehicleHeaderView: View {
             }
             .buttonStyle(OdometerTapStyle())
             .accessibilityHint("Updates current mileage")
+
+            if obd.isConnected(to: vehicle.id), let fuel = obd.fuelPercent {
+                FuelGaugeView(percent: fuel)
+            }
         }
         .frame(maxWidth: .infinity)
     }

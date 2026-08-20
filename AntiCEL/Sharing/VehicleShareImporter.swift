@@ -12,6 +12,7 @@ enum VehicleShareImporter {
     struct Preview {
         var manifest: VehicleShareManifest
         var snapshot: VehicleShareSnapshot
+        var byteCount: Int64
     }
 
     static func isVehiclePackage(_ url: URL) -> Bool {
@@ -51,7 +52,9 @@ enum VehicleShareImporter {
             [AnticelArchive.manifestPath, AnticelArchive.vehiclePath],
             from: url
         )
-        return try decodePreview(files)
+        var preview = try decodePreview(files)
+        preview.byteCount = payloadByteCount(for: url)
+        return preview
     }
 
     @MainActor
@@ -196,7 +199,16 @@ enum VehicleShareImporter {
         }
 
         try validate(manifest)
-        return Preview(manifest: manifest, snapshot: snapshot)
+        return Preview(manifest: manifest, snapshot: snapshot, byteCount: 0)
+    }
+
+    private static func payloadByteCount(for url: URL) -> Int64 {
+        if let counted = try? AnticelArchive.payloadByteCount(from: url), counted > 0 {
+            return counted
+        }
+
+        let values = try? url.resourceValues(forKeys: [.fileSizeKey])
+        return Int64(values?.fileSize ?? 0)
     }
 
     private static func validate(_ manifest: VehicleShareManifest) throws {

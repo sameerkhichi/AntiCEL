@@ -8,6 +8,7 @@ enum HintTopic: Hashable {
     case history
     case documents
     case album
+    case connect
 
     var title: String {
         switch self {
@@ -18,6 +19,7 @@ enum HintTopic: Hashable {
         case .history: return "History"
         case .documents: return "Documents"
         case .album: return "Album"
+        case .connect: return "Connect"
         }
     }
 
@@ -94,6 +96,29 @@ enum HintTopic: Hashable {
                 (
                     "Low Storage Mode",
                     "When Low Storage Mode is on, album photos are linked to your camera roll instead of copies in AntiCEL. Photos that are not copies on AntiCEL cannot be included if you share the vehicle."
+                )
+            ]
+        case .connect:
+            return [
+                (
+                    "Optional connection",
+                    "Connect is optional. AntiCEL is not sponsored and does not require you to buy an adapter."
+                ),
+                (
+                    "Recommended adapter",
+                    "The supported and tested device is the Veepeak OBDCheck BLE+. Pair it from Connect, not from iOS Bluetooth Settings."
+                ),
+                (
+                    "Compatibility",
+                    "Not every OBD dongle works. Most BLE ELM327 adapters should. Classic Bluetooth, Wi-Fi-only, and dealer-level scanners are not supported."
+                ),
+                (
+                    "Mileage",
+                    "Automatic mileage is not exact on every model. It depends on whether the vehicle reports odometer data over OBD. Otherwise distance is estimated from speed and time."
+                ),
+                (
+                    "Battery",
+                    "BLE adapters should not drain a healthy battery in normal use, but leaving one plugged in for days is still a risk. AntiCEL is not responsible for a dead battery."
                 )
             ]
         }

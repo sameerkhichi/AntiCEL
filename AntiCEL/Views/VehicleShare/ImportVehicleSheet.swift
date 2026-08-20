@@ -59,7 +59,7 @@ struct ImportVehicleSheet: View {
         Text(snapshot.displayName)
             .font(.title3.weight(.semibold).width(.condensed))
 
-        Text("\(snapshot.year) \(snapshot.make) \(snapshot.model)")
+        Text("\(String(snapshot.year)) \(snapshot.make) \(snapshot.model)" as String)
             .font(.subheadline)
             .foregroundStyle(.secondary)
 
@@ -67,6 +67,12 @@ struct ImportVehicleSheet: View {
             .font(.footnote)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
+
+        if preview.byteCount > 0 {
+            Text("About \(formattedSize(preview.byteCount)) on this device")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
 
         InfotainmentSectionHeader(title: "Included")
 
@@ -120,6 +126,10 @@ struct ImportVehicleSheet: View {
 
     private func countLabel(_ count: Int, singular: String, plural: String) -> String {
         "\(count) \(count == 1 ? singular : plural)"
+    }
+
+    private func formattedSize(_ bytes: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }
 
     private func loadPreview() {

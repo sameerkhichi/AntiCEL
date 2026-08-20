@@ -71,6 +71,8 @@
 				Models/VehicleAlbumPhoto.swift,
 				Models/VehicleDocument.swift,
 				Models/VehicleNote.swift,
+				Models/PairedAdapter.swift,
+				Models/DiagnosticFault.swift,
 				Shared/AppGroup.swift,
 				Shared/AppSettings.swift,
 				Shared/MileageIntents.swift,
