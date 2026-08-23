@@ -94,10 +94,6 @@ enum HintTopic: Hashable {
                     "Add your favourite shots of your car! These photos can be shared when you share the entire vehicle."
                 ),
                 (
-                    "Browsing photos",
-                    "Photos are grouped by the month they were taken, like the iOS Photos app. Tap one to preview it and see the capture date."
-                ),
-                (
                     "Low Storage Mode",
                     "When Low Storage Mode is on, album photos are linked to your camera roll instead of copies in AntiCEL. Photos that are not copies on AntiCEL cannot be included if you share the vehicle."
                 )

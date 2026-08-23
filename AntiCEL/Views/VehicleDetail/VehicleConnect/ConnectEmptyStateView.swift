@@ -8,7 +8,7 @@ struct ConnectEmptyStateView: View {
         VStack(alignment: .leading, spacing: 14) {
             disclaimer(
                 title: "Optional Feature",
-                body: "Connect is an optional feature. AntiCEL is not sponsored, does not sell adapters, and you do not need to buy anything to use the rest of the app. There is absolutely zero pressure to buy anything to be able to use AntiCEL."
+                body: "Connect is an optional feature. AntiCEL is not sponsored, does not sell adapters, and you do not need to buy anything to use the rest of the app. There is absolutely zero pressure to buy anything to be able to use AntiCEL. Connect will let AntiCEL connect to an OBD adapter you plug in your car so the app can auto update mileage, scan your car for faultswhile you drive to give you a summary, monitor fuel level providing reminders and more!"
             )
 
             disclaimer(
