@@ -30,10 +30,42 @@ enum OBDStore {
     }
 
     static func forgetAdapter(on vehicle: Vehicle, context: ModelContext) {
+        OBDDriveNotifications.cancel(vehicleID: vehicle.id)
         for adapter in vehicle.pairedAdapters {
             context.delete(adapter)
         }
         vehicle.pairedAdapters.removeAll()
+    }
+
+    static func driveAlertPreferences(
+        for vehicleID: UUID,
+        container: ModelContainer? = nil
+    ) -> OBDDriveAlertPreferences? {
+        do {
+            let container = try container ?? SharedModelContainer.make()
+            let context = ModelContext(container)
+            let target = vehicleID
+            var descriptor = FetchDescriptor<Vehicle>(
+                predicate: #Predicate { $0.id == target }
+            )
+            descriptor.fetchLimit = 1
+            guard let vehicle = try context.fetch(descriptor).first else {
+                return nil
+            }
+            let adapter = pairedAdapter(on: vehicle)
+            return OBDDriveAlertPreferences(
+                vehicleDisplayName: vehicle.displayName,
+                notifyFillUpReminders: adapter?.fillUpRemindersEnabled ?? true,
+                fillUpThresholdPercent: adapter?.fillUpThresholdPercentValue ?? 15,
+                notifyDriveFaults: adapter?.driveFaultsEnabled ?? true,
+                notifyHighCoolantTemp: adapter?.highCoolantTempEnabled ?? true,
+                coolantAlertThresholdC: adapter?.coolantAlertThresholdCValue ?? 110,
+                notifyHighOilTemp: adapter?.highOilTempEnabled ?? true,
+                oilAlertThresholdC: adapter?.oilAlertThresholdCValue ?? 130
+            )
+        } catch {
+            return nil
+        }
     }
 
     static func upsertFaults(

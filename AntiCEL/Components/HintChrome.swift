@@ -119,6 +119,10 @@ enum HintTopic: Hashable {
                 (
                     "Battery",
                     "BLE adapters should not drain a healthy battery in normal use, but leaving one plugged in for days is still a risk. AntiCEL is not responsible for a dead battery. Please take caution when using an adapter."
+                ),
+                (
+                    "Drive alerts",
+                    "Fill-up, new fault, coolant, and oil reminders wait about 10 minutes after the adapter stops sending data so a short stop does not fire one. You can set a different temperature for coolant and oil. If the adapter reconnects, the reminder is cancelled. Cleared codes leave Connect and stay in History."
                 )
             ]
         }

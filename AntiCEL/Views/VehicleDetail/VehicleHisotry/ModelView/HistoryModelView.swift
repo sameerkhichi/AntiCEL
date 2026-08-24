@@ -156,22 +156,30 @@ struct HistoryModelView: View {
 private struct HistoryModelPlaceholder: View {
 
     @Environment(\.appTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @State private var startedAt = Date()
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(theme.panel.opacity(0.55))
 
-            VStack(spacing: 10) {
-                Image(systemName: "car.side.fill")
-                    .font(.system(size: 44, weight: .medium))
-                    .foregroundStyle(.tertiary)
-
-                ProgressView()
-                    .tint(.secondary)
+            TimelineView(
+                .animation(
+                    minimumInterval: reduceMotion ? 1 : 1 / 30,
+                    paused: reduceMotion
+                )
+            ) { context in
+                ModelLoadingOdometer(
+                    progress: reduceMotion
+                        ? 0
+                        : ModelLoadingOdometer.progress(
+                            elapsed: context.date.timeIntervalSince(startedAt)
+                        )
+                )
             }
         }
-        .accessibilityLabel("Loading vehicle model")
     }
 }
 

@@ -17,6 +17,12 @@ final class Vehicle {
     var nickname: String
     var vin: String
     var currentMileage: Int
+
+    var displayName: String {
+        let nick = nickname.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !nick.isEmpty { return nick }
+        return "\(make) \(model)"
+    }
     //optional so older store rows (created before this field existed) do not crash on read
     var photoFileName: String? = nil
     var photoScale: Double? = nil

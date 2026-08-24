@@ -55,6 +55,44 @@ enum MileageUnit: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+enum TemperatureUnit: String, CaseIterable, Identifiable, Codable {
+    case celsius
+    case fahrenheit
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .celsius: return "Celsius"
+        case .fahrenheit: return "Fahrenheit"
+        }
+    }
+
+    var abbreviation: String {
+        switch self {
+        case .celsius: return "°C"
+        case .fahrenheit: return "°F"
+        }
+    }
+
+    static var deviceDefault: TemperatureUnit {
+        Locale.current.measurementSystem == .metric ? .celsius : .fahrenheit
+    }
+
+    func displayValue(fromCelsius celsius: Double) -> Double {
+        switch self {
+        case .celsius:
+            return celsius
+        case .fahrenheit:
+            return celsius * 9 / 5 + 32
+        }
+    }
+
+    func formatted(_ celsius: Double) -> String {
+        "\(Int(displayValue(fromCelsius: celsius).rounded()))\(abbreviation)"
+    }
+}
+
 enum NotificationLeadDays: Int, CaseIterable, Identifiable, Codable {
     case three = 3
     case seven = 7
@@ -105,6 +143,10 @@ final class AppSettings {
         }
     }
 
+    var temperatureUnit: TemperatureUnit {
+        didSet { defaults.set(temperatureUnit.rawValue, forKey: Keys.temperatureUnit) }
+    }
+
     var notifyServiceReminders: Bool {
         didSet { defaults.set(notifyServiceReminders, forKey: Keys.notifyService) }
     }
@@ -143,6 +185,12 @@ final class AppSettings {
         lightAccent = AccentOption(rawValue: defaults.string(forKey: Keys.lightAccent) ?? "") ?? .amber
         darkAccent = AccentOption(rawValue: defaults.string(forKey: Keys.darkAccent) ?? "") ?? .amberRed
         mileageUnit = MileageUnit(rawValue: defaults.string(forKey: Keys.mileageUnit) ?? "") ?? .kilometers
+        if let storedTemperature = defaults.string(forKey: Keys.temperatureUnit),
+           let unit = TemperatureUnit(rawValue: storedTemperature) {
+            temperatureUnit = unit
+        } else {
+            temperatureUnit = .deviceDefault
+        }
         notifyServiceReminders = defaults.object(forKey: Keys.notifyService) as? Bool ?? false
         notifyExpiringDocuments = defaults.object(forKey: Keys.notifyDocuments) as? Bool ?? false
 
@@ -182,10 +230,15 @@ final class AppSettings {
         mileageUnit.formatted(storedKilometers)
     }
 
+    func formattedTemperature(_ celsius: Double) -> String {
+        temperatureUnit.formatted(celsius)
+    }
+
     private enum Keys {
         static let lightAccent = "settings.lightAccent"
         static let darkAccent = "settings.darkAccent"
         static let mileageUnit = "settings.mileageUnit"
+        static let temperatureUnit = "settings.temperatureUnit"
         static let notifyService = "settings.notifyServiceReminders"
         static let notifyDocuments = "settings.notifyExpiringDocuments"
         static let notificationLeadDays = "settings.notificationLeadDays"

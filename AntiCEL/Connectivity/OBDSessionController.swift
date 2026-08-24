@@ -60,9 +60,22 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private var connectingPeripheralID: UUID?
 
     private let largeJumpKm = 80
+    private let ecuSilenceTicks = 12
     private var suppressReconnect = false
+
+    private var tripStartedAt: Date?
+    private var tripBaselineFaults: Set<String>?
+    private var tripNewFaults: [String] = []
+    private var lastFuelPercent: Double?
+    private var maxCoolantC: Double?
+    private var maxOilTempC: Double?
+    private var consecutiveECUMisses = 0
+    private var didScheduleTripEndAlerts = false
+
     #if DEBUG
     private var mockFaults: [OBDFaultReading] = OBDMockAdapter.sampleFaults
+    private var mockCoolantC: Double = OBDMockAdapter.coolantTempC
+    private var mockOilTempC: Double = OBDMockAdapter.oilTempC
     #endif
 
     override init() {
@@ -148,6 +161,9 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         suppressReconnect = true
         monitorTask?.cancel()
         monitorTask = nil
+        if let vehicleID = connectedVehicleID {
+            OBDDriveNotifications.cancel(vehicleID: vehicleID)
+        }
         finishTripMileageIfNeeded()
         failPendingCommand(OBDError.notConnected)
         if let peripheral {
@@ -168,6 +184,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             OBDStore.upsertFaults(readings, onto: vehicle, milOn: milOn, context: context)
             vehicle.updatedAt = Date()
             try? context.save()
+            noteTripFaults(readings)
             statusMessage = readings.isEmpty ? "No faults reported" : nil
         } catch {
             lastError = error.localizedDescription
@@ -218,7 +235,40 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     func simulateLowFuel() {
         guard isUsingMockAdapter else { return }
-        telemetry.fuelPercent = 12
+        telemetry.fuelPercent = OBDMockAdapter.lowFuelPercent
+        noteFuel(OBDMockAdapter.lowFuelPercent)
+    }
+
+    func simulateOverheat() {
+        guard isUsingMockAdapter else { return }
+        mockCoolantC = OBDMockAdapter.overheatTempC
+        telemetry.coolantTempC = mockCoolantC
+        noteCoolant(mockCoolantC)
+    }
+
+    func simulateOilOverheat() {
+        guard isUsingMockAdapter else { return }
+        mockOilTempC = OBDMockAdapter.oilOverheatTempC
+        telemetry.oilTempC = mockOilTempC
+        noteOilTemp(mockOilTempC)
+    }
+
+    func simulateNewDriveFault() {
+        guard isUsingMockAdapter else { return }
+        if !mockFaults.contains(where: { $0.code == OBDMockAdapter.extraDriveFault.code }) {
+            mockFaults.append(OBDMockAdapter.extraDriveFault)
+        }
+        telemetry.dtcCount = mockFaults.count
+        telemetry.milOn = true
+    }
+
+    func simulateTripEnd() {
+        guard isUsingMockAdapter else { return }
+        suppressReconnect = true
+        finishTripMileageIfNeeded()
+        scheduleTripEndAlertsIfNeeded()
+        resetConnection(keepVehicle: true)
+        statusMessage = "Trip ended · reminders in 15s if you stay disconnected"
     }
     #endif
 
@@ -242,6 +292,8 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         lastError = nil
         isUsingMockAdapter = true
         mockFaults = OBDMockAdapter.sampleFaults
+        mockCoolantC = OBDMockAdapter.coolantTempC
+        mockOilTempC = OBDMockAdapter.oilTempC
         connectingVehicleID = vehicleID
         connectingPeripheralID = OBDMockAdapter.identifier
         connectedVehicleID = vehicleID
@@ -262,9 +314,15 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             telemetry.rpm = OBDMockAdapter.rpm
             telemetry.speedKmh = OBDMockAdapter.speedKmh
             telemetry.fuelPercent = OBDMockAdapter.fuelPercent
+            telemetry.coolantTempC = mockCoolantC
+            telemetry.oilTempC = mockOilTempC
             telemetry.milOn = true
             telemetry.dtcCount = mockFaults.count
             connectionState = .connected
+            beginTripTracking()
+            noteFuel(OBDMockAdapter.fuelPercent)
+            noteCoolant(mockCoolantC)
+            noteOilTemp(mockOilTempC)
             statusMessage = "Connected · mock"
             startMonitor()
         }
@@ -292,6 +350,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
                 reconnectKnownAdapters()
             } else if connectionState != .disconnected && !isUsingMockAdapter {
                 lastError = OBDError.bluetoothUnavailable.errorDescription
+                scheduleTripEndAlertsIfNeeded()
                 resetConnection(keepVehicle: true)
             }
         }
@@ -439,6 +498,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private func handleDidDisconnect(_ identifier: UUID) {
         guard peripheral?.identifier == identifier else { return }
         finishTripMileageIfNeeded()
+        scheduleTripEndAlertsIfNeeded()
         failPendingCommand(OBDError.notConnected)
         let shouldReconnect = isForeground && !suppressReconnect
         resetConnection(keepVehicle: true)
@@ -519,6 +579,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             connectionState = .connected
             lastError = nil
             statusMessage = "Connected"
+            beginTripTracking()
             await loadSupportedPIDs()
             await snapshot()
             persistBackgroundSnapshotIfNeeded()
@@ -549,8 +610,15 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             if telemetry.fuelPercent == nil {
                 telemetry.fuelPercent = OBDMockAdapter.fuelPercent
             }
+            telemetry.coolantTempC = mockCoolantC
+            telemetry.oilTempC = mockOilTempC
             telemetry.dtcCount = mockFaults.count
             telemetry.milOn = !mockFaults.isEmpty
+            if let fuel = telemetry.fuelPercent {
+                noteFuel(fuel)
+            }
+            noteCoolant(mockCoolantC)
+            noteOilTemp(mockOilTempC)
             if ticks == 0 || ticks % 15 == 0 {
                 await scanFaultsInBackground()
             }
@@ -558,17 +626,35 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         }
         #endif
 
+        var gotECUData = false
+
         if let speed = await readSpeed() {
             accumulateTrip(speed: speed)
             telemetry.speedKmh = speed
+            gotECUData = true
         }
 
         if ticks % 2 == 0 {
-            telemetry.rpm = await readRPM()
+            if let rpm = await readRPM() {
+                telemetry.rpm = rpm
+                gotECUData = true
+            }
         }
         if ticks % 3 == 0 {
             if let fuel = await readFuel() {
                 telemetry.fuelPercent = fuel
+                noteFuel(fuel)
+                gotECUData = true
+            }
+            if let coolant = await readCoolant() {
+                telemetry.coolantTempC = coolant
+                noteCoolant(coolant)
+                gotECUData = true
+            }
+            if let oil = await readOilTemp() {
+                telemetry.oilTempC = oil
+                noteOilTemp(oil)
+                gotECUData = true
             }
         }
         if ticks % 5 == 0 {
@@ -578,8 +664,15 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             if let status = await readMonitorStatus() {
                 telemetry.milOn = status.milOn
                 telemetry.dtcCount = status.dtcCount
+                gotECUData = true
             }
             await scanFaultsInBackground()
+        }
+
+        if gotECUData {
+            noteECUDataReceived()
+        } else {
+            noteECUMiss()
         }
 
         if !isForeground && ticks > 0 && ticks % 20 == 0 {
@@ -592,6 +685,15 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         telemetry.speedKmh = await readSpeed()
         if let fuel = await readFuel() {
             telemetry.fuelPercent = fuel
+            noteFuel(fuel)
+        }
+        if let coolant = await readCoolant() {
+            telemetry.coolantTempC = coolant
+            noteCoolant(coolant)
+        }
+        if let oil = await readOilTemp() {
+            telemetry.oilTempC = oil
+            noteOilTemp(oil)
         }
         if let status = await readMonitorStatus() {
             telemetry.milOn = status.milOn
@@ -604,6 +706,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         guard let vehicleID = connectedVehicleID else { return }
         do {
             let readings = try await currentFaultReadings()
+            noteTripFaults(readings)
             OBDStore.persistFaultsFromBackground(
                 readings,
                 vehicleID: vehicleID,
@@ -662,6 +765,20 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             return nil
         }
         return ELM327Codec.fuelPercent(from: raw)
+    }
+
+    private func readCoolant() async -> Double? {
+        guard pidSupported(0x05), let raw = try? await send("0105"), !ELM327Codec.isNoData(raw) else {
+            return nil
+        }
+        return ELM327Codec.coolantTempC(from: raw)
+    }
+
+    private func readOilTemp() async -> Double? {
+        guard pidSupported(0x5C), let raw = try? await send("015C"), !ELM327Codec.isNoData(raw) else {
+            return nil
+        }
+        return ELM327Codec.oilTempC(from: raw)
     }
 
     private func readMonitorStatus() async -> (milOn: Bool, dtcCount: Int)? {
@@ -905,5 +1022,102 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             connectionState = .disconnected
         }
         statusMessage = nil
+        resetTripTracking()
+    }
+
+    // MARK: - Drive alerts
+
+    private func beginTripTracking() {
+        if let vehicleID = connectedVehicleID {
+            OBDDriveNotifications.cancel(vehicleID: vehicleID)
+        }
+        tripStartedAt = Date()
+        tripBaselineFaults = nil
+        tripNewFaults = []
+        lastFuelPercent = telemetry.fuelPercent
+        maxCoolantC = telemetry.coolantTempC
+        maxOilTempC = telemetry.oilTempC
+        consecutiveECUMisses = 0
+        didScheduleTripEndAlerts = false
+    }
+
+    private func noteFuel(_ percent: Double) {
+        lastFuelPercent = percent
+    }
+
+    private func noteCoolant(_ celsius: Double) {
+        maxCoolantC = max(maxCoolantC ?? celsius, celsius)
+    }
+
+    private func noteOilTemp(_ celsius: Double) {
+        maxOilTempC = max(maxOilTempC ?? celsius, celsius)
+    }
+
+    private func noteTripFaults(_ readings: [OBDFaultReading]) {
+        let codes = Set(readings.map { $0.code.uppercased() })
+        if tripBaselineFaults == nil {
+            tripBaselineFaults = codes
+            return
+        }
+        for code in codes where !tripBaselineFaults!.contains(code) {
+            if !tripNewFaults.contains(code) {
+                tripNewFaults.append(code)
+            }
+        }
+    }
+
+    private func noteECUDataReceived() {
+        consecutiveECUMisses = 0
+        guard didScheduleTripEndAlerts, let vehicleID = connectedVehicleID else { return }
+        OBDDriveNotifications.cancel(vehicleID: vehicleID)
+        didScheduleTripEndAlerts = false
+    }
+
+    private func noteECUMiss() {
+        consecutiveECUMisses += 1
+        if consecutiveECUMisses >= ecuSilenceTicks {
+            scheduleTripEndAlertsIfNeeded()
+        }
+    }
+
+    private func scheduleTripEndAlertsIfNeeded() {
+        guard !didScheduleTripEndAlerts else { return }
+        guard tripStartedAt != nil else { return }
+        guard let vehicleID = connectedVehicleID else { return }
+
+        let prefs = OBDStore.driveAlertPreferences(for: vehicleID, container: modelContainer)
+        let fuel = lastFuelPercent ?? telemetry.fuelPercent
+        let delay = OBDDriveNotifications.delay(isMock: isUsingMockAdapter)
+
+        didScheduleTripEndAlerts = true
+        OBDDriveNotifications.schedule(
+            OBDDriveNotifications.TripSummary(
+                vehicleID: vehicleID,
+                vehicleName: prefs?.vehicleDisplayName ?? "Your vehicle",
+                delay: delay,
+                lastFuelPercent: fuel,
+                fillUpThresholdPercent: prefs?.fillUpThresholdPercent ?? 15,
+                notifyFillUp: prefs?.notifyFillUpReminders ?? true,
+                newFaultCodes: tripNewFaults,
+                notifyFaults: prefs?.notifyDriveFaults ?? true,
+                maxCoolantC: maxCoolantC,
+                notifyCoolant: prefs?.notifyHighCoolantTemp ?? true,
+                coolantThresholdC: prefs?.coolantAlertThresholdC ?? OBDDriveNotifications.defaultCoolantAlertC,
+                maxOilTempC: maxOilTempC,
+                notifyOil: prefs?.notifyHighOilTemp ?? true,
+                oilThresholdC: prefs?.oilAlertThresholdC ?? OBDDriveNotifications.defaultOilAlertC
+            )
+        )
+    }
+
+    private func resetTripTracking() {
+        tripStartedAt = nil
+        tripBaselineFaults = nil
+        tripNewFaults = []
+        lastFuelPercent = nil
+        maxCoolantC = nil
+        maxOilTempC = nil
+        consecutiveECUMisses = 0
+        didScheduleTripEndAlerts = false
     }
 }

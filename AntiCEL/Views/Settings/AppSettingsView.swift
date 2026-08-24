@@ -45,6 +45,13 @@ struct AppSettingsView: View {
                 itemTitle: { $0.displayName }
             )
 
+            InfotainmentChipPicker(
+                title: "Temperature Units",
+                selection: $settings.temperatureUnit,
+                options: TemperatureUnit.allCases,
+                itemTitle: { $0.displayName }
+            )
+
             InfotainmentSectionHeader(title: "Tips")
 
             InfotainmentField {

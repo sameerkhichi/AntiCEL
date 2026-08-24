@@ -112,6 +112,20 @@ enum ELM327Codec {
         return Double(data[0]) * 100 / 255
     }
 
+    static func coolantTempC(from raw: String) -> Double? {
+        guard let data = decodePID(raw, expectedMode: 0x41, pid: 0x05), data.count >= 1 else {
+            return nil
+        }
+        return Double(data[0]) - 40
+    }
+
+    static func oilTempC(from raw: String) -> Double? {
+        guard let data = decodePID(raw, expectedMode: 0x41, pid: 0x5C), data.count >= 1 else {
+            return nil
+        }
+        return Double(data[0]) - 40
+    }
+
     static func odometerKm(from raw: String) -> Double? {
         guard let data = decodePID(raw, expectedMode: 0x41, pid: 0xA6), data.count >= 4 else {
             return nil

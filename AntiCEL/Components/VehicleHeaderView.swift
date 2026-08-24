@@ -12,7 +12,7 @@ struct VehicleHeaderView: View {
     }
 
     private var headerHeight: CGFloat {
-        let extra: CGFloat = (obd.isConnected(to: vehicle.id) && obd.fuelPercent != nil) ? 36 : 0
+        let extra: CGFloat = (obd.isConnected(to: vehicle.id) && obd.fuelPercent != nil) ? 126 : 0
         return (hasPhoto ? 300 : 210) + extra
     }
 

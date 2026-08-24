@@ -493,7 +493,9 @@ private actor Scheduler {
 
     private func pendingAntiCELIdentifiers(_ center: UNUserNotificationCenter) async -> [String] {
         let pending = await center.pendingNotificationRequests()
-        return pending.map(\.identifier).filter { $0.hasPrefix("anticel.") }
+        return pending.map(\.identifier).filter {
+            $0.hasPrefix("anticel.") && !$0.hasPrefix(OBDDriveNotifications.identifierPrefix)
+        }
     }
 
     private func loadDeliveredIDs() -> Set<String> {

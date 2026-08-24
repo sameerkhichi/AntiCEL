@@ -58,7 +58,20 @@ struct OBDLiveTelemetry: Equatable {
     var rpm: Double?
     var speedKmh: Double?
     var fuelPercent: Double?
+    var coolantTempC: Double?
+    var oilTempC: Double?
     var odometerKm: Double?
     var milOn: Bool?
     var dtcCount: Int?
+}
+
+struct OBDDriveAlertPreferences {
+    var vehicleDisplayName: String
+    var notifyFillUpReminders: Bool
+    var fillUpThresholdPercent: Int
+    var notifyDriveFaults: Bool
+    var notifyHighCoolantTemp: Bool
+    var coolantAlertThresholdC: Int
+    var notifyHighOilTemp: Bool
+    var oilAlertThresholdC: Int
 }

@@ -7,6 +7,7 @@ struct VehicleConnectView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(OBDSessionController.self) private var obd
+    @Environment(AppSettings.self) private var settings
 
     @State private var showingHint = false
     @State private var showingPicker = false
@@ -18,12 +19,9 @@ struct VehicleConnectView: View {
     }
 
     private var sortedFaults: [DiagnosticFault] {
-        vehicle.diagnosticFaults.sorted { lhs, rhs in
-            if lhs.isActive != rhs.isActive {
-                return lhs.isActive && !rhs.isActive
-            }
-            return lhs.lastSeenAt > rhs.lastSeenAt
-        }
+        vehicle.diagnosticFaults
+            .filter(\.isActive)
+            .sorted { $0.lastSeenAt > $1.lastSeenAt }
     }
 
     private var connectedToThisVehicle: Bool {
@@ -114,6 +112,10 @@ struct VehicleConnectView: View {
         VStack(alignment: .leading, spacing: 14) {
             connectionPanel
 
+            if let adapter {
+                ConnectDriveAlertsSection(adapter: adapter)
+            }
+
             #if DEBUG
             if obd.isUsingMockAdapter, connectedToThisVehicle {
                 mockTools
@@ -178,29 +180,65 @@ struct VehicleConnectView: View {
 
     private var connectionPanel: some View {
         DashPanel(padding: 14, cornerRadius: 14) {
-            HStack(spacing: 12) {
-                DashLED(isOn: connectedToThisVehicle)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 12) {
+                    DashLED(isOn: connectedToThisVehicle)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(adapter?.name ?? "Adapter")
-                        .font(.headline)
-                    Text(statusText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(adapter?.name ?? "Adapter")
+                            .font(.headline)
+                        Text(statusText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    if obd.connectionState == .disconnected || obd.connectionState == .unsupportedAdapter {
+                        DashButton(kind: .compact) {
+                            obd.connectPairedAdapter(for: vehicle)
+                        } label: {
+                            Text("Reconnect")
+                        }
+                    }
                 }
 
-                Spacer()
-
-                if obd.connectionState == .disconnected || obd.connectionState == .unsupportedAdapter {
-                    DashButton(kind: .compact) {
-                        obd.connectPairedAdapter(for: vehicle)
-                    } label: {
-                        Text("Reconnect")
+                if connectedToThisVehicle, hasLiveReadings {
+                    HStack(spacing: 16) {
+                        if let fuel = obd.telemetry.fuelPercent {
+                            liveReading(title: "Fuel", value: "\(Int(fuel.rounded()))%")
+                        }
+                        if let coolant = obd.telemetry.coolantTempC {
+                            liveReading(title: "Coolant", value: formattedTemperature(coolant))
+                        }
+                        if let oil = obd.telemetry.oilTempC {
+                            liveReading(title: "Oil", value: formattedTemperature(oil))
+                        }
                     }
                 }
             }
         }
         .padding(.horizontal)
+    }
+
+    private var hasLiveReadings: Bool {
+        obd.telemetry.fuelPercent != nil
+            || obd.telemetry.coolantTempC != nil
+            || obd.telemetry.oilTempC != nil
+    }
+
+    private func liveReading(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.subheadline.weight(.semibold).monospacedDigit())
+        }
+    }
+
+    private func formattedTemperature(_ celsius: Double) -> String {
+        settings.formattedTemperature(celsius)
     }
 
     #if DEBUG
@@ -209,7 +247,7 @@ struct VehicleConnectView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Mock Adapter")
                     .font(.subheadline.weight(.semibold))
-                Text("No dongle is connected. These actions fake a drive so you can check fuel, faults, History, and the mileage confirmation.")
+                Text("No dongle is connected. These actions fake a drive so you can check fuel, faults, History, mileage confirmation, and drive alerts.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -218,6 +256,13 @@ struct VehicleConnectView: View {
                     Task { await obd.scanFaults(for: vehicle) }
                 } label: {
                     Text("Load Sample Faults")
+                }
+
+                DashButton(kind: .bar) {
+                    obd.simulateNewDriveFault()
+                    Task { await obd.scanFaults(for: vehicle) }
+                } label: {
+                    Text("Add P0171 This Drive")
                 }
 
                 DashButton(kind: .bar) {
@@ -230,6 +275,24 @@ struct VehicleConnectView: View {
                     obd.simulateLowFuel()
                 } label: {
                     Text("Set Fuel to 12%")
+                }
+
+                DashButton(kind: .bar) {
+                    obd.simulateOverheat()
+                } label: {
+                    Text("Spike Coolant")
+                }
+
+                DashButton(kind: .bar) {
+                    obd.simulateOilOverheat()
+                } label: {
+                    Text("Spike Oil Temp")
+                }
+
+                DashButton(kind: .bar) {
+                    obd.simulateTripEnd()
+                } label: {
+                    Text("End Trip (alerts in 15s)")
                 }
             }
         }
