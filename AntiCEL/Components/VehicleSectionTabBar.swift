@@ -11,9 +11,7 @@ struct VehicleSectionTabBar: View {
                 let isSelected = selection == section
 
                 Button {
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
-                        selection = section
-                    }
+                    selection = section
                 } label: {
                     VStack(spacing: 5) {
                         DashLED(isOn: isSelected)

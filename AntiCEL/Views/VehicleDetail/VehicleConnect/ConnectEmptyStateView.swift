@@ -3,6 +3,7 @@ import SwiftUI
 struct ConnectEmptyStateView: View {
 
     let onScan: () -> Void
+    var onUseMock: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -35,6 +36,18 @@ struct ConnectEmptyStateView: View {
                 Text("Scan for Adapter")
             }
             .padding(.top, 4)
+
+            #if DEBUG
+            if let onUseMock {
+                DashButton(kind: .bar, action: onUseMock) {
+                    Text("Use Mock Adapter")
+                }
+                Text("Debug only. Simulates a Veepeak BLE+ so you can try Connect without hardware. Hidden in Release builds.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            #endif
         }
         .padding(.horizontal)
     }

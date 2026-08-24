@@ -6,9 +6,20 @@ struct VehicleDetailView: View {
     @Environment(OBDSessionController.self) private var obd
     @Environment(AppSettings.self) private var settings
     @State private var selectedSection: VehicleDetailSection = .overview
+    @State private var retainedSections: Set<VehicleDetailSection> = [.overview]
     @State private var showingShare = false
 
     let vehicle: Vehicle
+
+    private var sectionSelection: Binding<VehicleDetailSection> {
+        Binding(
+            get: { selectedSection },
+            set: { section in
+                retainedSections.insert(section)
+                selectedSection = section
+            }
+        )
+    }
 
     private var navigationTitleText: String {
         if !vehicle.nickname.isEmpty {
@@ -19,40 +30,21 @@ struct VehicleDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Group {
-                switch selectedSection {
-                case .overview:
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            VehicleHeaderView(vehicle: vehicle)
-                            VehicleOverviewView(vehicle: vehicle)
-                        }
-                    }
-
-                case .history:
-                    VehicleHistoryView(vehicle: vehicle)
-
-                case .documents:
-                    ScrollView {
-                        VehicleDocumentsView(vehicle: vehicle)
-                    }
-
-                case .album:
-                    ScrollView {
-                        VehicleAlbumView(vehicle: vehicle)
-                    }
-
-                case .connect:
-                    ScrollView {
-                        VehicleConnectView(vehicle: vehicle)
-                    }
+            ZStack {
+                ForEach(VehicleDetailSection.allCases.filter { retainedSections.contains($0) }) { section in
+                    sectionContent(section)
+                        .opacity(selectedSection == section ? 1 : 0)
+                        .allowsHitTesting(selectedSection == section)
+                        .accessibilityHidden(selectedSection != section)
+                        .zIndex(selectedSection == section ? 1 : 0)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
-            VehicleSectionTabBar(selection: $selectedSection)
+            VehicleSectionTabBar(selection: sectionSelection)
         }
         .appCanvas()
+        .environment(VehicleSceneCache.shared)
         .navigationTitle(navigationTitleText)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(theme.canvas, for: .navigationBar)
@@ -118,6 +110,59 @@ struct VehicleDetailView: View {
                 obd.connectPairedAdapter(for: vehicle)
             }
         }
+        .task {
+            async let photos: Void = warmAlbumThumbnails()
+            await VehicleSceneCache.shared.prepare()
+            retainedSections.insert(.history)
+            await photos
+        }
+    }
+
+    @ViewBuilder
+    private func sectionContent(_ section: VehicleDetailSection) -> some View {
+        switch section {
+        case .overview:
+            ScrollView {
+                VStack(spacing: 0) {
+                    VehicleHeaderView(vehicle: vehicle)
+                    VehicleOverviewView(vehicle: vehicle)
+                }
+            }
+
+        case .history:
+            VehicleHistoryView(vehicle: vehicle, isActive: selectedSection == .history)
+
+        case .documents:
+            ScrollView {
+                VehicleDocumentsView(vehicle: vehicle)
+            }
+
+        case .album:
+            ScrollView {
+                VehicleAlbumView(vehicle: vehicle)
+            }
+
+        case .connect:
+            ScrollView {
+                VehicleConnectView(vehicle: vehicle)
+            }
+        }
+    }
+
+    private func warmAlbumThumbnails() async {
+        let refs = vehicle.albumPhotos
+            .filter { $0.photoFileName != nil }
+            .sorted { $0.displayDate > $1.displayDate }
+            .prefix(12)
+            .compactMap(\.photoFileName)
+
+        await withTaskGroup(of: Void.self) { group in
+            for ref in refs {
+                group.addTask {
+                    _ = await PhotoStore.loadThumbnail(ref, maxDimension: 400)
+                }
+            }
+        }
     }
 }
 
@@ -135,4 +180,5 @@ struct VehicleDetailView: View {
     }
     .appTheme()
     .environment(OBDSessionController.shared)
+    .environment(VehicleSceneCache.shared)
 }

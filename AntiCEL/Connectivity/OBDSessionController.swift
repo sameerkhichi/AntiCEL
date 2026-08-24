@@ -18,6 +18,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     var mileageJump: MileageJumpProposal?
     var statusMessage: String?
     var appliedMileageKm: Int?
+    var isUsingMockAdapter = false
 
     var modelContainer: ModelContainer?
 
@@ -60,6 +61,9 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     private let largeJumpKm = 80
     private var suppressReconnect = false
+    #if DEBUG
+    private var mockFaults: [OBDFaultReading] = OBDMockAdapter.sampleFaults
+    #endif
 
     override init() {
         super.init()
@@ -74,12 +78,21 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         lastError = nil
         self.showAllNamedDevices = showAllNamedDevices
         discoveredDevices = []
-        guard central.state == .poweredOn else {
-            lastError = OBDError.bluetoothUnavailable.errorDescription
-            return
-        }
+        #if DEBUG
+        discoveredDevices = [OBDMockAdapter.discoveredDevice]
+        #endif
         guard connectionState != .connected && connectionState != .connecting && connectionState != .initializing else {
             return
+        }
+
+        guard central.state == .poweredOn else {
+            #if DEBUG
+            connectionState = .scanning
+            return
+            #else
+            lastError = OBDError.bluetoothUnavailable.errorDescription
+            return
+            #endif
         }
 
         connectionState = .scanning
@@ -94,6 +107,12 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     func connect(to device: OBDDiscoveredDevice, vehicleID: UUID) {
+        #if DEBUG
+        if device.id == OBDMockAdapter.identifier {
+            startMockSession(vehicleID: vehicleID, name: device.name)
+            return
+        }
+        #endif
         guard let match = knownPeripherals[device.id] else {
             lastError = "The adapter is no longer in range. Scan again."
             return
@@ -107,11 +126,20 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     func reconnectKnownAdapters() {
-        guard central.state == .poweredOn else { return }
         guard connectionState == .disconnected else { return }
 
+        #if DEBUG
         let paired = OBDStore.allPairedAdapters()
-        for item in paired {
+        if let mock = paired.first(where: { $0.peripheralIdentifier == OBDMockAdapter.identifier }) {
+            startMockSession(vehicleID: mock.vehicleID, name: mock.name)
+            return
+        }
+        #endif
+
+        guard central.state == .poweredOn else { return }
+
+        let pairedAdapters = OBDStore.allPairedAdapters()
+        for item in pairedAdapters {
             connect(identifier: item.peripheralIdentifier, vehicleID: item.vehicleID, name: item.name)
         }
     }
@@ -134,7 +162,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         defer { isScanningFaults = false }
 
         do {
-            let readings = try await readAllFaults()
+            let readings = try await currentFaultReadings()
             let milOn = telemetry.milOn ?? false
             guard let context = vehicle.modelContext else { return }
             OBDStore.upsertFaults(readings, onto: vehicle, milOn: milOn, context: context)
@@ -152,6 +180,15 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         defer { isClearingCodes = false }
 
         do {
+            #if DEBUG
+            if isUsingMockAdapter {
+                mockFaults = []
+                telemetry.milOn = false
+                telemetry.dtcCount = 0
+                await scanFaults(for: vehicle)
+                return
+            }
+            #endif
             _ = try await send("04")
             try await Task.sleep(for: .milliseconds(400))
             await scanFaults(for: vehicle)
@@ -159,6 +196,31 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             lastError = error.localizedDescription
         }
     }
+
+    #if DEBUG
+    func connectMockAdapter(for vehicle: Vehicle) {
+        if let context = vehicle.modelContext {
+            OBDStore.pair(
+                vehicle: vehicle,
+                peripheralIdentifier: OBDMockAdapter.identifier,
+                name: OBDMockAdapter.name,
+                context: context
+            )
+            try? context.save()
+        }
+        startMockSession(vehicleID: vehicle.id, name: OBDMockAdapter.name)
+    }
+
+    func simulateMileageJump(for vehicle: Vehicle) {
+        guard isUsingMockAdapter, isConnected(to: vehicle.id) else { return }
+        proposeMileageDelta(OBDMockAdapter.mileageJumpKm, vehicleID: vehicle.id)
+    }
+
+    func simulateLowFuel() {
+        guard isUsingMockAdapter else { return }
+        telemetry.fuelPercent = 12
+    }
+    #endif
 
     func confirmMileageJump(on vehicle: Vehicle) {
         guard let jump = mileageJump, jump.vehicleID == vehicle.id else {
@@ -173,6 +235,53 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         mileageJump = nil
     }
 
+    #if DEBUG
+    private func startMockSession(vehicleID: UUID, name: String) {
+        suppressReconnect = false
+        stopScanning()
+        lastError = nil
+        isUsingMockAdapter = true
+        mockFaults = OBDMockAdapter.sampleFaults
+        connectingVehicleID = vehicleID
+        connectingPeripheralID = OBDMockAdapter.identifier
+        connectedVehicleID = vehicleID
+        connectedAdapterName = name
+        tripDistanceKm = 0
+        lastSpeedSample = nil
+        didApplyOdometerThisTrip = false
+        connectionState = .connecting
+        statusMessage = "Connecting…"
+
+        Task {
+            try? await Task.sleep(for: .milliseconds(350))
+            guard connectedVehicleID == vehicleID else { return }
+            connectionState = .initializing
+            statusMessage = "Talking to adapter…"
+            try? await Task.sleep(for: .milliseconds(350))
+            guard connectedVehicleID == vehicleID else { return }
+            telemetry.rpm = OBDMockAdapter.rpm
+            telemetry.speedKmh = OBDMockAdapter.speedKmh
+            telemetry.fuelPercent = OBDMockAdapter.fuelPercent
+            telemetry.milOn = true
+            telemetry.dtcCount = mockFaults.count
+            connectionState = .connected
+            statusMessage = "Connected · mock"
+            startMonitor()
+        }
+    }
+
+    private func currentFaultReadings() async throws -> [OBDFaultReading] {
+        if isUsingMockAdapter {
+            return mockFaults
+        }
+        return try await readAllFaults()
+    }
+    #else
+    private func currentFaultReadings() async throws -> [OBDFaultReading] {
+        try await readAllFaults()
+    }
+    #endif
+
     // MARK: - Core Bluetooth
 
     nonisolated func centralManagerDidUpdateState(_ central: CBCentralManager) {
@@ -181,7 +290,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             bluetoothState = state
             if state == .poweredOn {
                 reconnectKnownAdapters()
-            } else if connectionState != .disconnected {
+            } else if connectionState != .disconnected && !isUsingMockAdapter {
                 lastError = OBDError.bluetoothUnavailable.errorDescription
                 resetConnection(keepVehicle: true)
             }
@@ -299,7 +408,13 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             discoveredDevices[index] = device
         } else {
             discoveredDevices.append(device)
-            discoveredDevices.sort { $0.rssi > $1.rssi }
+        }
+        discoveredDevices.sort { lhs, rhs in
+            #if DEBUG
+            if lhs.id == OBDMockAdapter.identifier { return true }
+            if rhs.id == OBDMockAdapter.identifier { return false }
+            #endif
+            return lhs.rssi > rhs.rssi
         }
     }
 
@@ -427,6 +542,21 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     private func pollTick(ticks: Int) async {
         guard connectionState == .connected else { return }
+        #if DEBUG
+        if isUsingMockAdapter {
+            telemetry.rpm = OBDMockAdapter.rpm + Double((ticks % 7) * 12)
+            telemetry.speedKmh = OBDMockAdapter.speedKmh
+            if telemetry.fuelPercent == nil {
+                telemetry.fuelPercent = OBDMockAdapter.fuelPercent
+            }
+            telemetry.dtcCount = mockFaults.count
+            telemetry.milOn = !mockFaults.isEmpty
+            if ticks == 0 || ticks % 15 == 0 {
+                await scanFaultsInBackground()
+            }
+            return
+        }
+        #endif
 
         if let speed = await readSpeed() {
             accumulateTrip(speed: speed)
@@ -473,7 +603,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private func scanFaultsInBackground() async {
         guard let vehicleID = connectedVehicleID else { return }
         do {
-            let readings = try await readAllFaults()
+            let readings = try await currentFaultReadings()
             OBDStore.persistFaultsFromBackground(
                 readings,
                 vehicleID: vehicleID,
@@ -708,6 +838,12 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     // MARK: - Connection helpers
 
     private func connect(identifier: UUID, vehicleID: UUID, name: String) {
+        #if DEBUG
+        if identifier == OBDMockAdapter.identifier {
+            startMockSession(vehicleID: vehicleID, name: name)
+            return
+        }
+        #endif
         connectingVehicleID = vehicleID
         connectingPeripheralID = identifier
         connectedAdapterName = name
@@ -751,6 +887,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     private func resetConnection(keepVehicle: Bool) {
+        isUsingMockAdapter = false
         monitorTask?.cancel()
         monitorTask = nil
         peripheral = nil

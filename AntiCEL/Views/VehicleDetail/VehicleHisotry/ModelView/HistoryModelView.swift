@@ -3,6 +3,9 @@ import SwiftUI
 struct HistoryModelView: View {
 
     @Bindable var vehicle: Vehicle
+    var isActive = true
+
+    @Environment(VehicleSceneCache.self) private var sceneCache
 
     @State private var selectedArea: VehicleArea?
     @State private var cameraResetID = UUID()
@@ -11,33 +14,42 @@ struct HistoryModelView: View {
         ScrollView {
             VStack(spacing: 12) {
                 ZStack(alignment: .topTrailing) {
-                    VehicleModel3DView(
-                        selectedArea: selectedArea,
-                        cameraResetID: cameraResetID
-                    ) { area in
-                        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                            if selectedArea == area {
-                                selectedArea = nil
-                            } else {
-                                selectedArea = area
+                    Group {
+                        if sceneCache.isReady {
+                            VehicleModel3DView(
+                                selectedArea: selectedArea,
+                                cameraResetID: cameraResetID,
+                                isActive: isActive
+                            ) { area in
+                                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+                                    if selectedArea == area {
+                                        selectedArea = nil
+                                    } else {
+                                        selectedArea = area
+                                    }
+                                }
                             }
+                        } else {
+                            HistoryModelPlaceholder()
                         }
                     }
                     .frame(height: 320)
 
-                    Button {
-                        cameraResetID = UUID()
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                            selectedArea = nil
+                    if sceneCache.isReady {
+                        Button {
+                            cameraResetID = UUID()
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                selectedArea = nil
+                            }
+                        } label: {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.subheadline.weight(.semibold))
                         }
-                    } label: {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.subheadline.weight(.semibold))
+                        .buttonStyle(DashButtonStyle(kind: .compact))
+                        .padding(.trailing, 16)
+                        .padding(.top, 12)
+                        .accessibilityLabel("Reset model view")
                     }
-                    .buttonStyle(DashButtonStyle(kind: .compact))
-                    .padding(.trailing, 16)
-                    .padding(.top, 12)
-                    .accessibilityLabel("Reset model view")
                 }
                 .padding(.top, 4)
 
@@ -141,6 +153,28 @@ struct HistoryModelView: View {
     }
 }
 
+private struct HistoryModelPlaceholder: View {
+
+    @Environment(\.appTheme) private var theme
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(theme.panel.opacity(0.55))
+
+            VStack(spacing: 10) {
+                Image(systemName: "car.side.fill")
+                    .font(.system(size: 44, weight: .medium))
+                    .foregroundStyle(.tertiary)
+
+                ProgressView()
+                    .tint(.secondary)
+            }
+        }
+        .accessibilityLabel("Loading vehicle model")
+    }
+}
+
 #Preview {
     NavigationStack {
         HistoryModelView(
@@ -153,4 +187,6 @@ struct HistoryModelView: View {
         )
     }
     .appTheme()
+    .environment(VehicleSceneCache.shared)
+    .task { await VehicleSceneCache.shared.prepare() }
 }

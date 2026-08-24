@@ -5,6 +5,7 @@ struct VehicleModel3DView: UIViewRepresentable {
 
     var selectedArea: VehicleArea?
     var cameraResetID: UUID
+    var isActive: Bool = true
     var onSelect: (VehicleArea) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -13,7 +14,6 @@ struct VehicleModel3DView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
-        view.scene = GenericSedanSceneBuilder.makeScene()
         view.autoenablesDefaultLighting = false
         view.allowsCameraControl = true
         view.defaultCameraController.interactionMode = .orbitTurntable
@@ -22,17 +22,7 @@ struct VehicleModel3DView: UIViewRepresentable {
         view.backgroundColor = .clear
         view.isOpaque = false
         view.antialiasingMode = .multisampling4X
-        view.isPlaying = true
-
-        let camera = SCNNode()
-        camera.name = GenericSedanSceneBuilder.cameraNodeName
-        camera.camera = SCNCamera()
-        camera.camera?.fieldOfView = 40
-        camera.camera?.wantsHDR = false
-        camera.position = GenericSedanSceneBuilder.defaultCameraPosition
-        camera.look(at: GenericSedanSceneBuilder.defaultCameraTarget)
-        view.pointOfView = camera
-        view.scene?.rootNode.addChildNode(camera)
+        view.isPlaying = isActive
 
         let tap = UITapGestureRecognizer(
             target: context.coordinator,
@@ -44,12 +34,7 @@ struct VehicleModel3DView: UIViewRepresentable {
         context.coordinator.onSelect = onSelect
         context.coordinator.lastCameraResetID = cameraResetID
 
-        applySelection(
-            selectedArea,
-            in: view,
-            animated: false,
-            coordinator: context.coordinator
-        )
+        attachCachedSceneIfNeeded(to: view, coordinator: context.coordinator)
 
         return view
     }
@@ -59,7 +44,9 @@ struct VehicleModel3DView: UIViewRepresentable {
         uiView.backgroundColor = .clear
         uiView.isOpaque = false
         uiView.scene?.background.contents = UIColor.clear
+        uiView.isPlaying = isActive
         preferCameraControlOverScroll(in: uiView, coordinator: context.coordinator)
+        attachCachedSceneIfNeeded(to: uiView, coordinator: context.coordinator)
 
         if context.coordinator.lastCameraResetID != cameraResetID {
             context.coordinator.lastCameraResetID = cameraResetID
@@ -76,6 +63,31 @@ struct VehicleModel3DView: UIViewRepresentable {
             animated: true,
             coordinator: context.coordinator
         )
+    }
+
+    private func attachCachedSceneIfNeeded(to view: SCNView, coordinator: Coordinator) {
+        guard !coordinator.didAttachScene else { return }
+        guard let scene = VehicleSceneCache.shared.clonedScene() else { return }
+
+        view.scene = scene
+
+        let camera = SCNNode()
+        camera.name = GenericSedanSceneBuilder.cameraNodeName
+        camera.camera = SCNCamera()
+        camera.camera?.fieldOfView = 40
+        camera.camera?.wantsHDR = false
+        camera.position = GenericSedanSceneBuilder.defaultCameraPosition
+        camera.look(at: GenericSedanSceneBuilder.defaultCameraTarget)
+        view.pointOfView = camera
+        scene.rootNode.addChildNode(camera)
+
+        applySelection(
+            selectedArea,
+            in: view,
+            animated: false,
+            coordinator: coordinator
+        )
+        coordinator.didAttachScene = true
     }
 
     private func resetCamera(in view: SCNView) {
@@ -219,6 +231,7 @@ struct VehicleModel3DView: UIViewRepresentable {
         var restEulerByNode = [ObjectIdentifier: SCNVector3]()
         var didDumpPartNames = false
         var didCacheRestPoses = false
+        var didAttachScene = false
         weak var scnView: SCNView?
 
         init(onSelect: @escaping (VehicleArea) -> Void) {

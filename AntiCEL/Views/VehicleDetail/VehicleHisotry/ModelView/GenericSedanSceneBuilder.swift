@@ -99,14 +99,18 @@ enum GenericSedanSceneBuilder {
 
     private static let modelResourceName = "Generic_Sedan_Car"
 
-    static func makeScene() -> SCNScene {
+    static func preloadCarModel() -> SCNNode? {
+        loadCarModel()
+    }
+
+    static func buildTemplateScene(model: SCNNode? = nil) -> SCNScene {
         let scene = SCNScene()
         scene.background.contents = UIColor.clear
 
         let sedan = SCNNode()
         sedan.name = sedanNodeName
 
-        if let model = loadCarModel() {
+        if let model = model ?? loadCarModel() {
             model.name = modelNodeName
             normalize(model, into: sedan)
             restoreBodyPaint(on: model)
@@ -123,6 +127,15 @@ enum GenericSedanSceneBuilder {
 
         scene.rootNode.addChildNode(sedan)
         addLighting(to: scene)
+        return scene
+    }
+
+    static func clonedScene(from template: SCNScene) -> SCNScene {
+        let scene = SCNScene()
+        scene.background.contents = UIColor.clear
+        for child in template.rootNode.childNodes {
+            scene.rootNode.addChildNode(child.clone())
+        }
         return scene
     }
 
@@ -210,7 +223,6 @@ enum GenericSedanSceneBuilder {
 
         do {
             let modelScene = try SCNScene(url: url, options: [
-                .checkConsistency: true,
                 .convertUnitsToMeters: true
             ])
 

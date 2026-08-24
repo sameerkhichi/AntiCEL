@@ -6,6 +6,7 @@ struct VehicleHistoryView: View {
     @Environment(AppSettings.self) private var settings
 
     @Bindable var vehicle: Vehicle
+    var isActive = true
 
     @State private var displayMode: HistoryDisplayMode = .model
     @State private var showingNewEntry = false
@@ -18,7 +19,7 @@ struct VehicleHistoryView: View {
             switch displayMode {
 
             case .model:
-                HistoryModelView(vehicle: vehicle)
+                HistoryModelView(vehicle: vehicle, isActive: isActive)
 
             case .list:
                 ScrollView {
@@ -31,7 +32,7 @@ struct VehicleHistoryView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .toolbar {
 
-            if settings.showHints {
+            if isActive, settings.showHints {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         showingHint = true
@@ -42,27 +43,29 @@ struct VehicleHistoryView: View {
                 }
             }
 
-            ToolbarItem(placement: .topBarTrailing) {
+            if isActive {
+                ToolbarItem(placement: .topBarTrailing) {
 
-                Button {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        displayMode.toggle()
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            displayMode.toggle()
+                        }
+                    } label: {
+                        Image(systemName: displayMode.toggleIconName)
                     }
-                } label: {
-                    Image(systemName: displayMode.toggleIconName)
-                }
-                .accessibilityLabel(displayMode.toggleTitle)
+                    .accessibilityLabel(displayMode.toggleTitle)
 
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-
-                Button {
-                    showingNewEntry = true
-                } label: {
-                    Image(systemName: "plus")
                 }
 
+                ToolbarItem(placement: .topBarTrailing) {
+
+                    Button {
+                        showingNewEntry = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+
+                }
             }
 
         }

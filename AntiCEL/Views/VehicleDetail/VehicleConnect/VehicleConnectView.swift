@@ -61,9 +61,14 @@ struct VehicleConnectView: View {
                 .padding(.horizontal)
 
             if adapter == nil {
-                ConnectEmptyStateView {
-                    showingPicker = true
-                }
+                ConnectEmptyStateView(
+                    onScan: { showingPicker = true },
+                    onUseMock: {
+                        #if DEBUG
+                        obd.connectMockAdapter(for: vehicle)
+                        #endif
+                    }
+                )
             } else {
                 pairedContent
             }
@@ -108,6 +113,12 @@ struct VehicleConnectView: View {
     private var pairedContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             connectionPanel
+
+            #if DEBUG
+            if obd.isUsingMockAdapter, connectedToThisVehicle {
+                mockTools
+            }
+            #endif
 
             if let lastError = obd.lastError, obd.connectedVehicleID == vehicle.id || obd.connectionState == .unsupportedAdapter {
                 Text(lastError)
@@ -191,6 +202,40 @@ struct VehicleConnectView: View {
         }
         .padding(.horizontal)
     }
+
+    #if DEBUG
+    private var mockTools: some View {
+        DashPanel(padding: 14, cornerRadius: 14) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Mock Adapter")
+                    .font(.subheadline.weight(.semibold))
+                Text("No dongle is connected. These actions fake a drive so you can check fuel, faults, History, and the mileage confirmation.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                DashButton(kind: .bar) {
+                    Task { await obd.scanFaults(for: vehicle) }
+                } label: {
+                    Text("Load Sample Faults")
+                }
+
+                DashButton(kind: .bar) {
+                    obd.simulateMileageJump(for: vehicle)
+                } label: {
+                    Text("Simulate 95 km Trip")
+                }
+
+                DashButton(kind: .bar) {
+                    obd.simulateLowFuel()
+                } label: {
+                    Text("Set Fuel to 12%")
+                }
+            }
+        }
+        .padding(.horizontal)
+    }
+    #endif
 
     private var statusText: String {
         if obd.connectedVehicleID == vehicle.id, let message = obd.statusMessage {

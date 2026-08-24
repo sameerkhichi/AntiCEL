@@ -42,9 +42,21 @@ struct ConnectDevicePickerSheet: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(device.name)
                                         .font(.headline)
+                                    #if DEBUG
+                                    if device.id == OBDMockAdapter.identifier {
+                                        Text("Debug mock · no hardware needed")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    } else {
+                                        Text("Signal \(device.rssi) dBm")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    #else
                                     Text("Signal \(device.rssi) dBm")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
+                                    #endif
                                 }
                                 Spacer()
                                 DashButton(kind: .compact) {
