@@ -323,6 +323,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             noteFuel(OBDMockAdapter.fuelPercent)
             noteCoolant(mockCoolantC)
             noteOilTemp(mockOilTempC)
+            markAdapterSeen()
             statusMessage = "Connected · mock"
             startMonitor()
         }
@@ -369,7 +370,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
                     connectedVehicleID = OBDStore.vehicleID(for: item.identifier)
                     item.discoverServices(nil)
                 } else {
-                    central.connect(item, options: nil)
+                    central.connect(item, options: OBDAdapterProfile.connectOptions)
                 }
             }
         }
@@ -402,6 +403,9 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             if connectingPeripheralID == identifier {
                 lastError = message ?? "Could not connect to the adapter."
                 resetConnection(keepVehicle: true)
+                if !suppressReconnect {
+                    reconnectKnownAdapters()
+                }
             }
         }
     }
@@ -499,8 +503,15 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         guard peripheral?.identifier == identifier else { return }
         finishTripMileageIfNeeded()
         scheduleTripEndAlertsIfNeeded()
+        if let vehicleID = connectedVehicleID {
+            OBDStore.markLastSeen(
+                vehicleID: vehicleID,
+                fuelPercent: lastFuelPercent ?? telemetry.fuelPercent,
+                container: modelContainer
+            )
+        }
         failPendingCommand(OBDError.notConnected)
-        let shouldReconnect = isForeground && !suppressReconnect
+        let shouldReconnect = !suppressReconnect
         resetConnection(keepVehicle: true)
         if shouldReconnect {
             reconnectKnownAdapters()
@@ -580,6 +591,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             lastError = nil
             statusMessage = "Connected"
             beginTripTracking()
+            markAdapterSeen()
             await loadSupportedPIDs()
             await snapshot()
             persistBackgroundSnapshotIfNeeded()
@@ -596,7 +608,8 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             while let self, !Task.isCancelled, self.connectionState == .connected {
                 await self.pollTick(ticks: ticks)
                 ticks += 1
-                try? await Task.sleep(for: .seconds(1))
+                let interval = self.isForeground ? 1.0 : 5.0
+                try? await Task.sleep(for: .seconds(interval))
             }
         }
     }
@@ -673,10 +686,6 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             noteECUDataReceived()
         } else {
             noteECUMiss()
-        }
-
-        if !isForeground && ticks > 0 && ticks % 20 == 0 {
-            monitorTask?.cancel()
         }
     }
 
@@ -991,7 +1000,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         lastSpeedSample = nil
         didApplyOdometerThisTrip = false
         peripheral.delegate = self
-        central.connect(peripheral, options: [CBConnectPeripheralOptionNotifyOnConnectionKey: true])
+        central.connect(peripheral, options: OBDAdapterProfile.connectOptions)
     }
 
     private func failHandshake() {
@@ -1043,6 +1052,18 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     private func noteFuel(_ percent: Double) {
         lastFuelPercent = percent
+        if let vehicleID = connectedVehicleID {
+            OBDStore.persistLastFuel(percent, vehicleID: vehicleID, container: modelContainer)
+        }
+    }
+
+    private func markAdapterSeen() {
+        guard let vehicleID = connectedVehicleID else { return }
+        OBDStore.markLastSeen(
+            vehicleID: vehicleID,
+            fuelPercent: lastFuelPercent ?? telemetry.fuelPercent,
+            container: modelContainer
+        )
     }
 
     private func noteCoolant(_ celsius: Double) {

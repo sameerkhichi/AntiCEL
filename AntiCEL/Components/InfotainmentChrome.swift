@@ -9,6 +9,7 @@ struct InfotainmentScaffold<Content: View>: View {
     var cancelTitle: String = "Cancel"
     var confirmEnabled: Bool = true
     var scrolls: Bool = true
+    var onHelp: (() -> Void)? = nil
     let onCancel: () -> Void
     let onConfirm: () -> Void
     @ViewBuilder var content: () -> Content
@@ -52,10 +53,16 @@ struct InfotainmentScaffold<Content: View>: View {
 
             Spacer(minLength: 8)
 
-            Text(title)
-                .font(.headline.width(.condensed))
-                .tracking(0.8)
-                .lineLimit(1)
+            HStack(spacing: 6) {
+                Text(title)
+                    .font(.headline.width(.condensed))
+                    .tracking(0.8)
+                    .lineLimit(1)
+
+                if let onHelp {
+                    HintButton(title: title, compact: true, action: onHelp)
+                }
+            }
 
             Spacer(minLength: 8)
 

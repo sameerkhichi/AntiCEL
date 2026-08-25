@@ -12,7 +12,7 @@ struct VehicleHeaderView: View {
     }
 
     private var headerHeight: CGFloat {
-        let extra: CGFloat = (obd.isConnected(to: vehicle.id) && obd.fuelPercent != nil) ? 126 : 0
+        let extra: CGFloat = displayedFuelPercent != nil ? 126 : 0
         return (hasPhoto ? 300 : 210) + extra
     }
 
@@ -105,11 +105,18 @@ struct VehicleHeaderView: View {
             .buttonStyle(OdometerTapStyle())
             .accessibilityHint("Updates current mileage")
 
-            if obd.isConnected(to: vehicle.id), let fuel = obd.fuelPercent {
+            if let fuel = displayedFuelPercent {
                 FuelGaugeView(percent: fuel)
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var displayedFuelPercent: Double? {
+        if obd.isConnected(to: vehicle.id), let live = obd.fuelPercent {
+            return live
+        }
+        return OBDStore.pairedAdapter(on: vehicle)?.lastFuelPercent
     }
 }
 

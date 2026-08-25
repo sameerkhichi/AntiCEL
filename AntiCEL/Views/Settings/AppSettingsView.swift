@@ -12,6 +12,7 @@ struct AppSettingsView: View {
     @State private var notificationDenied = false
     @State private var showingClearPhotos = false
     @State private var showingPhotoHelp = false
+    @State private var showingNotificationsHelp = false
     @State private var didClearPhotos = false
 
     var body: some View {
@@ -67,11 +68,7 @@ struct AppSettingsView: View {
                 .tint(Color.accentColor)
             }
 
-            InfotainmentSectionHeader(title: "Notifications")
-
-            Text("Get a heads-up before a service is due or a document expires, plus a reminder on the day or mileage itself.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            InfotainmentSectionHeader(title: "Notifications", onHelp: { showingNotificationsHelp = true })
 
             notificationToggle(
                 title: "Service reminders",
@@ -169,6 +166,9 @@ struct AppSettingsView: View {
         }
         .sheet(isPresented: $showingPhotoHelp) {
             PhotoStorageHelpSheet()
+        }
+        .sheet(isPresented: $showingNotificationsHelp) {
+            HintSheet(topic: .notifications)
         }
         .alert("Remove Saved Photos?", isPresented: $showingClearPhotos) {
             Button("Remove Photos", role: .destructive) {

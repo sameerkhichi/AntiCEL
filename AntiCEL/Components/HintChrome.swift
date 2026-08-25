@@ -9,6 +9,8 @@ enum HintTopic: Hashable {
     case documents
     case album
     case connect
+    case driveAlerts
+    case notifications
 
     var title: String {
         switch self {
@@ -20,6 +22,8 @@ enum HintTopic: Hashable {
         case .documents: return "Documents"
         case .album: return "Album"
         case .connect: return "Connect"
+        case .driveAlerts: return "Drive Alerts"
+        case .notifications: return "Notifications"
         }
     }
 
@@ -123,6 +127,28 @@ enum HintTopic: Hashable {
                 (
                     "Drive alerts",
                     "Fill-up, new fault, coolant, and oil reminders wait about 10 minutes after the adapter stops sending data so a short stop does not fire one. You can set a different temperature for coolant and oil. If the adapter reconnects, the reminder is cancelled. Cleared codes leave Connect and stay in History."
+                ),
+                (
+                    "Auto reconnect",
+                    "Once an adapter is paired, AntiCEL keeps looking for it while you drive, including when the phone is locked or the app is in the background. Bluetooth is allowed to wake the app if the adapter comes back. Forget the adapter if you want that to stop."
+                )
+            ]
+        case .driveAlerts:
+            return [
+                (
+                    "When they fire",
+                    "These wait about 10 minutes after the adapter stops talking so a short stop does not fire one. If it reconnects, the reminder is cancelled."
+                ),
+                (
+                    "Temperatures",
+                    "Coolant and oil alerts are separate. Set the temperature that is high for this car. Not every vehicle reports oil temperature."
+                )
+            ]
+        case .notifications:
+            return [
+                (
+                    "What they cover",
+                    "Get a heads-up before a service is due or a document expires, plus a reminder on the day or mileage itself."
                 )
             ]
         }

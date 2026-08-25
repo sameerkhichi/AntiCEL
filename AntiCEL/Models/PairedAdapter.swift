@@ -19,6 +19,7 @@ final class PairedAdapter {
     var notifyHighOilTemp: Bool? = nil
     var coolantAlertThresholdC: Int? = 110
     var oilAlertThresholdC: Int? = 130
+    var lastFuelPercent: Double? = nil
 
     var vehicle: Vehicle?
 
@@ -43,8 +44,8 @@ final class PairedAdapter {
     }
 
     var coolantAlertThresholdCValue: Int {
-        get { coolantAlertThresholdC ?? 110 }
-        set { coolantAlertThresholdC = newValue }
+        get { min(max(coolantAlertThresholdC ?? 110, 80), 150) }
+        set { coolantAlertThresholdC = min(max(newValue, 80), 150) }
     }
 
     var highOilTempEnabled: Bool {
@@ -53,8 +54,8 @@ final class PairedAdapter {
     }
 
     var oilAlertThresholdCValue: Int {
-        get { oilAlertThresholdC ?? 130 }
-        set { oilAlertThresholdC = newValue }
+        get { min(max(oilAlertThresholdC ?? 130, 90), 170) }
+        set { oilAlertThresholdC = min(max(newValue, 90), 170) }
     }
 
     init(

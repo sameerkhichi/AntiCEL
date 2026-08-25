@@ -59,4 +59,9 @@ enum OBDAdapterProfile {
         }
         return advertisedServices.contains(where: { uartServices.contains($0) })
     }
+
+    static let connectOptions: [String: Any] = [
+        CBConnectPeripheralOptionNotifyOnConnectionKey: true,
+        CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
+    ]
 }

@@ -11,6 +11,7 @@ struct VehicleConnectView: View {
 
     @State private var showingHint = false
     @State private var showingPicker = false
+    @State private var showingDriveAlerts = false
     @State private var showingClearConfirm = false
     @State private var showingForgetConfirm = false
 
@@ -41,6 +42,15 @@ struct VehicleConnectView: View {
                 Spacer()
 
                 if adapter != nil {
+                    Button {
+                        showingDriveAlerts = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .font(.body.weight(.semibold))
+                    }
+                    .buttonStyle(DashButtonStyle(kind: .compact))
+                    .accessibilityLabel("Drive alerts")
+
                     Button {
                         showingPicker = true
                     } label: {
@@ -79,6 +89,11 @@ struct VehicleConnectView: View {
             ConnectDevicePickerSheet(vehicle: vehicle)
                 .environment(obd)
         }
+        .sheet(isPresented: $showingDriveAlerts) {
+            if let adapter {
+                ConnectDriveAlertsSheet(adapter: adapter)
+            }
+        }
         .confirmationDialog(
             "Clear diagnostic codes?",
             isPresented: $showingClearConfirm,
@@ -111,10 +126,6 @@ struct VehicleConnectView: View {
     private var pairedContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             connectionPanel
-
-            if let adapter {
-                ConnectDriveAlertsSection(adapter: adapter)
-            }
 
             #if DEBUG
             if obd.isUsingMockAdapter, connectedToThisVehicle {
@@ -168,6 +179,13 @@ struct VehicleConnectView: View {
                 }
             }
 
+            if let lastConnectedText {
+                Text(lastConnectedText)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+            }
+
             DashButton(kind: .bar, isDestructive: true) {
                 showingForgetConfirm = true
             } label: {
@@ -203,15 +221,15 @@ struct VehicleConnectView: View {
                     }
                 }
 
-                if connectedToThisVehicle, hasLiveReadings {
+                if hasDisplayedReadings {
                     HStack(spacing: 16) {
-                        if let fuel = obd.telemetry.fuelPercent {
+                        if let fuel = displayedFuelPercent {
                             liveReading(title: "Fuel", value: "\(Int(fuel.rounded()))%")
                         }
-                        if let coolant = obd.telemetry.coolantTempC {
+                        if connectedToThisVehicle, let coolant = obd.telemetry.coolantTempC {
                             liveReading(title: "Coolant", value: formattedTemperature(coolant))
                         }
-                        if let oil = obd.telemetry.oilTempC {
+                        if connectedToThisVehicle, let oil = obd.telemetry.oilTempC {
                             liveReading(title: "Oil", value: formattedTemperature(oil))
                         }
                     }
@@ -221,10 +239,25 @@ struct VehicleConnectView: View {
         .padding(.horizontal)
     }
 
-    private var hasLiveReadings: Bool {
-        obd.telemetry.fuelPercent != nil
-            || obd.telemetry.coolantTempC != nil
-            || obd.telemetry.oilTempC != nil
+    private var displayedFuelPercent: Double? {
+        if connectedToThisVehicle, let live = obd.telemetry.fuelPercent {
+            return live
+        }
+        return adapter?.lastFuelPercent
+    }
+
+    private var hasDisplayedReadings: Bool {
+        displayedFuelPercent != nil
+            || (connectedToThisVehicle && obd.telemetry.coolantTempC != nil)
+            || (connectedToThisVehicle && obd.telemetry.oilTempC != nil)
+    }
+
+    private var lastConnectedText: String? {
+        guard let adapter else { return nil }
+        if connectedToThisVehicle {
+            return "Last connected now"
+        }
+        return "Last connected \(adapter.lastSeenAt.formatted(date: .abbreviated, time: .shortened))"
     }
 
     private func liveReading(title: String, value: String) -> some View {

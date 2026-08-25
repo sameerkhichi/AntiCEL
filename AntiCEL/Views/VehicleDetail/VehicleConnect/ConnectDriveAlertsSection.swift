@@ -1,6 +1,31 @@
 import SwiftUI
 import SwiftData
 
+struct ConnectDriveAlertsSheet: View {
+
+    @Bindable var adapter: PairedAdapter
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var showingHint = false
+
+    var body: some View {
+        InfotainmentScaffold(
+            title: "Drive Alerts",
+            confirmTitle: "Done",
+            cancelTitle: "Close",
+            onHelp: { showingHint = true },
+            onCancel: { dismiss() },
+            onConfirm: { dismiss() }
+        ) {
+            ConnectDriveAlertsSection(adapter: adapter)
+        }
+        .appTheme()
+        .sheet(isPresented: $showingHint) {
+            HintSheet(topic: .driveAlerts)
+        }
+    }
+}
+
 struct ConnectDriveAlertsSection: View {
 
     @Bindable var adapter: PairedAdapter
@@ -9,17 +34,7 @@ struct ConnectDriveAlertsSection: View {
     @State private var notificationDenied = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Drive alerts")
-                .font(.headline.width(.condensed))
-                .padding(.horizontal)
-
-            Text("These wait about 10 minutes after the adapter stops talking so a short stop does not fire one. If it reconnects, the reminder is cancelled.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal)
-
+        VStack(alignment: .leading, spacing: 18) {
             notificationToggle(
                 title: "Fill-up reminder",
                 subtitle: "When the last drive ended at or below this fuel level",
@@ -33,7 +48,6 @@ struct ConnectDriveAlertsSection: View {
                     options: [10, 15, 20, 25],
                     itemTitle: { "\($0)%" }
                 )
-                .padding(.horizontal)
             }
 
             notificationToggle(
@@ -49,13 +63,11 @@ struct ConnectDriveAlertsSection: View {
             )
 
             if adapter.highCoolantTempEnabled {
-                InfotainmentChipPicker(
+                temperatureSlider(
                     title: "Alert me at",
-                    selection: $adapter.coolantAlertThresholdCValue,
-                    options: [100, 105, 110, 115, 120],
-                    itemTitle: { settings.temperatureUnit.formatted(Double($0)) }
+                    celsius: $adapter.coolantAlertThresholdCValue,
+                    range: 80...150
                 )
-                .padding(.horizontal)
             }
 
             notificationToggle(
@@ -65,20 +77,17 @@ struct ConnectDriveAlertsSection: View {
             )
 
             if adapter.highOilTempEnabled {
-                InfotainmentChipPicker(
+                temperatureSlider(
                     title: "Alert me at",
-                    selection: $adapter.oilAlertThresholdCValue,
-                    options: [120, 125, 130, 135, 140],
-                    itemTitle: { settings.temperatureUnit.formatted(Double($0)) }
+                    celsius: $adapter.oilAlertThresholdCValue,
+                    range: 90...170
                 )
-                .padding(.horizontal)
             }
 
             if notificationDenied {
                 Text("Notifications are off in iOS Settings. Enable them there to receive these reminders.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal)
             }
         }
         .onAppear {
@@ -95,6 +104,37 @@ struct ConnectDriveAlertsSection: View {
         }
         .onChange(of: adapter.highOilTempEnabled) { _, isOn in
             Task { await handleToggle(enabled: isOn) }
+        }
+    }
+
+    private func temperatureSlider(
+        title: String,
+        celsius: Binding<Int>,
+        range: ClosedRange<Int>
+    ) -> some View {
+        InfotainmentField(label: title) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(settings.temperatureUnit.formatted(Double(celsius.wrappedValue)))
+                    .font(.body.weight(.semibold).monospacedDigit())
+
+                Slider(
+                    value: Binding(
+                        get: { Double(celsius.wrappedValue) },
+                        set: { celsius.wrappedValue = Int($0.rounded()) }
+                    ),
+                    in: Double(range.lowerBound)...Double(range.upperBound),
+                    step: 1
+                )
+                .tint(Color.accentColor)
+
+                HStack {
+                    Text(settings.temperatureUnit.formatted(Double(range.lowerBound)))
+                    Spacer()
+                    Text(settings.temperatureUnit.formatted(Double(range.upperBound)))
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -115,7 +155,6 @@ struct ConnectDriveAlertsSection: View {
             }
             .tint(Color.accentColor)
         }
-        .padding(.horizontal)
     }
 
     private func handleToggle(enabled: Bool) async {

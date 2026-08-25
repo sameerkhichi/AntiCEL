@@ -37,6 +37,57 @@ enum OBDStore {
         vehicle.pairedAdapters.removeAll()
     }
 
+    static func markLastSeen(
+        vehicleID: UUID,
+        fuelPercent: Double? = nil,
+        container: ModelContainer? = nil
+    ) {
+        mutateAdapter(vehicleID: vehicleID, container: container) { adapter in
+            adapter.lastSeenAt = Date()
+            if let fuelPercent {
+                adapter.lastFuelPercent = fuelPercent
+            }
+        }
+    }
+
+    static func persistLastFuel(
+        _ percent: Double,
+        vehicleID: UUID,
+        container: ModelContainer? = nil
+    ) {
+        mutateAdapter(vehicleID: vehicleID, container: container) { adapter in
+            let previous = adapter.lastFuelPercent ?? -1
+            if abs(previous - percent) >= 0.5 {
+                adapter.lastFuelPercent = percent
+            }
+        }
+    }
+
+    private static func mutateAdapter(
+        vehicleID: UUID,
+        container: ModelContainer?,
+        update: (PairedAdapter) -> Void
+    ) {
+        do {
+            let container = try container ?? SharedModelContainer.make()
+            let context = ModelContext(container)
+            let target = vehicleID
+            var descriptor = FetchDescriptor<Vehicle>(
+                predicate: #Predicate { $0.id == target }
+            )
+            descriptor.fetchLimit = 1
+            guard let vehicle = try context.fetch(descriptor).first,
+                  let adapter = pairedAdapter(on: vehicle)
+            else {
+                return
+            }
+            update(adapter)
+            try context.save()
+        } catch {
+            return
+        }
+    }
+
     static func driveAlertPreferences(
         for vehicleID: UUID,
         container: ModelContainer? = nil
