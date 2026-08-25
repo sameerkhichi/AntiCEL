@@ -78,6 +78,10 @@ enum HintTopic: Hashable {
                 (
                     "List view",
                     "Use the toolbar toggle to switch to a list of every history entry if you prefer that over the car view."
+                ),
+                (
+                    "3D model",
+                    "The car is “Generic Sedan Car” by MMC Works, licensed under Creative Commons Attribution 4.0. Full credit, including links, is in Settings → Credits."
                 )
             ]
         case .documents:

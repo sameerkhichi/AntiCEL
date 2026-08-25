@@ -2,6 +2,10 @@ import SceneKit
 import UIKit
 
 /// Loads the bundled generic sedan USDZ and attaches invisible tap zones.
+///
+/// "Generic Sedan Car" (https://skfb.ly/oIOJC) by MMC Works is licensed under
+/// Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/).
+/// Adapted for AntiCEL (USDZ conversion, tap zones, and part animation).
 enum GenericSedanSceneBuilder {
 
     static let sedanNodeName = "sedan"

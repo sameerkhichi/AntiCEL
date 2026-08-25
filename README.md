@@ -100,3 +100,9 @@ Send a copy of a car to someone else who uses AntiCEL. This includes a buyer, a 
 ---
 
 Most cars die out as a result of poor maintenence, dont be a victim or a suspect. Take care of your car one step at a time, starting today!
+
+---
+
+## Credits
+
+“[Generic Sedan Car](https://skfb.ly/oIOJC)” by MMC Works is licensed under [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/). Adapted for AntiCEL (converted to USDZ and used as an interactive history model). MMC Works does not endorse AntiCEL.

@@ -95,6 +95,7 @@
 			membershipExceptions = (
 				AntiCELWidget.entitlements,
 				Info.plist,
+				PrivacyInfo.xcprivacy,
 			);
 			target = E6626E032FFB283000540252 /* AntiCELWidget */;
 		};
@@ -103,6 +104,7 @@
 			membershipExceptions = (
 				AntiCEL.entitlements,
 				Info.plist,
+				PrivacyInfo.xcprivacy,
 			);
 			target = E6626CC22FFB283000540252 /* AntiCEL */;
 		};

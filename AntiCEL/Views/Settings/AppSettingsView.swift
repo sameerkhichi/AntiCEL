@@ -13,6 +13,8 @@ struct AppSettingsView: View {
     @State private var showingClearPhotos = false
     @State private var showingPhotoHelp = false
     @State private var showingNotificationsHelp = false
+    @State private var showingLegal: LegalDocument?
+    @State private var showingCredits = false
     @State private var didClearPhotos = false
 
     var body: some View {
@@ -139,6 +141,33 @@ struct AppSettingsView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
+
+            InfotainmentSectionHeader(title: "Legal")
+
+            DashButton(kind: .bar) {
+                showingLegal = .privacyPolicy
+            } label: {
+                Text("Privacy Policy")
+            }
+
+            DashButton(kind: .bar) {
+                showingLegal = .termsOfUse
+            } label: {
+                Text("Terms of Use")
+            }
+
+            DashButton(kind: .bar) {
+                showingCredits = true
+            } label: {
+                Text("Credits")
+            }
+
+            Link(destination: LegalLinks.supportMail) {
+                Text("Contact: \(LegalLinks.supportEmail)")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
         .appTheme()
         .onChange(of: settings.notifyServiceReminders) { _, isOn in
@@ -169,6 +198,12 @@ struct AppSettingsView: View {
         }
         .sheet(isPresented: $showingNotificationsHelp) {
             HintSheet(topic: .notifications)
+        }
+        .sheet(item: $showingLegal) { document in
+            LegalDocumentSheet(document: document)
+        }
+        .sheet(isPresented: $showingCredits) {
+            CreditsSheet()
         }
         .alert("Remove Saved Photos?", isPresented: $showingClearPhotos) {
             Button("Remove Photos", role: .destructive) {
