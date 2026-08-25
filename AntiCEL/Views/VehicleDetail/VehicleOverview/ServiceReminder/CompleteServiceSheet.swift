@@ -9,7 +9,7 @@ struct CompleteServiceSheet: View {
     let onContinue: (Date, Int?, PhotoDraft) -> Void
 
     @State private var completionDate: Date
-    @State private var completionMileage: String
+    @State private var completionMileage: Int
     @State private var photoDraft = PhotoDraft()
 
     init(
@@ -23,10 +23,13 @@ struct CompleteServiceSheet: View {
             initialValue: reminder.dueDate ?? Date()
         )
 
+        let storedKilometers = reminder.dueMileage
+            ?? reminder.vehicle?.currentMileage
+            ?? 0
         _completionMileage = State(
-            initialValue: reminder.dueMileage.map {
-                String(AppSettings.shared.mileageUnit.displayValue(fromStoredKilometers: $0))
-            } ?? ""
+            initialValue: AppSettings.shared.mileageUnit.displayValue(
+                fromStoredKilometers: storedKilometers
+            )
         )
     }
 
@@ -38,7 +41,7 @@ struct CompleteServiceSheet: View {
             onConfirm: {
                 onContinue(
                     completionDate,
-                    Int(completionMileage).map { settings.mileageUnit.storedKilometers(fromDisplay: $0) },
+                    settings.mileageUnit.storedKilometers(fromDisplay: completionMileage),
                     photoDraft
                 )
                 dismiss()
@@ -55,8 +58,8 @@ struct CompleteServiceSheet: View {
             }
 
             InfotainmentField(label: "Mileage (\(settings.mileageUnit.abbreviation))") {
-                TextField("Current mileage", text: $completionMileage)
-                    .keyboardType(.numberPad)
+                MileageDigitScroller(mileage: $completionMileage)
+                    .frame(maxWidth: .infinity)
             }
 
             PhotoAttachmentField(
