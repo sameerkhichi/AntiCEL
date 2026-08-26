@@ -51,7 +51,7 @@ struct ShareVehicleSheet: View {
             )
             includeToggle(
                 "Documents",
-                subtitle: countLabel(vehicle.documents.count, singular: "document", plural: "documents"),
+                subtitle: "Left off unless you want to send them",
                 isOn: $options.includeDocuments
             )
             includeToggle(

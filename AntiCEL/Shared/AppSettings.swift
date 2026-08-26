@@ -1,6 +1,30 @@
 import Foundation
 import SwiftUI
 
+enum AppearanceMode: String, CaseIterable, Identifiable, Codable {
+    case dark
+    case light
+    case system
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .dark: return "Dark"
+        case .light: return "Light"
+        case .system: return "Follow System"
+        }
+    }
+
+    var preferredColorScheme: ColorScheme? {
+        switch self {
+        case .dark: return .dark
+        case .light: return .light
+        case .system: return nil
+        }
+    }
+}
+
 enum MileageUnit: String, CaseIterable, Identifiable, Codable {
     case kilometers
     case miles
@@ -136,6 +160,13 @@ final class AppSettings {
         didSet { defaults.set(darkAccent.rawValue, forKey: Keys.darkAccent) }
     }
 
+    var appearanceMode: AppearanceMode {
+        didSet {
+            defaults.set(appearanceMode.rawValue, forKey: Keys.appearanceMode)
+            WidgetReloader.reload()
+        }
+    }
+
     var mileageUnit: MileageUnit {
         didSet {
             defaults.set(mileageUnit.rawValue, forKey: Keys.mileageUnit)
@@ -184,6 +215,7 @@ final class AppSettings {
 
         lightAccent = AccentOption(rawValue: defaults.string(forKey: Keys.lightAccent) ?? "") ?? .amber
         darkAccent = AccentOption(rawValue: defaults.string(forKey: Keys.darkAccent) ?? "") ?? .amberRed
+        appearanceMode = AppearanceMode(rawValue: defaults.string(forKey: Keys.appearanceMode) ?? "") ?? .dark
         mileageUnit = MileageUnit(rawValue: defaults.string(forKey: Keys.mileageUnit) ?? "") ?? .kilometers
         if let storedTemperature = defaults.string(forKey: Keys.temperatureUnit),
            let unit = TemperatureUnit(rawValue: storedTemperature) {
@@ -237,6 +269,7 @@ final class AppSettings {
     private enum Keys {
         static let lightAccent = "settings.lightAccent"
         static let darkAccent = "settings.darkAccent"
+        static let appearanceMode = "settings.appearanceMode"
         static let mileageUnit = "settings.mileageUnit"
         static let temperatureUnit = "settings.temperatureUnit"
         static let notifyService = "settings.notifyServiceReminders"

@@ -29,6 +29,13 @@ struct AppSettingsView: View {
         ) {
             InfotainmentSectionHeader(title: "Appearance")
 
+            InfotainmentChipPicker(
+                title: "Theme",
+                selection: $settings.appearanceMode,
+                options: AppearanceMode.allCases,
+                itemTitle: { $0.displayName }
+            )
+
             AccentSwatchPicker(
                 title: "Light Mode Accent",
                 previewScheme: .light,

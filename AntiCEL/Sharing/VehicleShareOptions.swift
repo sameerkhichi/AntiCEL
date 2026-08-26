@@ -3,7 +3,7 @@ import Foundation
 struct VehicleShareOptions: Equatable {
     var includeVIN = false
     var includeHistory = true
-    var includeDocuments = true
+    var includeDocuments = false
     var includeAlbum = true
     var includeReminders = true
     var includeNotes = true

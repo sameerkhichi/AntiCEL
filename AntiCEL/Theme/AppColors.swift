@@ -117,12 +117,17 @@ private struct AppThemeApplying<Content: View>: View {
     @Bindable private var settings = AppSettings.shared
     var content: Content
 
+    private var resolvedScheme: ColorScheme {
+        settings.appearanceMode.preferredColorScheme ?? colorScheme
+    }
+
     var body: some View {
-        let option = settings.accentOption(for: colorScheme)
+        let option = settings.accentOption(for: resolvedScheme)
         content
             .environment(settings)
-            .environment(\.appTheme, AppTheme(scheme: colorScheme, accent: option))
-            .tint(option.color(for: colorScheme))
+            .environment(\.appTheme, AppTheme(scheme: resolvedScheme, accent: option))
+            .tint(option.color(for: resolvedScheme))
+            .preferredColorScheme(settings.appearanceMode.preferredColorScheme)
     }
 }
 
