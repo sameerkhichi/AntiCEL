@@ -11,6 +11,7 @@ enum HintTopic: Hashable {
     case connect
     case driveAlerts
     case notifications
+    case account
 
     var title: String {
         switch self {
@@ -24,6 +25,7 @@ enum HintTopic: Hashable {
         case .connect: return "Connect"
         case .driveAlerts: return "Drive Alerts"
         case .notifications: return "Notifications"
+        case .account: return "Account"
         }
     }
 
@@ -158,6 +160,17 @@ enum HintTopic: Hashable {
                     "What they cover",
                     "Get a heads-up before a service is due or a document expires, plus a reminder on the day or mileage itself."
                 )
+            ]
+        case .account:
+            return [
+                (
+                    "Tied to your Apple ID",
+                    "Connect access is tied to your Apple ID, so if you get a new phone it should carry over automatically."
+                ),
+                (
+                    "Restore Purchases",
+                    "As a safety layer, Restore Purchases lets you manually ask Apple to restore purchases on this device for the Apple ID you are signed in with."
+                ),
             ]
         }
     }

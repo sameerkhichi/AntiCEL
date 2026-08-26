@@ -16,6 +16,7 @@ struct ConnectAccessView: View {
 
     @State private var showingManage = false
     @State private var showingLegal: LegalDocument?
+    @State private var showingAccountHint = false
 
     var body: some View {
         InfotainmentScaffold(
@@ -32,6 +33,8 @@ struct ConnectAccessView: View {
             if shouldShowPlans {
                 InfotainmentSectionHeader(title: "Plans")
 
+                lifetimePitch
+
                 ForEach(ConnectProductID.allCases) { id in
                     planCard(id)
                 }
@@ -46,7 +49,7 @@ struct ConnectAccessView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            InfotainmentSectionHeader(title: "Account")
+            InfotainmentSectionHeader(title: "Account", onHelp: { showingAccountHint = true })
 
             DashButton(kind: .bar) {
                 Task { await store.restore() }
@@ -96,6 +99,9 @@ struct ConnectAccessView: View {
         .sheet(item: $showingLegal) { document in
             LegalDocumentSheet(document: document)
         }
+        .sheet(isPresented: $showingAccountHint) {
+            HintSheet(topic: .account)
+        }
     }
 
     private var shouldShowPlans: Bool {
@@ -127,7 +133,7 @@ struct ConnectAccessView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Try it with your car")
                     .font(.subheadline.weight(.semibold))
-                Text("Connect is free for one month so you can see if it fits your lifestyle and whether your vehicle reports the data you care about. Not every car sends the same values. After that month, pick a plan to keep using live OBD. The rest of AntiCEL stays free.")
+                Text("Connect and related features are free for a month, starting the second you connect a compatible adapter. This is so you can test to see if this fits your lifestyle, and your car sends the data you actually care about. Since not all cars send the same data over their OBD port, we feel this is the only way you can make sure you are going to like what you pay for! If Connect is not for you — no problem! There is absolutely zero pressure, and everything else in AntiCEL is FREE. We want this app to be a tool accessible to all.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -146,28 +152,22 @@ struct ConnectAccessView: View {
 
         return DashPanel(padding: 14, cornerRadius: 14) {
             VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(id.displayName)
-                        .font(.headline.width(.condensed))
-                    Spacer()
-                    if id.isRecommended {
-                        Text(id == .lifetime ? "Own it" : "Best value")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(theme.accentColor)
-                    }
-                }
+                Text(id.displayName)
+                    .font(.headline.width(.condensed))
 
-                Text(id.subtitle)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if let subtitle = id.subtitle {
+                    Text(subtitle)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(product?.displayPrice ?? id.fallbackPrice)
                         .font(.title3.weight(.semibold).monospacedDigit())
                     Text(id.periodLabel)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .font(.footnote.weight(id == .lifetime ? .semibold : .regular))
+                        .foregroundStyle(id == .lifetime ? theme.accentColor : .secondary)
                 }
 
                 if alreadySubscribed {
@@ -186,6 +186,24 @@ struct ConnectAccessView: View {
                     }
                     .disabled(product == nil || store.isPurchasing || store.isLoadingProducts)
                 }
+            }
+        }
+    }
+
+    private var lifetimePitch: some View {
+        DashPanel(padding: 14, cornerRadius: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("AntiCEL is against check engine lights.......and subscriptions")
+                    .font(.subheadline.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Times where you pay once and you own a service are becoming rarer by the second.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("So with AntiCEL, you can pay ONE TIME, and have access forever.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
