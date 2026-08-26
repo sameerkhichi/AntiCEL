@@ -8,6 +8,8 @@ enum LegalLinks {
     static let companyName = "SRKSuite"
     static let supportEmail = "SRKSuite@gmail.com"
     static let supportMail = URL(string: "mailto:SRKSuite@gmail.com")!
+    static let applePrivacy = URL(string: "https://www.apple.com/legal/privacy/")!
+    static let appleMediaServices = URL(string: "https://www.apple.com/legal/internet-services/itunes/")!
 }
 
 enum LegalDocument: String, Identifiable, CaseIterable {
@@ -30,7 +32,7 @@ enum LegalDocument: String, Identifiable, CaseIterable {
         }
     }
 
-    var effectiveDate: String { "August 24, 2026" }
+    var effectiveDate: String { "August 26, 2026" }
 
     var intro: String {
         switch self {
@@ -51,11 +53,11 @@ enum LegalDocument: String, Identifiable, CaseIterable {
     private static let privacySections: [(title: String, body: String)] = [
         (
             "The short version",
-            "We do not collect, sell, or host your data. AntiCEL has no account and no server. Vehicle records, photos, documents, VIN, mileage, and OBD readings stay on your device unless you send them yourself."
+            "We do not collect, sell, or host your vehicle data. AntiCEL has no account and no server of ours. Vehicle records stay on your device unless you send them yourself. If you buy Connect, Apple processes the payment. We do not receive your card details."
         ),
         (
             "Information stored on your device",
-            "Depending on how you use the app, AntiCEL may store vehicle details (make, model, year, VIN if you enter it, and mileage); service reminders, notes, and shops; history entries; documents you add; album and vehicle photos; paired OBD adapter identifiers and diagnostic records; mileage, fuel, temperature, and fault-code readings from an optional OBD adapter; and app settings such as units, accents, notification preferences, and photo storage mode. This information is stored in the app and in an App Group container so the mileage widget and Siri shortcuts can use the same garage data. It is not sent to \(LegalLinks.companyName)."
+            "Depending on how you use the app, AntiCEL may store vehicle details (make, model, year, VIN if you enter it, and mileage); service reminders, notes, and shops; history entries; documents you add; album and vehicle photos; paired OBD adapter identifiers and diagnostic records; mileage, fuel, temperature, and fault-code readings from an optional OBD adapter; Connect trial start time and whether Connect is unlocked; and app settings such as units, accents, notification preferences, and photo storage mode. This information is stored in the app, in Keychain, optionally in iCloud Key-Value storage, and in an App Group container so the mileage widget and Siri shortcuts can use the same garage data. It is not sent to \(LegalLinks.companyName)."
         ),
         (
             "What we do not collect",
@@ -80,6 +82,14 @@ enum LegalDocument: String, Identifiable, CaseIterable {
         (
             "Bluetooth and Connect",
             "Connect is optional. If you pair a Bluetooth Low Energy OBD adapter in the app, AntiCEL may read mileage, fuel level, temperatures, and diagnostic trouble codes from the vehicle and store them on your device. This data is not sent to us. Pair from the Connect screen, not from iOS Bluetooth Settings. We do not sell adapters."
+        ),
+        (
+            "Purchases and Apple",
+            "If you buy Connect access, payment is processed by Apple, not by \(LegalLinks.companyName). We never receive your Apple ID password or payment card details. The app reads purchase and subscription status from StoreKit on this device using your Apple ID so it can unlock Connect. Restore Purchases asks Apple to send that status again. Apple’s privacy policy applies to App Store payments: \(LegalLinks.applePrivacy.absoluteString)"
+        ),
+        (
+            "Trial status",
+            "The free Connect month starts when AntiCEL first successfully connects to a supported adapter. The start time is stored on this device (Keychain) and may sync with your iCloud account so a second device can see the same trial. We do not operate a server that tracks trials. A determined person could start another trial on a new device with iCloud off. The policy is one trial per Apple ID."
         ),
         (
             "Background Bluetooth",
@@ -107,11 +117,11 @@ enum LegalDocument: String, Identifiable, CaseIterable {
         ),
         (
             "Third parties",
-            "We do not share your AntiCEL data with third parties, because we do not receive it. If you share a vehicle file, you are sending it to the recipient you chose, not to us."
+            "We do not share your AntiCEL vehicle data with third parties, because we do not receive it. If you share a vehicle file, you are sending it to the recipient you chose, not to us. Purchases go through Apple. Apple is a separate controller for App Store payment information."
         ),
         (
             "Deleting your data",
-            "Delete a vehicle in the app to remove that vehicle’s records from this device. Delete the app to remove AntiCEL’s local data. We have no cloud copy to delete. If you already shared a package, the recipient’s copy is not under our control or yours."
+            "Delete a vehicle in the app to remove that vehicle’s records from this device. Delete the app to remove AntiCEL’s local garage data. Trial timestamps in Keychain or iCloud may remain. We have no cloud copy of your garage to delete. Deleting the app does not cancel an App Store subscription. If you already shared a package, the recipient’s copy is not under our control or yours."
         ),
         (
             "Changes",
@@ -142,7 +152,27 @@ enum LegalDocument: String, Identifiable, CaseIterable {
         ),
         (
             "Connect and OBD",
-            "Connect is optional. Supported adapters are Bluetooth Low Energy ELM327-style devices. The adapter we have tested is the Veepeak OBDCheck BLE+. Classic Bluetooth, Wi-Fi-only adapters, and dealer scanners are not supported. Not every vehicle reports the same data. Mileage from the adapter may be missing, estimated from speed and time, or wrong. Confirm important readings yourself. Leave an adapter in the port only when you intend to use it. Unplug it for long storage or extreme cold. A dongle left in the port can drain the vehicle battery. We do not sell or sponsor adapters."
+            "Connect is optional paid live OBD. Garage, history, documents, album, reminders, notes, and shops stay free. Supported adapters are Bluetooth Low Energy ELM327-style devices. The adapter we have tested is the Veepeak OBDCheck BLE+. Classic Bluetooth, Wi-Fi-only adapters, and dealer scanners are not supported. Not every vehicle reports the same data. Mileage from the adapter may be missing, estimated from speed and time, or wrong. Confirm important readings yourself. Leave an adapter in the port only when you intend to use it. Unplug it for long storage or extreme cold. A dongle left in the port can drain the vehicle battery. We do not sell or sponsor adapters."
+        ),
+        (
+            "Connect trial",
+            "You may use Connect free for one month. The month starts when AntiCEL first successfully connects to a supported adapter, not when you scan or open the app. Scanning or a failed handshake does not start the trial. The trial is intended as one per Apple ID. We store the start time on the device and may sync it with iCloud; we do not run an account server, so this is best-effort. If you buy a plan during the trial, paid access takes over for that purchase."
+        ),
+        (
+            "Connect plans and billing",
+            "After the trial, live OBD requires an in-app purchase: a monthly auto-renewable subscription, a yearly auto-renewable subscription, or a one-time lifetime purchase. Prices are shown in the app in your local currency before you buy and are charged to your Apple ID through the App Store. Subscriptions renew automatically unless you cancel at least 24 hours before the end of the current period. Apple, not \(LegalLinks.companyName), processes payment. We never see your card number. Apple’s Media Services terms also apply: \(LegalLinks.appleMediaServices.absoluteString)"
+        ),
+        (
+            "How to cancel a subscription",
+            "Open Connect Access from the garage (top left) and tap Cancel / Manage Subscription. That opens Apple’s subscription management. You can also go to iOS Settings → your name → Subscriptions, or Settings → Apple ID → Subscriptions, and cancel AntiCEL Connect there. We cannot cancel an App Store subscription ourselves. Canceling stops the next renewal. You keep Connect until the period you already paid for ends. Deleting the app does not cancel a subscription."
+        ),
+        (
+            "Restore Purchases",
+            "Connect access is tied to your Apple ID. If you get a new device, reinstall AntiCEL, or iOS does not restore automatically, open Connect Access and tap Restore Purchases. Family Sharing may also grant access if you enabled it for the purchase in App Store Connect."
+        ),
+        (
+            "Lifetime purchase and refunds",
+            "Lifetime Connect is a one-time digital purchase for this Apple ID. Refunds are decided by Apple under the Apple Media Services Terms, not by \(LegalLinks.companyName). We cannot promise that a purchase is non-refundable after a set number of days. If Apple refunds a purchase, AntiCEL revokes Connect access for that item."
         ),
         (
             "Diagnostic codes",
@@ -166,7 +196,7 @@ enum LegalDocument: String, Identifiable, CaseIterable {
         ),
         (
             "Limitation of liability",
-            "To the extent allowed by law, \(LegalLinks.companyName) is not liable for any indirect, incidental, special, consequential, or punitive damages, or for lost data, lost profits, vehicle damage, missed maintenance, failed inspections, or personal injury, arising from your use of AntiCEL, an OBD adapter, or a shared vehicle file. Our total liability for any claim relating to the app will not exceed the amount you paid for AntiCEL, if any. Some places do not allow these limits. In those places, the limits apply only as far as the law allows."
+            "To the extent allowed by law, \(LegalLinks.companyName) is not liable for any indirect, incidental, special, consequential, or punitive damages, or for lost data, lost profits, vehicle damage, missed maintenance, failed inspections, or personal injury, arising from your use of AntiCEL, an OBD adapter, or a shared vehicle file. Our total liability for any claim relating to the app will not exceed the amount you paid for AntiCEL, including in-app purchases, if any. Some places do not allow these limits. In those places, the limits apply only as far as the law allows."
         ),
         (
             "Changes",

@@ -8,9 +8,12 @@ struct VehicleConnectView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(OBDSessionController.self) private var obd
     @Environment(AppSettings.self) private var settings
+    @Environment(ConnectEntitlementStore.self) private var entitlement
 
     @State private var showingHint = false
     @State private var showingPicker = false
+    @State private var showingExplainer = false
+    @State private var showingAccess = false
     @State private var showingDriveAlerts = false
     @State private var showingClearConfirm = false
     @State private var showingForgetConfirm = false
@@ -52,7 +55,7 @@ struct VehicleConnectView: View {
                     .accessibilityLabel("Drive alerts")
 
                     Button {
-                        showingPicker = true
+                        requestScan()
                     } label: {
                         Image(systemName: "plus")
                             .font(.body.weight(.semibold))
@@ -70,13 +73,16 @@ struct VehicleConnectView: View {
 
             if adapter == nil {
                 ConnectEmptyStateView(
-                    onScan: { showingPicker = true },
+                    onScan: { requestScan() },
+                    onSeePlans: { showingAccess = true },
                     onUseMock: {
                         #if DEBUG
-                        obd.connectMockAdapter(for: vehicle)
+                        requestMockConnect()
                         #endif
                     }
                 )
+            } else if !entitlement.canAttemptConnection {
+                lapsedContent
             } else {
                 pairedContent
             }
@@ -88,6 +94,16 @@ struct VehicleConnectView: View {
         .sheet(isPresented: $showingPicker) {
             ConnectDevicePickerSheet(vehicle: vehicle)
                 .environment(obd)
+        }
+        .sheet(isPresented: $showingExplainer) {
+            ConnectTrialExplainerSheet(
+                onContinue: { presentAfterExplainer { showingPicker = true } },
+                onSeePlans: { presentAfterExplainer { showingAccess = true } }
+            )
+        }
+        .sheet(isPresented: $showingAccess) {
+            ConnectAccessView(origin: .connect)
+                .environment(entitlement)
         }
         .sheet(isPresented: $showingDriveAlerts) {
             if let adapter {
@@ -117,11 +133,57 @@ struct VehicleConnectView: View {
             Button("Cancel", role: .cancel) {}
         }
         .onAppear {
-            if adapter != nil, obd.connectionState == .disconnected {
+            if adapter != nil, entitlement.canAttemptConnection, obd.connectionState == .disconnected {
                 obd.connectPairedAdapter(for: vehicle)
             }
         }
     }
+
+    private func requestScan() {
+        switch entitlement.status {
+        case .notStarted:
+            showingExplainer = true
+        case .trial, .subscribed, .lifetime:
+            showingPicker = true
+        case .expired:
+            showingAccess = true
+        }
+    }
+
+    private func presentAfterExplainer(_ action: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            action()
+        }
+    }
+
+    private var accessStatusLine: String? {
+        switch entitlement.status {
+        case .trial(let daysRemaining, _):
+            if daysRemaining <= 0 {
+                return "Free trial ends today"
+            }
+            return daysRemaining == 1 ? "Free trial: 1 day left" : "Free trial: \(daysRemaining) days left"
+        case .subscribed(_, let expiresAt, _):
+            if let expiresAt {
+                return "Connect plan through \(expiresAt.formatted(date: .abbreviated, time: .omitted))"
+            }
+            return "Connect subscription active"
+        case .lifetime:
+            return "Connect lifetime"
+        case .notStarted, .expired:
+            return nil
+        }
+    }
+
+    #if DEBUG
+    private func requestMockConnect() {
+        if case .expired = entitlement.status {
+            showingAccess = true
+            return
+        }
+        obd.connectMockAdapter(for: vehicle)
+    }
+    #endif
 
     private var pairedContent: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -196,6 +258,72 @@ struct VehicleConnectView: View {
         }
     }
 
+    private var lapsedContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            DashPanel(padding: 14, cornerRadius: 14) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Connect locked")
+                        .font(.headline)
+                    Text("Your free month has ended. Saved faults and mileage stay here. Choose a plan to reconnect and keep using live OBD.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    DashButton(kind: .bar) {
+                        showingAccess = true
+                    } label: {
+                        Text("See Plans")
+                    }
+                }
+            }
+            .padding(.horizontal)
+
+            if let lastError = obd.lastError {
+                Text(lastError)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal)
+            }
+
+            if sortedFaults.isEmpty {
+                Text("No saved faults for this vehicle.")
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+            } else {
+                Text("Saved Faults")
+                    .font(.headline.width(.condensed))
+                    .padding(.horizontal)
+
+                LazyVStack(spacing: 12) {
+                    ForEach(sortedFaults, id: \.id) { fault in
+                        NavigationLink {
+                            FaultCodeDetailView(vehicle: vehicle, fault: fault)
+                        } label: {
+                            FaultCodeRow(fault: fault)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            if let lastConnectedText {
+                Text(lastConnectedText)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+            }
+
+            DashButton(kind: .bar, isDestructive: true) {
+                showingForgetConfirm = true
+            } label: {
+                Text("Forget Adapter")
+            }
+            .padding(.horizontal)
+            .padding(.top, 8)
+        }
+    }
+
     private var connectionPanel: some View {
         DashPanel(padding: 14, cornerRadius: 14) {
             VStack(alignment: .leading, spacing: 10) {
@@ -212,13 +340,20 @@ struct VehicleConnectView: View {
 
                     Spacer()
 
-                    if obd.connectionState == .disconnected || obd.connectionState == .unsupportedAdapter {
+                    if entitlement.canAttemptConnection,
+                       obd.connectionState == .disconnected || obd.connectionState == .unsupportedAdapter {
                         DashButton(kind: .compact) {
                             obd.connectPairedAdapter(for: vehicle)
                         } label: {
                             Text("Reconnect")
                         }
                     }
+                }
+
+                if let accessLine = accessStatusLine {
+                    Text(accessLine)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 if hasDisplayedReadings {
@@ -373,4 +508,6 @@ struct VehicleConnectView: View {
     )
     .appTheme()
     .environment(OBDSessionController.shared)
+    .environment(ConnectEntitlementStore.shared)
+    .environment(AppSettings.shared)
 }

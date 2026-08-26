@@ -109,8 +109,12 @@ enum HintTopic: Hashable {
         case .connect:
             return [
                 (
-                    "Optional connection",
-                    "Connect is optional. AntiCEL is not sponsored and does not require you to buy an adapter to use the rest of the app.."
+                    "Optional and paid after a trial",
+                    "Connect is optional. Garage, history, documents, and album stay free. Live OBD is free for one month after AntiCEL first connects to a supported adapter, then it needs a plan."
+                ),
+                (
+                    "Plans",
+                    "Open Connect Access from the garage (top left) or See Plans on this tab for monthly, yearly, or lifetime. Restore Purchases and Cancel / Manage Subscription are there too."
                 ),
                 (
                     "Recommended adapter",

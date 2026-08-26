@@ -3,13 +3,29 @@ import SwiftUI
 struct ConnectEmptyStateView: View {
 
     let onScan: () -> Void
+    let onSeePlans: () -> Void
     var onUseMock: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            DashPanel(padding: 14, cornerRadius: 14) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Try it free for a month")
+                        .font(.subheadline.weight(.semibold))
+                    Text("See if you like it! Connect is free for one month so you can try live OBD with your car. After that, you can pick a monthly, yearly, or one-time plan.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    DashButton(kind: .bar, action: onSeePlans) {
+                        Text("See Plans & Details")
+                    }
+                }
+            }
+
             disclaimer(
                 title: "Optional Feature",
-                body: "Connect is an optional feature. AntiCEL is not sponsored, does not sell adapters, and you do not need to buy anything to use the rest of the app. There is absolutely zero pressure to buy anything to be able to use AntiCEL. Connect will let AntiCEL connect to an OBD adapter you plug in your car so the app can auto update mileage, scan your car for faultswhile you drive to give you a summary, monitor fuel level providing reminders and more!"
+                body: "Connect is optional. The rest of AntiCEL — garage, history, documents, album, reminders — stays free. AntiCEL is not sponsored and does not sell adapters. You only pay if you want live OBD after the free month."
             )
 
             disclaimer(

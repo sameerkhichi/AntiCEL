@@ -62,6 +62,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private let largeJumpKm = 80
     private let ecuSilenceTicks = 12
     private var suppressReconnect = false
+    private static let connectLockedMessage = "Your Connect trial has ended. Choose a plan to keep using live OBD."
 
     private var tripStartedAt: Date?
     private var tripBaselineFaults: Set<String>?
@@ -120,6 +121,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     func connect(to device: OBDDiscoveredDevice, vehicleID: UUID) {
+        guard !denyIfConnectLocked(userFacing: true) else { return }
         #if DEBUG
         if device.id == OBDMockAdapter.identifier {
             startMockSession(vehicleID: vehicleID, name: device.name)
@@ -134,11 +136,13 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     func connectPairedAdapter(for vehicle: Vehicle) {
+        guard !denyIfConnectLocked(userFacing: true) else { return }
         guard let adapter = OBDStore.pairedAdapter(on: vehicle) else { return }
         connect(identifier: adapter.peripheralIdentifier, vehicleID: vehicle.id, name: adapter.name)
     }
 
     func reconnectKnownAdapters() {
+        guard !denyIfConnectLocked(userFacing: false) else { return }
         guard connectionState == .disconnected else { return }
 
         #if DEBUG
@@ -170,6 +174,19 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             central.cancelPeripheralConnection(peripheral)
         }
         resetConnection(keepVehicle: false)
+    }
+
+    func enforceConnectAccess() {
+        let store = ConnectEntitlementStore.shared
+        if store.hasAccess { return }
+        if store.status == .notStarted { return }
+        switch connectionState {
+        case .disconnected, .unsupportedAdapter, .scanning:
+            return
+        case .connecting, .initializing, .connected:
+            lastError = Self.connectLockedMessage
+            disconnect()
+        }
     }
 
     func scanFaults(for vehicle: Vehicle) async {
@@ -216,6 +233,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     #if DEBUG
     func connectMockAdapter(for vehicle: Vehicle) {
+        guard !denyIfConnectLocked(userFacing: true) else { return }
         if let context = vehicle.modelContext {
             OBDStore.pair(
                 vehicle: vehicle,
@@ -319,6 +337,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             telemetry.milOn = true
             telemetry.dtcCount = mockFaults.count
             connectionState = .connected
+            ConnectEntitlementStore.shared.beginTrialIfNeeded()
             beginTripTracking()
             noteFuel(OBDMockAdapter.fuelPercent)
             noteCoolant(mockCoolantC)
@@ -360,6 +379,12 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     nonisolated func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
         let restored = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral] ?? []
         MainActor.assumeIsolated {
+            guard ConnectEntitlementStore.shared.canAttemptConnection else {
+                for item in restored {
+                    central.cancelPeripheralConnection(item)
+                }
+                return
+            }
             for item in restored {
                 knownPeripherals[item.identifier] = item
                 item.delegate = self
@@ -590,6 +615,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             connectionState = .connected
             lastError = nil
             statusMessage = "Connected"
+            ConnectEntitlementStore.shared.beginTrialIfNeeded()
             beginTripTracking()
             markAdapterSeen()
             await loadSupportedPIDs()
@@ -602,6 +628,10 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     private func startMonitor() {
+        guard ConnectEntitlementStore.shared.hasAccess else {
+            enforceConnectAccess()
+            return
+        }
         monitorTask?.cancel()
         monitorTask = Task { [weak self] in
             var ticks = 0
@@ -616,6 +646,11 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     private func pollTick(ticks: Int) async {
         guard connectionState == .connected else { return }
+        ConnectEntitlementStore.shared.expireIfNeeded()
+        if !ConnectEntitlementStore.shared.hasAccess {
+            enforceConnectAccess()
+            return
+        }
         #if DEBUG
         if isUsingMockAdapter {
             telemetry.rpm = OBDMockAdapter.rpm + Double((ticks % 7) * 12)
@@ -964,6 +999,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     // MARK: - Connection helpers
 
     private func connect(identifier: UUID, vehicleID: UUID, name: String) {
+        guard !denyIfConnectLocked(userFacing: true) else { return }
         #if DEBUG
         if identifier == OBDMockAdapter.identifier {
             startMockSession(vehicleID: vehicleID, name: name)
@@ -987,6 +1023,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     private func connect(peripheral: CBPeripheral, vehicleID: UUID) {
+        guard !denyIfConnectLocked(userFacing: true) else { return }
         suppressReconnect = false
         stopScanning()
         lastError = nil
@@ -1001,6 +1038,17 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         didApplyOdometerThisTrip = false
         peripheral.delegate = self
         central.connect(peripheral, options: OBDAdapterProfile.connectOptions)
+    }
+
+    private func denyIfConnectLocked(userFacing: Bool) -> Bool {
+        guard ConnectEntitlementStore.shared.canAttemptConnection else {
+            if userFacing {
+                lastError = Self.connectLockedMessage
+                statusMessage = "Connect locked"
+            }
+            return true
+        }
+        return false
     }
 
     private func failHandshake() {

@@ -19,6 +19,7 @@ struct ContentView: View {
         }
         .appTheme()
         .environment(OBDSessionController.shared)
+        .environment(ConnectEntitlementStore.shared)
         .onAppear {
             playDoorIfNeeded()
         }

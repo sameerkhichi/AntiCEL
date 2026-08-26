@@ -11,6 +11,7 @@ struct GarageView: View {
 
     @State private var showingAddVehicle = false
     @State private var showingSettings = false
+    @State private var showingConnectAccess = false
     @State private var vehiclePendingDelete: Vehicle?
     @State private var vehicleForMileageUpdate: Vehicle?
     @State private var vehicleToShare: Vehicle?
@@ -23,7 +24,7 @@ struct GarageView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .topTrailing) {
+            ZStack(alignment: .top) {
                 ScrollView {
                 VStack(spacing: 22) {
                     overheadLights
@@ -75,18 +76,30 @@ struct GarageView: View {
                 }
                 .padding(.top, 8)
             }
-
-            DashButton(kind: .compact) {
-                showingSettings = true
-            } label: {
-                Image(systemName: "gearshape.fill")
             }
-            .padding(.top, 12)
-            .padding(.trailing, 20)
-            .accessibilityLabel("Settings")
+            .overlay(alignment: .topLeading) {
+                DashButton(kind: .compact) {
+                    showingConnectAccess = true
+                } label: {
+                    Image(systemName: "dot.radiowaves.left.and.right")
+                }
+                .padding(.top, 12)
+                .padding(.leading, 20)
+                .accessibilityLabel("Connect access")
+            }
+            .overlay(alignment: .topTrailing) {
+                DashButton(kind: .compact) {
+                    showingSettings = true
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                }
+                .padding(.top, 12)
+                .padding(.trailing, 20)
+                .accessibilityLabel("Settings")
             }
             .appCanvas()
             .environment(OBDSessionController.shared)
+            .environment(ConnectEntitlementStore.shared)
             .navigationTitle("Garage")
             .toolbar(.hidden, for: .navigationBar)
             .keyboardDismissToolbar()
@@ -95,6 +108,10 @@ struct GarageView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 AppSettingsView()
+            }
+            .sheet(isPresented: $showingConnectAccess) {
+                ConnectAccessView(origin: .garage)
+                    .environment(ConnectEntitlementStore.shared)
             }
             .sheet(item: $vehicleForMileageUpdate) { vehicle in
                 UpdateMileageView(vehicle: vehicle)
@@ -137,12 +154,14 @@ struct GarageView: View {
                 openPendingMileageUpdate()
                 ReminderNotifications.refresh(using: modelContext)
                 OBDSessionController.shared.isForeground = true
+                ConnectEntitlementStore.shared.expireIfNeeded()
                 OBDSessionController.shared.reconnectKnownAdapters()
             }
             .onChange(of: scenePhase) { _, phase in
                 OBDSessionController.shared.isForeground = phase == .active
                 if phase == .active {
                     ReminderNotifications.refresh(using: modelContext)
+                    ConnectEntitlementStore.shared.expireIfNeeded()
                     OBDSessionController.shared.reconnectKnownAdapters()
                 }
             }
@@ -243,4 +262,5 @@ private struct HexagonShape: Shape {
 #Preview {
     GarageView(pendingMileageVehicleID: .constant(nil))
         .appTheme()
+        .environment(ConnectEntitlementStore.shared)
 }

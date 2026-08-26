@@ -15,6 +15,7 @@ struct AppSettingsView: View {
     @State private var showingNotificationsHelp = false
     @State private var showingLegal: LegalDocument?
     @State private var showingCredits = false
+    @State private var showingConnectAccess = false
     @State private var didClearPhotos = false
 
     var body: some View {
@@ -149,6 +150,14 @@ struct AppSettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            InfotainmentSectionHeader(title: "Connect")
+
+            DashButton(kind: .bar) {
+                showingConnectAccess = true
+            } label: {
+                Text("Connect Access")
+            }
+
             InfotainmentSectionHeader(title: "Legal")
 
             DashButton(kind: .bar) {
@@ -212,6 +221,10 @@ struct AppSettingsView: View {
         .sheet(isPresented: $showingCredits) {
             CreditsSheet()
         }
+        .sheet(isPresented: $showingConnectAccess) {
+            ConnectAccessView(origin: .garage)
+                .environment(ConnectEntitlementStore.shared)
+        }
         .alert("Remove Saved Photos?", isPresented: $showingClearPhotos) {
             Button("Remove Photos", role: .destructive) {
                 PhotoStore.clearAppCopies(in: vehicles)
@@ -261,5 +274,6 @@ struct AppSettingsView: View {
 #Preview {
     AppSettingsView()
         .environment(AppSettings.shared)
+        .environment(ConnectEntitlementStore.shared)
         .appTheme()
 }

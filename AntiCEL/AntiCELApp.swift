@@ -14,12 +14,14 @@ struct AntiCELApp: App {
     init() {
         ReminderNotifications.configure()
         OBDSessionController.shared.modelContainer = sharedModelContainer
+        ConnectEntitlementStore.shared.start()
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(OBDSessionController.shared)
+                .environment(ConnectEntitlementStore.shared)
         }
         .modelContainer(sharedModelContainer)
     }

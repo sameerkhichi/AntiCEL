@@ -1,0 +1,144 @@
+{
+  "identifier" : "B7E1C4A2-9F30-4D8B-A6C1-2E5D8F0A1B3C",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "29.99",
+      "familyShareable" : true,
+      "internalID" : "A1C2E3F4B5D678901234ABCD",
+      "localizations" : [
+        {
+          "description" : "Unlock live OBD Connect forever on this Apple ID.",
+          "displayName" : "Connect Lifetime",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "connect.lifetime",
+      "referenceName" : "Connect Lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : true,
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "C0FFEE12D4E5F6789ABCDE01",
+      "localizations" : [
+        {
+          "description" : "Live OBD Connect for AntiCEL",
+          "displayName" : "Connect",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "Connect",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "24.99",
+          "familyShareable" : true,
+          "groupNumber" : 1,
+          "internalID" : "B2C3D4E5F678901234ABCDF0",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "A year of live OBD Connect.",
+              "displayName" : "Connect Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "connect.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Connect Yearly",
+          "subscriptionGroupID" : "C0FFEE12D4E5F6789ABCDE01",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "3.99",
+          "familyShareable" : true,
+          "groupNumber" : 2,
+          "internalID" : "D4E5F678901234ABCDF01234",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Month-to-month live OBD Connect.",
+              "displayName" : "Connect Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "connect.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Connect Monthly",
+          "subscriptionGroupID" : "C0FFEE12D4E5F6789ABCDE01",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

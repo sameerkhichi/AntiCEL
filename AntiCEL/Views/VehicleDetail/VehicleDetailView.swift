@@ -181,4 +181,5 @@ struct VehicleDetailView: View {
     .appTheme()
     .environment(OBDSessionController.shared)
     .environment(VehicleSceneCache.shared)
+    .environment(ConnectEntitlementStore.shared)
 }
