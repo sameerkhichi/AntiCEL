@@ -28,7 +28,7 @@ struct VehicleSectionTabBar: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                 }
-                .buttonStyle(DashButtonStyle(isSelected: isSelected, kind: .key))
+                .buttonStyle(DashButtonStyle(isSelected: isSelected, kind: .key, haptic: .flashlight))
             }
         }
         .padding(8)

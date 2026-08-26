@@ -159,6 +159,7 @@ struct InfotainmentChipPicker<Option: Hashable>: View {
                     let selected = selection == option
 
                     Button {
+                        AppHaptic.button.play()
                         selection = option
                     } label: {
                         Text(itemTitle(option))

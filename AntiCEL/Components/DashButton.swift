@@ -11,13 +11,15 @@ struct DashButtonStyle: ButtonStyle {
     var isSelected = false
     var kind: DashButtonKind = .key
     var isDestructive = false
+    var haptic: AppHaptic? = .button
 
     func makeBody(configuration: Configuration) -> some View {
         DashButtonChrome(
             isPressed: configuration.isPressed,
             isSelected: isSelected,
             kind: kind,
-            isDestructive: isDestructive
+            isDestructive: isDestructive,
+            haptic: haptic
         ) {
             configuration.label
         }
@@ -34,6 +36,7 @@ private struct DashButtonChrome<Label: View>: View {
     let isSelected: Bool
     let kind: DashButtonKind
     var isDestructive = false
+    var haptic: AppHaptic? = .button
     @ViewBuilder var label: () -> Label
 
     var body: some View {
@@ -70,6 +73,11 @@ private struct DashButtonChrome<Label: View>: View {
             .offset(y: isPressed ? 1 : 0)
             .opacity(isEnabled ? 1 : 0.45)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: isPressed)
+            .onChange(of: isPressed) { _, pressed in
+                if pressed {
+                    haptic?.play()
+                }
+            }
     }
 
     private var foreground: Color {

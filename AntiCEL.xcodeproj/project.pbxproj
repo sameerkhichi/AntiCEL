@@ -75,6 +75,7 @@
 				Models/DiagnosticFault.swift,
 				Shared/AppGroup.swift,
 				Shared/AppSettings.swift,
+				Shared/Haptics.swift,
 				Shared/MileageIntents.swift,
 				Shared/MileageWriter.swift,
 				Shared/PhotoFraming.swift,

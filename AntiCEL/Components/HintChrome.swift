@@ -174,7 +174,10 @@ struct HintButton: View {
 
     var body: some View {
         if settings.showHints {
-            Button(action: action) {
+            Button {
+                AppHaptic.button.play()
+                action()
+            } label: {
                 Image(systemName: "questionmark.circle")
                     .font(compact ? .caption.weight(.semibold) : .body.weight(.semibold))
                     .foregroundStyle(theme.accentColor)

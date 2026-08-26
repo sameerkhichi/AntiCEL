@@ -78,6 +78,35 @@ struct AppSettingsView: View {
                 .tint(Color.accentColor)
             }
 
+            InfotainmentSectionHeader(title: "Haptics")
+
+            InfotainmentField {
+                Toggle(isOn: $settings.hapticsEnabled) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Haptic Feedback")
+                            .font(.body.weight(.medium))
+                        Text("Vehicle cards and the tab bar")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .tint(Color.accentColor)
+            }
+
+            InfotainmentField {
+                Toggle(isOn: $settings.moreHaptics) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("More Haptics")
+                            .font(.body.weight(.medium))
+                        Text("Play a tap on every button")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .tint(Color.accentColor)
+                .disabled(!settings.hapticsEnabled)
+            }
+
             InfotainmentSectionHeader(title: "Notifications", onHelp: { showingNotificationsHelp = true })
 
             notificationToggle(
@@ -207,6 +236,16 @@ struct AppSettingsView: View {
         .onChange(of: settings.lowStorageMode) { _, isOn in
             if isOn {
                 Task { await PhotoStore.requestPhotoLibraryAccessIfNeeded() }
+            }
+        }
+        .onChange(of: settings.hapticsEnabled) { _, isOn in
+            if isOn {
+                AppHaptic.flashlight.play()
+            }
+        }
+        .onChange(of: settings.moreHaptics) { _, isOn in
+            if isOn {
+                AppHaptic.button.play()
             }
         }
         .sheet(isPresented: $showingPhotoHelp) {

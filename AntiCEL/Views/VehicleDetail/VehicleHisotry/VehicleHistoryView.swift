@@ -35,6 +35,7 @@ struct VehicleHistoryView: View {
             if isActive, settings.showHints {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
+                        AppHaptic.button.play()
                         showingHint = true
                     } label: {
                         Image(systemName: "questionmark.circle")
@@ -47,6 +48,7 @@ struct VehicleHistoryView: View {
                 ToolbarItem(placement: .topBarTrailing) {
 
                     Button {
+                        AppHaptic.button.play()
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             displayMode.toggle()
                         }
@@ -60,6 +62,7 @@ struct VehicleHistoryView: View {
                 ToolbarItem(placement: .topBarTrailing) {
 
                     Button {
+                        AppHaptic.button.play()
                         showingNewEntry = true
                     } label: {
                         Image(systemName: "plus")

@@ -65,8 +65,14 @@ struct VehicleDetailView: View {
                         Image(systemName: "gearshape.fill")
                     }
                     .accessibilityLabel("Vehicle Settings")
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            AppHaptic.button.play()
+                        }
+                    )
 
                     Button {
+                        AppHaptic.button.play()
                         showingShare = true
                     } label: {
                         Image(systemName: "square.and.arrow.up")

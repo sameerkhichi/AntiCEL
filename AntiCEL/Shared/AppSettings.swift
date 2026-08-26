@@ -206,6 +206,14 @@ final class AppSettings {
         didSet { defaults.set(showHints, forKey: Keys.showHints) }
     }
 
+    var hapticsEnabled: Bool {
+        didSet { defaults.set(hapticsEnabled, forKey: Keys.hapticsEnabled) }
+    }
+
+    var moreHaptics: Bool {
+        didSet { defaults.set(moreHaptics, forKey: Keys.moreHaptics) }
+    }
+
     var savePhotosInApp: Bool { !lowStorageMode }
 
     private let defaults: UserDefaults
@@ -252,6 +260,18 @@ final class AppSettings {
         } else {
             showHints = true
         }
+
+        if defaults.object(forKey: Keys.hapticsEnabled) != nil {
+            hapticsEnabled = defaults.bool(forKey: Keys.hapticsEnabled)
+        } else {
+            hapticsEnabled = true
+        }
+
+        if defaults.object(forKey: Keys.moreHaptics) != nil {
+            moreHaptics = defaults.bool(forKey: Keys.moreHaptics)
+        } else {
+            moreHaptics = false
+        }
     }
 
     func accentOption(for scheme: ColorScheme) -> AccentOption {
@@ -280,5 +300,7 @@ final class AppSettings {
         static let savePhotosInApp = "settings.savePhotosInApp"
         static let lowStorageMode = "settings.lowStorageMode"
         static let showHints = "settings.showHints"
+        static let hapticsEnabled = "settings.hapticsEnabled"
+        static let moreHaptics = "settings.moreHaptics"
     }
 }

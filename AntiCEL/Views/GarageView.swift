@@ -43,6 +43,11 @@ struct GarageView: View {
                                     GarageBayCard(vehicle: vehicle)
                                 }
                                 .buttonStyle(.plain)
+                                .simultaneousGesture(
+                                    TapGesture().onEnded {
+                                        AppHaptic.flashlight.play()
+                                    }
+                                )
                                 .contextMenu {
                                     Button {
                                         vehicleToShare = vehicle
@@ -65,6 +70,7 @@ struct GarageView: View {
                         }
 
                         Button {
+                            AppHaptic.button.play()
                             showingAddVehicle = true
                         } label: {
                             GarageBayCard(isAddBay: true)

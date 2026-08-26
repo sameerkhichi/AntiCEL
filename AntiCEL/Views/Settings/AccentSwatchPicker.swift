@@ -15,6 +15,7 @@ struct AccentSwatchPicker: View {
         InfotainmentField {
             VStack(alignment: .leading, spacing: 12) {
                 Button {
+                    AppHaptic.button.play()
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                         isExpanded.toggle()
                     }
@@ -75,6 +76,7 @@ struct AccentSwatchPicker: View {
         let selected = selection == option
 
         return Button {
+            AppHaptic.button.play()
             selection = option
         } label: {
             VStack(spacing: 8) {
