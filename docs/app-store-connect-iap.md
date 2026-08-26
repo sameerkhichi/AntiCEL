@@ -34,14 +34,14 @@ Turn on **Billing Grace Period** for the subscription group.
 
 Set these URLs on the AntiCEL app:
 
-- Privacy Policy: https://sameerkhichi.github.io/AntiCEL/privacy.html
-- Terms of Use / EULA: https://sameerkhichi.github.io/AntiCEL/terms.html (or Apple Standard EULA plus this custom Terms URL)
+- Privacy Policy: https://sameerkhichi.github.io/AntiCELDocs/privacy.html
+- Terms of Use / EULA: https://sameerkhichi.github.io/AntiCELDocs/terms.html (or Apple Standard EULA plus this custom Terms URL)
 
 Deploy the updated `docs/privacy.html` and `docs/terms.html` to GitHub Pages before review.
 
 ## App description disclosure (paste and adjust)
 
-Connect is optional live OBD. Try it free for one month after AntiCEL first connects to a supported adapter. After that: Connect Monthly $3.99, Connect Yearly $24.99, or Connect Lifetime $29.99. Subscriptions auto-renew unless canceled at least 24 hours before the period ends. Payment is charged to your Apple ID. Manage or cancel in the app (garage top left, or Settings → Connect Access) or in iOS Settings → Apple ID → Subscriptions. Privacy Policy: https://sameerkhichi.github.io/AntiCEL/privacy.html Terms: https://sameerkhichi.github.io/AntiCEL/terms.html
+Connect is optional live OBD. Try it free for one month after AntiCEL first connects to a supported adapter. After that: Connect Monthly $3.99, Connect Yearly $24.99, or Connect Lifetime $29.99. Subscriptions auto-renew unless canceled at least 24 hours before the period ends. Payment is charged to your Apple ID. Manage or cancel in the app (garage top left, or Settings → Connect Access) or in iOS Settings → Apple ID → Subscriptions. Privacy Policy: https://sameerkhichi.github.io/AntiCELDocs/privacy.html Terms: https://sameerkhichi.github.io/AntiCELDocs/terms.html
 
 ## Review notes (paste)
 

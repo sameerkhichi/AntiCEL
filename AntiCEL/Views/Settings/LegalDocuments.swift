@@ -1,10 +1,10 @@
 import SwiftUI
 
 enum LegalLinks {
-    static let site = URL(string: "https://sameerkhichi.github.io/AntiCEL/")!
-    static let privacy = URL(string: "https://sameerkhichi.github.io/AntiCEL/privacy.html")!
-    static let terms = URL(string: "https://sameerkhichi.github.io/AntiCEL/terms.html")!
-    static let credits = URL(string: "https://sameerkhichi.github.io/AntiCEL/credits.html")!
+    static let site = URL(string: "https://sameerkhichi.github.io/AntiCELDocs/")!
+    static let privacy = URL(string: "https://sameerkhichi.github.io/AntiCELDocs/privacy.html")!
+    static let terms = URL(string: "https://sameerkhichi.github.io/AntiCELDocs/terms.html")!
+    static let credits = URL(string: "https://sameerkhichi.github.io/AntiCELDocs/credits.html")!
     static let companyName = "SRKSuite"
     static let supportEmail = "SRKSuite@gmail.com"
     static let supportMail = URL(string: "mailto:SRKSuite@gmail.com")!

@@ -179,7 +179,7 @@ struct ConnectAccessView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
-                    DashButton(kind: .bar, isSelected: id.isRecommended) {
+                    DashButton(isSelected: id.isRecommended, kind: .bar) {
                         Task { await store.purchase(id) }
                     } label: {
                         Text(purchaseTitle(for: id))
