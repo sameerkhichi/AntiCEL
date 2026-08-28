@@ -46,6 +46,15 @@ enum ConnectTrialStore {
     }
 
     #if DEBUG
+    static func startForDebugging() {
+        persist(Date())
+    }
+
+    static func expireForDebugging() {
+        let past = Calendar.current.date(byAdding: .month, value: -2, to: Date()) ?? Date.distantPast
+        persist(past)
+    }
+
     static func reset() {
         deleteKeychain(synchronizable: false)
         deleteKeychain(synchronizable: true)

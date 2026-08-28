@@ -114,6 +114,26 @@ final class ConnectEntitlementStore {
     }
 
     #if DEBUG
+    var debugStoreSummary: String {
+        if isLoadingProducts {
+            return "Loading StoreKit products…"
+        }
+        if products.isEmpty {
+            return "0 products loaded. The AntiCEL scheme must use AntiCEL.storekit (Run → Options → StoreKit Configuration). Without that, Debug has nothing to sell."
+        }
+        return "\(products.count) products loaded: \(products.map(\.id).joined(separator: ", "))"
+    }
+
+    func debugStartTrial() {
+        ConnectTrialStore.startForDebugging()
+        Task { await refresh() }
+    }
+
+    func debugExpireTrial() {
+        ConnectTrialStore.expireForDebugging()
+        Task { await refresh() }
+    }
+
     func resetTrialForDebugging() {
         ConnectTrialStore.reset()
         Task { await refresh() }

@@ -28,6 +28,7 @@
     "_locale" : "en_US",
     "_renewalBillingIssuesEnabled" : false,
     "_storefront" : "USA",
+    "_subscriptionRenewalRate" : 0,
     "_storeKitErrors" : [
       {
         "current" : null,

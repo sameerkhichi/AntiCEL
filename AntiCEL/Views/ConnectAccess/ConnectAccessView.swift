@@ -42,6 +42,13 @@ struct ConnectAccessView: View {
                 disclosure
             }
 
+            if !store.isLoadingProducts, store.products.isEmpty, shouldShowPlans {
+                Text("Plans could not be loaded from StoreKit. In Xcode, set the AntiCEL scheme’s StoreKit Configuration to AntiCEL.storekit, then run again. Until products exist in App Store Connect, that local file is what makes purchase sheets appear.")
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             if let lastMessage = store.lastMessage {
                 Text(lastMessage)
                     .font(.footnote)
@@ -84,11 +91,34 @@ struct ConnectAccessView: View {
 
             #if DEBUG
             InfotainmentSectionHeader(title: "Debug")
+
+            Text(store.debugStoreSummary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            DashButton(kind: .bar) {
+                store.debugStartTrial()
+            } label: {
+                Text("Start Trial Now")
+            }
+
+            DashButton(kind: .bar) {
+                store.debugExpireTrial()
+            } label: {
+                Text("Expire Trial Now")
+            }
+
             DashButton(kind: .bar) {
                 store.resetTrialForDebugging()
             } label: {
                 Text("Reset Trial")
             }
+
+            Text("Purchases: tap a plan above. Apple’s test sheet appears (no real charge). To refund, expire, or delete a test buy, use Xcode → Debug → StoreKit → Manage Transactions while the app is running. Monthly renews about every 30 seconds in this test file.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             #endif
         }
         .appTheme()
