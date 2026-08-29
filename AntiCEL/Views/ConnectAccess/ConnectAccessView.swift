@@ -229,7 +229,7 @@ struct ConnectAccessView: View {
     private var lifetimePitch: some View {
         DashPanel(padding: 14, cornerRadius: 14) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("AntiCEL is against check engine lights.......and subscriptions")
+                Text("AntiCEL is against check engine lights.............and subscriptions")
                     .font(.subheadline.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
                 Text("Times where you pay once and you own a service are becoming rarer by the second.")
@@ -245,7 +245,7 @@ struct ConnectAccessView: View {
     }
 
     private var disclosure: some View {
-        Text("Subscriptions automatically renew unless you cancel at least 24 hours before the current period ends. Payment is charged to your Apple ID. Cancel from Cancel / Manage Subscription above, or in iOS Settings → Apple ID → Subscriptions. Restore Purchases brings back a plan you already bought on this Apple ID.")
+        Text("Subscriptions automatically renew unless you cancel at least 24 hours before the current period ends. Payment is charged to your Apple ID. Cancel from Cancel / Manage Subscription below, or in iOS Settings → Apple ID → Subscriptions. Restore Purchases brings back a plan you already bought on this Apple ID.")
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)

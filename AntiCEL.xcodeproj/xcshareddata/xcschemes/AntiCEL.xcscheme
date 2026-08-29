@@ -64,7 +64,7 @@
          </BuildableReference>
       </BuildableProductRunnable>
       <StoreKitConfigurationFileReference
-         identifier = "AntiCEL.storekit">
+         identifier = "../../AntiCEL.storekit">
       </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
