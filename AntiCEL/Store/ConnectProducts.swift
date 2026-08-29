@@ -19,15 +19,15 @@ enum ConnectProductID: String, CaseIterable, Identifiable {
         switch self {
         case .lifetime: return nil
         case .monthly: return "Want to try Connect out a little longer?"
-        case .yearly: return "Save over $25 a year!"
+        case .yearly: return "Save over $30 a year!"
         }
     }
 
     var fallbackPrice: String {
         switch self {
-        case .lifetime: return "$24.99"
+        case .lifetime: return "$19.99"
         case .monthly: return "$3.99"
-        case .yearly: return "$19.99"
+        case .yearly: return "$14.99"
         }
     }
 

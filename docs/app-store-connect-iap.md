@@ -14,13 +14,13 @@ Create a subscription group named **Connect** with:
 | Product ID | Type | Price (US) | Duration |
 |---|---|---|---|
 | `connect.monthly` | Auto-renewable subscription | $3.99 | 1 month |
-| `connect.yearly` | Auto-renewable subscription | $19.99 | 1 year |
+| `connect.yearly` | Auto-renewable subscription | $14.99 | 1 year |
 
 Create a non-consumable:
 
 | Product ID | Type | Price (US) |
 |---|---|---|
-| `connect.lifetime` | Non-consumable | $24.99 |
+| `connect.lifetime` | Non-consumable | $19.99 |
 
 Do **not** add an Apple introductory offer / free trial on monthly or yearly. The in-app trial starts on first successful adapter connection.
 
@@ -41,7 +41,7 @@ Deploy the updated `docs/privacy.html` and `docs/terms.html` to GitHub Pages bef
 
 ## App description disclosure (paste and adjust)
 
-Connect is optional live OBD. Try it free for one month after AntiCEL first connects to a supported adapter. After that: Connect Monthly $3.99, Connect Yearly $19.99, or Connect Lifetime $24.99. Subscriptions auto-renew unless canceled at least 24 hours before the period ends. Payment is charged to your Apple ID. Manage or cancel in the app (garage top left, or Settings → Connect Access) or in iOS Settings → Apple ID → Subscriptions. Privacy Policy: https://sameerkhichi.github.io/AntiCELDocs/privacy.html Terms: https://sameerkhichi.github.io/AntiCELDocs/terms.html
+Connect is optional live OBD. Try it free for one month after AntiCEL first connects to a supported adapter. After that: Connect Monthly $3.99, Connect Yearly $14.99, or Connect Lifetime $19.99. Subscriptions auto-renew unless canceled at least 24 hours before the period ends. Payment is charged to your Apple ID. Manage or cancel in the app (garage top left, or Settings → Connect Access) or in iOS Settings → Apple ID → Subscriptions. Privacy Policy: https://sameerkhichi.github.io/AntiCELDocs/privacy.html Terms: https://sameerkhichi.github.io/AntiCELDocs/terms.html
 
 ## Review notes (paste)
 
