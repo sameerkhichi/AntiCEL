@@ -6,14 +6,12 @@ enum ConnectTrialStore {
 
     private static let service = "SRKSolutions.AntiCEL.connect"
     private static let account = "trialStartedAt"
-    private static let iCloudKey = "connect.trialStartedAt"
     private static let iso = ISO8601DateFormatter()
 
     static var startedAt: Date? {
         earliest(
             keychainDate(synchronizable: false),
-            keychainDate(synchronizable: true),
-            iCloudDate()
+            keychainDate(synchronizable: true)
         )
     }
 
@@ -58,8 +56,6 @@ enum ConnectTrialStore {
     static func reset() {
         deleteKeychain(synchronizable: false)
         deleteKeychain(synchronizable: true)
-        NSUbiquitousKeyValueStore.default.removeObject(forKey: iCloudKey)
-        NSUbiquitousKeyValueStore.default.synchronize()
     }
     #endif
 
@@ -67,19 +63,10 @@ enum ConnectTrialStore {
         let value = iso.string(from: date)
         setKeychain(value, synchronizable: false)
         setKeychain(value, synchronizable: true)
-        NSUbiquitousKeyValueStore.default.set(value, forKey: iCloudKey)
-        NSUbiquitousKeyValueStore.default.synchronize()
     }
 
     private static func earliest(_ dates: Date?...) -> Date? {
         dates.compactMap { $0 }.min()
-    }
-
-    private static func iCloudDate() -> Date? {
-        guard let value = NSUbiquitousKeyValueStore.default.string(forKey: iCloudKey) else {
-            return nil
-        }
-        return iso.date(from: value)
     }
 
     private static func keychainDate(synchronizable: Bool) -> Date? {

@@ -37,6 +37,7 @@
 /* Begin PBXFileReference section */
 		E6626CC32FFB283000540252 /* AntiCEL.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AntiCEL.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E6626E012FFB283000540252 /* AntiCELWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AntiCELWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		E6626F102FFB283000540252 /* AntiCEL.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = AntiCEL.storekit; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -132,6 +133,7 @@
 		E6626CBA2FFB283000540252 = {
 			isa = PBXGroup;
 			children = (
+				E6626F102FFB283000540252 /* AntiCEL.storekit */,
 				E6626CC52FFB283000540252 /* AntiCEL */,
 				E6626E022FFB283000540252 /* AntiCELWidget */,
 				E6626CC42FFB283000540252 /* Products */,

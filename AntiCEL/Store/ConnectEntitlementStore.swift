@@ -36,7 +36,6 @@ final class ConnectEntitlementStore {
 
     private var didStart = false
     private var updatesTask: Task<Void, Never>?
-    private var iCloudObserver: NSObjectProtocol?
     private var cachedLifetime = false
     private var cachedSubscription: SubscriptionSnapshot?
 
@@ -48,7 +47,6 @@ final class ConnectEntitlementStore {
         ConnectTrialStore.hydrate()
         applyLocalStatus(paidLifetime: false, subscription: nil)
         listenForTransactions()
-        observeICloudTrial()
         Task { await refresh() }
     }
 
@@ -269,20 +267,6 @@ final class ConnectEntitlementStore {
                 await self.refresh()
             }
         }
-    }
-
-    private func observeICloudTrial() {
-        iCloudObserver = NotificationCenter.default.addObserver(
-            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
-            object: NSUbiquitousKeyValueStore.default,
-            queue: .main
-        ) { _ in
-            Task { @MainActor in
-                ConnectTrialStore.hydrate()
-                await ConnectEntitlementStore.shared.refresh()
-            }
-        }
-        NSUbiquitousKeyValueStore.default.synchronize()
     }
 
     private static func verified<T>(_ result: VerificationResult<T>) throws -> T {

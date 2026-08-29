@@ -49,11 +49,11 @@ Connect live OBD is gated behind a one-month in-app trial. The trial is not an A
 
 ## Local testing in Xcode
 
-1. Open `AntiCEL/Configuration/AntiCEL.storekit`.
-2. In the AntiCEL scheme: Run → Options → StoreKit Configuration → AntiCEL.storekit.
-3. Sandbox renewals are accelerated. Use Connect Access → Debug → Reset Trial to re-test the free month.
+1. In Xcode, select the **AntiCEL** scheme and confirm **Edit Scheme → Run → Options → StoreKit Configuration** is `AntiCEL.storekit` (the file next to the `.xcodeproj`, not inside the app folder).
+2. Open `AntiCEL.storekit` in Xcode. You should see Lifetime, Yearly, and Monthly in the StoreKit editor.
+3. Delete the app from the Simulator, then Run.
 
 ## Optional
 
-- Enable iCloud Key-Value Storage on the App ID if you want trial start dates to sync across devices more reliably. The app already writes to `NSUbiquitousKeyValueStore`; without the capability it simply will not sync.
+- Enable iCloud Key-Value Storage on the App ID later if you want trial start dates to sync across devices. Trial dates currently live in Keychain only.
 - Keep the custom trial. Adding an Apple intro offer would start a second trial at subscribe time and require a card on file.
