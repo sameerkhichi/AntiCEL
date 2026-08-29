@@ -1,4 +1,14 @@
 {
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
   "identifier" : "B7E1C4A2-9F30-4D8B-A6C1-2E5D8F0A1B3C",
   "nonRenewingSubscriptions" : [
 
@@ -7,7 +17,7 @@
     {
       "displayPrice" : "19.99",
       "familyShareable" : true,
-      "internalID" : "A1C2E3F4B5D678901234ABCD",
+      "internalID" : "E8C1A2B3-4D5E-4F60-A1B2-C3D4E5F60718",
       "localizations" : [
         {
           "description" : "Unlock live OBD Connect forever on this Apple ID.",
@@ -22,13 +32,12 @@
   ],
   "settings" : {
     "_askToBuyEnabled" : false,
-    "_billingGracePeriodEnabled" : true,
+    "_billingGracePeriodEnabled" : false,
     "_disableDialogs" : false,
     "_failTransactionsEnabled" : false,
     "_locale" : "en_US",
     "_renewalBillingIssuesEnabled" : false,
     "_storefront" : "USA",
-    "_subscriptionRenewalRate" : 0,
     "_storeKitErrors" : [
       {
         "current" : null,
@@ -63,13 +72,23 @@
       {
         "current" : null,
         "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
         "name" : "Offer Code Redeem"
       }
     ]
   },
   "subscriptionGroups" : [
     {
-      "id" : "C0FFEE12D4E5F6789ABCDE01",
+      "id" : "7F3A91C0-2B4E-4D18-9C6A-8E1F0B2D4A70",
       "localizations" : [
         {
           "description" : "Live OBD Connect for AntiCEL",
@@ -89,7 +108,7 @@
           "displayPrice" : "14.99",
           "familyShareable" : true,
           "groupNumber" : 1,
-          "internalID" : "B2C3D4E5F678901234ABCDF0",
+          "internalID" : "1A2B3C4D-5E6F-7081-92A3-B4C5D6E7F809",
           "introductoryOffer" : null,
           "localizations" : [
             {
@@ -101,7 +120,7 @@
           "productID" : "connect.yearly",
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Connect Yearly",
-          "subscriptionGroupID" : "C0FFEE12D4E5F6789ABCDE01",
+          "subscriptionGroupID" : "7F3A91C0-2B4E-4D18-9C6A-8E1F0B2D4A70",
           "type" : "RecurringSubscription",
           "winbackOffers" : [
 
@@ -117,7 +136,7 @@
           "displayPrice" : "3.99",
           "familyShareable" : true,
           "groupNumber" : 2,
-          "internalID" : "D4E5F678901234ABCDF01234",
+          "internalID" : "9F8E7D6C-5B4A-4938-2716-054321FEDCBA",
           "introductoryOffer" : null,
           "localizations" : [
             {
@@ -129,7 +148,7 @@
           "productID" : "connect.monthly",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Connect Monthly",
-          "subscriptionGroupID" : "C0FFEE12D4E5F6789ABCDE01",
+          "subscriptionGroupID" : "7F3A91C0-2B4E-4D18-9C6A-8E1F0B2D4A70",
           "type" : "RecurringSubscription",
           "winbackOffers" : [
 

@@ -12,6 +12,9 @@ final class ConnectEntitlementStore {
     var isRestoring = false
     var lastMessage: String?
     var hasRenewableSubscription = false
+    #if DEBUG
+    var lastProductLoadError: String?
+    #endif
 
     var hasAccess: Bool {
         switch status {
@@ -119,7 +122,8 @@ final class ConnectEntitlementStore {
             return "Loading StoreKit products…"
         }
         if products.isEmpty {
-            return "0 products loaded. The AntiCEL scheme must use AntiCEL.storekit (Run → Options → StoreKit Configuration). Without that, Debug has nothing to sell."
+            let error = lastProductLoadError.map { " Load error: \($0)" } ?? " Product.products returned an empty list (no throw)."
+            return "0 products loaded. Looking for connect.lifetime, connect.yearly, connect.monthly.\(error) Confirm Edit Scheme → Run → Options → StoreKit Configuration is AntiCEL.storekit, then delete the app from the simulator and run again. Prefer the iOS Simulator over a physical device for local StoreKit files."
         }
         return "\(products.count) products loaded: \(products.map(\.id).joined(separator: ", "))"
     }
@@ -154,15 +158,38 @@ final class ConnectEntitlementStore {
     private func loadProducts() async {
         isLoadingProducts = products.isEmpty
         defer { isLoadingProducts = false }
+        #if DEBUG
+        lastProductLoadError = nil
+        #endif
+        let ids = Set(ConnectProductID.allCases.map(\.rawValue))
         do {
-            let ids = ConnectProductID.allCases.map(\.rawValue)
-            products = try await Product.products(for: ids).sorted { lhs, rhs in
+            var loaded: [Product] = []
+            for attempt in 1...4 {
+                loaded = try await Product.products(for: ids)
+                if !loaded.isEmpty { break }
+                if attempt < 4 {
+                    try await Task.sleep(for: .milliseconds(250))
+                }
+            }
+            products = loaded.sorted { lhs, rhs in
                 let order = ConnectProductID.allCases.map(\.rawValue)
                 let li = order.firstIndex(of: lhs.id) ?? 0
                 let ri = order.firstIndex(of: rhs.id) ?? 0
                 return li < ri
             }
+            #if DEBUG
+            if products.isEmpty {
+                lastProductLoadError = "StoreKit returned no products for \(ids.sorted().joined(separator: ", "))."
+                print("Connect StoreKit: \(lastProductLoadError ?? "")")
+            } else {
+                print("Connect StoreKit loaded: \(products.map(\.id).joined(separator: ", "))")
+            }
+            #endif
         } catch {
+            #if DEBUG
+            lastProductLoadError = String(describing: error)
+            print("Connect StoreKit load failed: \(error)")
+            #endif
             lastMessage = "Could not load plans. Check your connection and try again."
         }
     }
