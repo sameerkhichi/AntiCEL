@@ -67,39 +67,65 @@ final class ConnectEntitlementStore {
         OBDSessionController.shared.enforceConnectAccess()
     }
 
+    var canPurchase: Bool {
+        if isPurchasing || isLoadingProducts { return false }
+        if !products.isEmpty { return true }
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
+    }
+
     func purchase(_ id: ConnectProductID) async {
         lastMessage = nil
-        guard let product = product(for: id) else {
-            lastMessage = "This plan is not available yet. Try again in a moment."
-            return
-        }
-
         isPurchasing = true
         defer { isPurchasing = false }
 
-        do {
-            let result = try await product.purchase()
-            switch result {
-            case .success(let verification):
-                let transaction = try Self.verified(verification)
-                await transaction.finish()
-                await refresh()
-            case .userCancelled:
-                break
-            case .pending:
-                lastMessage = "This purchase is pending approval."
-            @unknown default:
-                lastMessage = "Purchase could not be completed."
+        if let product = product(for: id) {
+            do {
+                let result = try await product.purchase()
+                switch result {
+                case .success(let verification):
+                    let transaction = try Self.verified(verification)
+                    await transaction.finish()
+                    await refresh()
+                case .userCancelled:
+                    break
+                case .pending:
+                    lastMessage = "This purchase is pending approval."
+                @unknown default:
+                    lastMessage = "Purchase could not be completed."
+                }
+            } catch {
+                lastMessage = error.localizedDescription
             }
-        } catch {
-            lastMessage = error.localizedDescription
+            return
         }
+
+        #if DEBUG
+        ConnectDebugPurchase.grant(id)
+        await refresh()
+        lastMessage = "Debug purchase granted. Apple’s catalog is not attached to this run, so this did not go through StoreKit."
+        #else
+        lastMessage = "This plan is not available yet. Try again in a moment."
+        #endif
     }
 
     func restore() async {
         lastMessage = nil
         isRestoring = true
         defer { isRestoring = false }
+
+        #if DEBUG
+        if products.isEmpty {
+            await refresh()
+            lastMessage = hasPaidAccess
+                ? "Debug purchase is still on this install."
+                : "No debug purchase on this install. Real Restore needs App Store products or a StoreKit config from Xcode."
+            return
+        }
+        #endif
 
         do {
             try await AppStore.sync()
@@ -120,10 +146,9 @@ final class ConnectEntitlementStore {
             return "Loading StoreKit products…"
         }
         if products.isEmpty {
-            let error = lastProductLoadError.map { " Load error: \($0)" } ?? " Product.products returned an empty list (no throw)."
-            return "0 products loaded. Looking for connect.lifetime, connect.yearly, connect.monthly.\(error) Confirm Edit Scheme → Run → Options → StoreKit Configuration is AntiCEL.storekit, then delete the app from the simulator and run again. Prefer the iOS Simulator over a physical device for local StoreKit files."
+            return "Apple returned 0 products. That is expected unless you press Run in Xcode with AntiCEL.storekit on the scheme (Cursor launches usually skip that). Use the plan buttons anyway — Debug grants access on this install without StoreKit."
         }
-        return "\(products.count) products loaded: \(products.map(\.id).joined(separator: ", "))"
+        return "\(products.count) StoreKit products loaded: \(products.map(\.id).joined(separator: ", ")). Purchases will use Apple’s sheet."
     }
 
     func debugStartTrial() {
@@ -138,6 +163,11 @@ final class ConnectEntitlementStore {
 
     func resetTrialForDebugging() {
         ConnectTrialStore.reset()
+        Task { await refresh() }
+    }
+
+    func clearDebugPurchase() {
+        ConnectDebugPurchase.clear()
         Task { await refresh() }
     }
     #endif
@@ -228,6 +258,16 @@ final class ConnectEntitlementStore {
             }
         }
 
+        #if DEBUG
+        if !lifetime, subscription == nil, let debug = ConnectDebugPurchase.snapshot() {
+            lifetime = debug.lifetime
+            subscription = debug.subscription
+            if subscription != nil {
+                hasRenewableSubscription = true
+            }
+        }
+        #endif
+
         cachedLifetime = lifetime
         cachedSubscription = subscription
         return (lifetime, subscription)
@@ -284,3 +324,46 @@ private struct SubscriptionSnapshot {
     let expiresAt: Date?
     let willAutoRenew: Bool
 }
+
+#if DEBUG
+private enum ConnectDebugPurchase {
+    private static let productKey = "connect.debug.productID"
+    private static let expiresKey = "connect.debug.expiresAt"
+
+    static func grant(_ id: ConnectProductID) {
+        UserDefaults.standard.set(id.rawValue, forKey: productKey)
+        switch id {
+        case .lifetime:
+            UserDefaults.standard.removeObject(forKey: expiresKey)
+        case .monthly:
+            UserDefaults.standard.set(Date().addingTimeInterval(2 * 60 * 60), forKey: expiresKey)
+        case .yearly:
+            UserDefaults.standard.set(Date().addingTimeInterval(24 * 60 * 60), forKey: expiresKey)
+        }
+    }
+
+    static func snapshot() -> (lifetime: Bool, subscription: SubscriptionSnapshot?)? {
+        guard let raw = UserDefaults.standard.string(forKey: productKey),
+              let id = ConnectProductID(rawValue: raw) else {
+            return nil
+        }
+        if id == .lifetime {
+            return (true, nil)
+        }
+        let expires = UserDefaults.standard.object(forKey: expiresKey) as? Date
+        if let expires, expires < Date() {
+            clear()
+            return nil
+        }
+        return (
+            false,
+            SubscriptionSnapshot(productID: id.rawValue, expiresAt: expires, willAutoRenew: false)
+        )
+    }
+
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: productKey)
+        UserDefaults.standard.removeObject(forKey: expiresKey)
+    }
+}
+#endif

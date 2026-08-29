@@ -43,9 +43,9 @@ struct ConnectAccessView: View {
             }
 
             if !store.isLoadingProducts, store.products.isEmpty, shouldShowPlans {
-                Text("Plans could not be loaded from StoreKit. In Xcode, set the AntiCEL scheme’s StoreKit Configuration to AntiCEL.storekit, then run again. Until products exist in App Store Connect, that local file is what makes purchase sheets appear.")
+                Text("Apple’s StoreKit catalog is not attached to this run, so there is no purchase sheet. In a Debug build you can still tap a plan to unlock Connect on this install and test the rest of the app.")
                     .font(.footnote)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -115,7 +115,13 @@ struct ConnectAccessView: View {
                 Text("Reset Trial")
             }
 
-            Text("Purchases: tap a plan above. Apple’s test sheet appears (no real charge). To refund, expire, or delete a test buy, use Xcode → Debug → StoreKit → Manage Transactions while the app is running. Monthly renews about every 30 seconds in this test file.")
+            DashButton(kind: .bar) {
+                store.clearDebugPurchase()
+            } label: {
+                Text("Clear Debug Purchase")
+            }
+
+            Text("Tap a plan to grant Debug access on this install. That does not charge anyone and does not use Apple’s sheet. Apple’s real sheet only appears when StoreKit returns products: press Run in Xcode with AntiCEL.storekit on the scheme, or after the products exist in App Store Connect.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -214,7 +220,7 @@ struct ConnectAccessView: View {
                     } label: {
                         Text(purchaseTitle(for: id))
                     }
-                    .disabled(product == nil || store.isPurchasing || store.isLoadingProducts)
+                    .disabled(!store.canPurchase)
                 }
             }
         }
