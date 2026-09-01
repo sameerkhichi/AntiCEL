@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import UniformTypeIdentifiers
 
 struct GarageView: View {
 
@@ -17,7 +16,8 @@ struct GarageView: View {
     @State private var vehicleForMileageUpdate: Vehicle?
     @State private var vehicleToShare: Vehicle?
     @State private var orderedIDs: [UUID] = []
-    @State private var draggingID: UUID?
+    @State private var bayFrames: [UUID: CGRect] = [:]
+    @GestureState private var dragSession: GarageDragSession?
     @Binding var pendingMileageVehicleID: UUID?
 
     private var columns: [GridItem] {
@@ -44,55 +44,53 @@ struct GarageView: View {
         return result + extras
     }
 
+    private var draggedVehicle: Vehicle? {
+        guard let dragSession else { return nil }
+        return displayedVehicles.first(where: { $0.id == dragSession.id })
+    }
+
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
                 ScrollView {
-                VStack(spacing: 22) {
-                    overheadLights
-                    wordmark
+                    VStack(spacing: 22) {
+                        overheadLights
+                        wordmark
 
-                    if vehicles.isEmpty {
-                        Text("Park your first vehicle")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    LazyVGrid(columns: columns, spacing: 18) {
-                        ForEach(displayedVehicles) { vehicle in
-                            garageBay(for: vehicle)
+                        if vehicles.isEmpty {
+                            Text("Park your first vehicle")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
                         }
 
-                        Button {
-                            AppHaptic.button.play()
-                            showingAddVehicle = true
-                        } label: {
-                            GarageBayCard(isAddBay: true)
+                        LazyVGrid(columns: columns, spacing: 18) {
+                            ForEach(displayedVehicles) { vehicle in
+                                garageBay(for: vehicle)
+                            }
+
+                            Button {
+                                AppHaptic.button.play()
+                                showingAddVehicle = true
+                            } label: {
+                                GarageBayCard(isAddBay: true)
+                            }
+                            .buttonStyle(.plain)
+                            .background {
+                                bayFrameProbe(for: GarageReorder.addBayID)
+                            }
                         }
-                        .buttonStyle(.plain)
-                        .onDrop(
-                            of: [UTType.plainText],
-                            delegate: GarageReorderDropDelegate(
-                                target: .end,
-                                orderedIDs: $orderedIDs,
-                                draggingID: $draggingID
-                            )
-                        )
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 32)
+                        .coordinateSpace(name: GarageReorder.spaceName)
+                        .animation(.snappy(duration: 0.22), value: orderedIDs)
+                        .onPreferenceChange(BayFramePreferenceKey.self) { bayFrames = $0 }
+                        .overlay {
+                            dragPreview
+                        }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 32)
-                    .animation(.snappy(duration: 0.22), value: orderedIDs)
+                    .padding(.top, 8)
                 }
-                .padding(.top, 8)
-                .onDrop(
-                    of: [UTType.plainText],
-                    delegate: GarageReorderDropDelegate(
-                        target: .commit,
-                        orderedIDs: $orderedIDs,
-                        draggingID: $draggingID
-                    )
-                )
-            }
+                .scrollDisabled(dragSession != nil)
             }
             .overlay(alignment: .topLeading) {
                 DashButton(kind: .compact) {
@@ -168,7 +166,10 @@ struct GarageView: View {
                 openPendingMileageUpdate()
                 syncGarageOrder()
             }
-            .onChange(of: draggingID) { oldValue, newValue in
+            .onChange(of: dragSession?.id) { oldValue, newValue in
+                if oldValue == nil, newValue != nil {
+                    AppHaptic.flashlight.play()
+                }
                 if oldValue != nil, newValue == nil {
                     persistGarageOrder()
                 }
@@ -193,13 +194,24 @@ struct GarageView: View {
     }
 
     @ViewBuilder
+    private var dragPreview: some View {
+        if let dragSession, let vehicle = draggedVehicle {
+            GarageBayCard(vehicle: vehicle)
+                .frame(width: bayFrames[dragSession.id]?.width)
+                .scaleEffect(1.04)
+                .shadow(color: theme.shadow.opacity(0.6), radius: 18, y: 8)
+                .position(dragSession.location)
+                .allowsHitTesting(false)
+        }
+    }
+
+    @ViewBuilder
     private func garageBay(for vehicle: Vehicle) -> some View {
         ZStack(alignment: .topTrailing) {
             NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
                 GarageBayCard(vehicle: vehicle)
             }
             .buttonStyle(.plain)
-            .allowsHitTesting(draggingID == nil)
             .simultaneousGesture(
                 TapGesture().onEnded {
                     AppHaptic.flashlight.play()
@@ -212,10 +224,10 @@ struct GarageView: View {
                 Image(systemName: "gauge")
             }
             .padding(10)
-            .allowsHitTesting(draggingID == nil)
             .accessibilityLabel("Update mileage")
         }
         .contentShape(Rectangle())
+        .opacity(dragSession?.id == vehicle.id ? 0.35 : 1)
         .contextMenu {
             Button {
                 vehicleToShare = vehicle
@@ -226,29 +238,104 @@ struct GarageView: View {
                 vehiclePendingDelete = vehicle
             }
         }
-        .opacity(draggingID == vehicle.id ? 0.4 : 1)
-        .onDrag {
-            draggingID = vehicle.id
-            AppHaptic.flashlight.play()
-            return NSItemProvider(object: vehicle.id.uuidString as NSString)
-        } preview: {
-            GarageBayCard(vehicle: vehicle)
-                .frame(width: 260)
-                .appTheme()
+        .background {
+            bayFrameProbe(for: vehicle.id)
         }
-        .onDrop(
-            of: [UTType.plainText],
-            delegate: GarageReorderDropDelegate(
-                target: .vehicle(vehicle.id),
-                orderedIDs: $orderedIDs,
-                draggingID: $draggingID
-            )
-        )
+        .simultaneousGesture(reorderGesture(for: vehicle.id))
         .accessibilityHint("Touch and hold, then drag to reorder")
     }
 
+    private func reorderGesture(for id: UUID) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.28)
+            .sequenced(
+                before: DragGesture(
+                    minimumDistance: 2,
+                    coordinateSpace: .named(GarageReorder.spaceName)
+                )
+            )
+            .updating($dragSession) { value, state, _ in
+                switch value {
+                case .first(true):
+                    if let frame = bayFrames[id] {
+                        state = GarageDragSession(
+                            id: id,
+                            location: CGPoint(x: frame.midX, y: frame.midY)
+                        )
+                    } else {
+                        state = GarageDragSession(id: id, location: .zero)
+                    }
+                case .second(true, let drag):
+                    let location = drag?.location ?? state?.location ?? .zero
+                    state = GarageDragSession(id: id, location: location)
+                default:
+                    break
+                }
+            }
+            .onChanged { value in
+                guard case .second(true, let drag) = value, let drag else { return }
+                moveDraggedVehicle(id, to: drag.location)
+            }
+    }
+
+    private func moveDraggedVehicle(_ draggingID: UUID, to location: CGPoint) {
+        guard let targetID = targetBayID(at: location), targetID != draggingID else {
+            return
+        }
+
+        guard let origin = orderedIDs.firstIndex(of: draggingID) else {
+            return
+        }
+
+        if targetID == GarageReorder.addBayID {
+            guard orderedIDs.last != draggingID else { return }
+            withAnimation(.snappy(duration: 0.22)) {
+                orderedIDs.move(
+                    fromOffsets: IndexSet(integer: origin),
+                    toOffset: orderedIDs.count
+                )
+            }
+            return
+        }
+
+        guard let destination = orderedIDs.firstIndex(of: targetID), origin != destination else {
+            return
+        }
+
+        withAnimation(.snappy(duration: 0.22)) {
+            orderedIDs.move(
+                fromOffsets: IndexSet(integer: origin),
+                toOffset: destination > origin ? destination + 1 : destination
+            )
+        }
+    }
+
+    private func targetBayID(at location: CGPoint) -> UUID? {
+        if let hit = bayFrames.first(where: { $0.value.insetBy(dx: -8, dy: -8).contains(location) }) {
+            return hit.key
+        }
+
+        guard let closest = bayFrames.min(by: { lhs, rhs in
+            hypot(lhs.value.midX - location.x, lhs.value.midY - location.y)
+                < hypot(rhs.value.midX - location.x, rhs.value.midY - location.y)
+        }) else {
+            return nil
+        }
+
+        let distance = hypot(closest.value.midX - location.x, closest.value.midY - location.y)
+        return distance < 140 ? closest.key : nil
+    }
+
+    private func bayFrameProbe(for id: UUID) -> some View {
+        GeometryReader { geo in
+            Color.clear.preference(
+                key: BayFramePreferenceKey.self,
+                value: [id: geo.frame(in: .named(GarageReorder.spaceName))]
+            )
+        }
+    }
+
     private func syncGarageOrder() {
-        guard draggingID == nil else { return }
+        guard dragSession == nil else { return }
         orderedIDs = Vehicle.garageOrdered(vehicles).map(\.id)
     }
 
@@ -288,54 +375,21 @@ struct GarageView: View {
     }
 }
 
-private struct GarageReorderDropDelegate: DropDelegate {
+private enum GarageReorder {
+    static let spaceName = "garageGrid"
+    static let addBayID = UUID(uuidString: "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")!
+}
 
-    enum Target {
-        case vehicle(UUID)
-        case end
-        case commit
-    }
+private struct GarageDragSession: Equatable {
+    var id: UUID
+    var location: CGPoint
+}
 
-    let target: Target
-    @Binding var orderedIDs: [UUID]
-    @Binding var draggingID: UUID?
+private struct BayFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [UUID: CGRect] = [:]
 
-    func dropEntered(info: DropInfo) {
-        guard let draggingID else { return }
-
-        let destination: Int
-        switch target {
-        case .vehicle(let id):
-            guard draggingID != id, let index = orderedIDs.firstIndex(of: id) else {
-                return
-            }
-            destination = index
-        case .end:
-            guard orderedIDs.last != draggingID else { return }
-            destination = max(orderedIDs.count - 1, 0)
-        case .commit:
-            return
-        }
-
-        guard let origin = orderedIDs.firstIndex(of: draggingID), origin != destination else {
-            return
-        }
-
-        withAnimation(.snappy(duration: 0.22)) {
-            orderedIDs.move(
-                fromOffsets: IndexSet(integer: origin),
-                toOffset: destination > origin ? destination + 1 : destination
-            )
-        }
-    }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        DropProposal(operation: .move)
-    }
-
-    func performDrop(info: DropInfo) -> Bool {
-        draggingID = nil
-        return true
+    static func reduce(value: inout [UUID: CGRect], nextValue: () -> [UUID: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { $1 })
     }
 }
 
