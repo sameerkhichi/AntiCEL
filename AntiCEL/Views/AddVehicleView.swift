@@ -83,6 +83,7 @@ struct AddVehicleView: View {
                 copyIntoApp: settings.savePhotosInApp,
                 kind: .vehicleIcon
             )
+            vehicle.sortIndex = Vehicle.nextGarageSortIndex(in: modelContext)
             modelContext.insert(vehicle)
             WidgetReloader.reload()
             dismiss()

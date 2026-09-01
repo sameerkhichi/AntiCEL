@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct GarageView: View {
 
@@ -15,11 +16,32 @@ struct GarageView: View {
     @State private var vehiclePendingDelete: Vehicle?
     @State private var vehicleForMileageUpdate: Vehicle?
     @State private var vehicleToShare: Vehicle?
+    @State private var orderedIDs: [UUID] = []
+    @State private var draggingID: UUID?
     @Binding var pendingMileageVehicleID: UUID?
 
     private var columns: [GridItem] {
         let count = sizeClass == .regular ? 2 : 1
         return Array(repeating: GridItem(.flexible(), spacing: 18), count: count)
+    }
+
+    private var displayedVehicles: [Vehicle] {
+        let byID = Dictionary(uniqueKeysWithValues: vehicles.map { ($0.id, $0) })
+        var seen = Set<UUID>()
+        var result: [Vehicle] = []
+
+        for id in orderedIDs {
+            if let vehicle = byID[id] {
+                result.append(vehicle)
+                seen.insert(id)
+            }
+        }
+
+        let extras = vehicles
+            .filter { !seen.contains($0.id) }
+            .sorted(by: Vehicle.garageSort)
+
+        return result + extras
     }
 
     var body: some View {
@@ -37,36 +59,8 @@ struct GarageView: View {
                     }
 
                     LazyVGrid(columns: columns, spacing: 18) {
-                        ForEach(vehicles) { vehicle in
-                            ZStack(alignment: .topTrailing) {
-                                NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
-                                    GarageBayCard(vehicle: vehicle)
-                                }
-                                .buttonStyle(.plain)
-                                .simultaneousGesture(
-                                    TapGesture().onEnded {
-                                        AppHaptic.flashlight.play()
-                                    }
-                                )
-                                .contextMenu {
-                                    Button {
-                                        vehicleToShare = vehicle
-                                    } label: {
-                                        Label("Share Vehicle", systemImage: "square.and.arrow.up")
-                                    }
-                                    Button("Remove from Garage", role: .destructive) {
-                                        vehiclePendingDelete = vehicle
-                                    }
-                                }
-
-                                DashButton(kind: .compact) {
-                                    vehicleForMileageUpdate = vehicle
-                                } label: {
-                                    Image(systemName: "gauge")
-                                }
-                                .padding(10)
-                                .accessibilityLabel("Update mileage")
-                            }
+                        ForEach(displayedVehicles) { vehicle in
+                            garageBay(for: vehicle)
                         }
 
                         Button {
@@ -76,11 +70,28 @@ struct GarageView: View {
                             GarageBayCard(isAddBay: true)
                         }
                         .buttonStyle(.plain)
+                        .onDrop(
+                            of: [UTType.plainText],
+                            delegate: GarageReorderDropDelegate(
+                                target: .end,
+                                orderedIDs: $orderedIDs,
+                                draggingID: $draggingID
+                            )
+                        )
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 32)
+                    .animation(.snappy(duration: 0.22), value: orderedIDs)
                 }
                 .padding(.top, 8)
+                .onDrop(
+                    of: [UTType.plainText],
+                    delegate: GarageReorderDropDelegate(
+                        target: .commit,
+                        orderedIDs: $orderedIDs,
+                        draggingID: $draggingID
+                    )
+                )
             }
             }
             .overlay(alignment: .topLeading) {
@@ -155,8 +166,15 @@ struct GarageView: View {
             }
             .onChange(of: vehicles.count) {
                 openPendingMileageUpdate()
+                syncGarageOrder()
+            }
+            .onChange(of: draggingID) { oldValue, newValue in
+                if oldValue != nil, newValue == nil {
+                    persistGarageOrder()
+                }
             }
             .onAppear {
+                syncGarageOrder()
                 openPendingMileageUpdate()
                 ReminderNotifications.refresh(using: modelContext)
                 OBDSessionController.shared.isForeground = true
@@ -172,6 +190,71 @@ struct GarageView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func garageBay(for vehicle: Vehicle) -> some View {
+        ZStack(alignment: .topTrailing) {
+            NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
+                GarageBayCard(vehicle: vehicle)
+            }
+            .buttonStyle(.plain)
+            .allowsHitTesting(draggingID == nil)
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    AppHaptic.flashlight.play()
+                }
+            )
+
+            DashButton(kind: .compact) {
+                vehicleForMileageUpdate = vehicle
+            } label: {
+                Image(systemName: "gauge")
+            }
+            .padding(10)
+            .allowsHitTesting(draggingID == nil)
+            .accessibilityLabel("Update mileage")
+        }
+        .contentShape(Rectangle())
+        .contextMenu {
+            Button {
+                vehicleToShare = vehicle
+            } label: {
+                Label("Share Vehicle", systemImage: "square.and.arrow.up")
+            }
+            Button("Remove from Garage", role: .destructive) {
+                vehiclePendingDelete = vehicle
+            }
+        }
+        .opacity(draggingID == vehicle.id ? 0.4 : 1)
+        .onDrag {
+            draggingID = vehicle.id
+            AppHaptic.flashlight.play()
+            return NSItemProvider(object: vehicle.id.uuidString as NSString)
+        } preview: {
+            GarageBayCard(vehicle: vehicle)
+                .frame(width: 260)
+                .appTheme()
+        }
+        .onDrop(
+            of: [UTType.plainText],
+            delegate: GarageReorderDropDelegate(
+                target: .vehicle(vehicle.id),
+                orderedIDs: $orderedIDs,
+                draggingID: $draggingID
+            )
+        )
+        .accessibilityHint("Touch and hold, then drag to reorder")
+    }
+
+    private func syncGarageOrder() {
+        guard draggingID == nil else { return }
+        orderedIDs = Vehicle.garageOrdered(vehicles).map(\.id)
+    }
+
+    private func persistGarageOrder() {
+        Vehicle.assignGarageOrder(displayedVehicles)
+        syncGarageOrder()
     }
 
     private func openPendingMileageUpdate() {
@@ -202,6 +285,57 @@ struct GarageView: View {
             }
         }
         .padding(.top, 10)
+    }
+}
+
+private struct GarageReorderDropDelegate: DropDelegate {
+
+    enum Target {
+        case vehicle(UUID)
+        case end
+        case commit
+    }
+
+    let target: Target
+    @Binding var orderedIDs: [UUID]
+    @Binding var draggingID: UUID?
+
+    func dropEntered(info: DropInfo) {
+        guard let draggingID else { return }
+
+        let destination: Int
+        switch target {
+        case .vehicle(let id):
+            guard draggingID != id, let index = orderedIDs.firstIndex(of: id) else {
+                return
+            }
+            destination = index
+        case .end:
+            guard orderedIDs.last != draggingID else { return }
+            destination = max(orderedIDs.count - 1, 0)
+        case .commit:
+            return
+        }
+
+        guard let origin = orderedIDs.firstIndex(of: draggingID), origin != destination else {
+            return
+        }
+
+        withAnimation(.snappy(duration: 0.22)) {
+            orderedIDs.move(
+                fromOffsets: IndexSet(integer: origin),
+                toOffset: destination > origin ? destination + 1 : destination
+            )
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggingID = nil
+        return true
     }
 }
 
