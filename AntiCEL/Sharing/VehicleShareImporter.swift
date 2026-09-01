@@ -92,7 +92,6 @@ enum VehicleShareImporter {
             vehicle.photoOffsetY = snapshot.photoOffsetY
         }
 
-        vehicle.sortIndex = Vehicle.nextGarageSortIndex(in: context)
         context.insert(vehicle)
 
         if preview.manifest.includeHistory {

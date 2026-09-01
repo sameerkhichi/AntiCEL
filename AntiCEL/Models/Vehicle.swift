@@ -17,8 +17,6 @@ final class Vehicle {
     var nickname: String
     var vin: String
     var currentMileage: Int
-
-    /// Garage bay order. Optional so older store rows keep working until the user rearranges.
     var sortIndex: Int? = nil
 
     var displayName: String {
@@ -98,31 +96,6 @@ final class Vehicle {
         self.photoOffsetX = nil
         self.photoOffsetY = nil
         self.sortIndex = nil
-    }
-
-    static func garageOrdered(_ vehicles: [Vehicle]) -> [Vehicle] {
-        vehicles.sorted(by: garageSort)
-    }
-
-    static func garageSort(_ lhs: Vehicle, _ rhs: Vehicle) -> Bool {
-        let left = lhs.sortIndex ?? Int.max
-        let right = rhs.sortIndex ?? Int.max
-        if left != right { return left < right }
-        return lhs.createdAt < rhs.createdAt
-    }
-
-    static func assignGarageOrder(_ vehicles: [Vehicle]) {
-        for (index, vehicle) in vehicles.enumerated() where vehicle.sortIndex != index {
-            vehicle.sortIndex = index
-        }
-    }
-
-    static func nextGarageSortIndex(in context: ModelContext) -> Int? {
-        let vehicles = (try? context.fetch(FetchDescriptor<Vehicle>())) ?? []
-        guard vehicles.contains(where: { $0.sortIndex != nil }) else {
-            return nil
-        }
-        return (vehicles.compactMap(\.sortIndex).max() ?? -1) + 1
     }
 }
 
