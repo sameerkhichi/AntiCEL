@@ -47,19 +47,31 @@ struct CompleteServiceSheet: View {
                 dismiss()
             }
         ) {
-            InfotainmentField(label: "Completion Date") {
-                DatePicker(
-                    "Completion Date",
-                    selection: $completionDate,
-                    displayedComponents: .date
-                )
-                .labelsHidden()
-                .datePickerStyle(.compact)
+            VStack(alignment: .leading, spacing: 8) {
+                InfotainmentField(label: "Completion Date") {
+                    DatePicker(
+                        "Completion Date",
+                        selection: $completionDate,
+                        displayedComponents: .date
+                    )
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                }
+
+                shortcutButton("Use Current Date") {
+                    completionDate = Date()
+                }
             }
 
-            InfotainmentField(label: "Mileage (\(settings.mileageUnit.abbreviation))") {
-                MileageDigitScroller(mileage: $completionMileage)
-                    .frame(maxWidth: .infinity)
+            VStack(alignment: .leading, spacing: 8) {
+                InfotainmentField(label: "Mileage (\(settings.mileageUnit.abbreviation))") {
+                    MileageDigitScroller(mileage: $completionMileage)
+                        .frame(maxWidth: .infinity)
+                }
+
+                shortcutButton("Use Current Mileage") {
+                    applyCurrentMileage()
+                }
             }
 
             PhotoAttachmentField(
@@ -69,5 +81,22 @@ struct CompleteServiceSheet: View {
             )
         }
         .appTheme()
+    }
+
+    private func applyCurrentMileage() {
+        let storedKilometers = reminder.vehicle?.currentMileage ?? 0
+        completionMileage = settings.mileageUnit.displayValue(
+            fromStoredKilometers: storedKilometers
+        )
+    }
+
+    @ViewBuilder
+    private func shortcutButton(_ title: String, action: @escaping () -> Void) -> some View {
+        HStack {
+            DashButton(kind: .compact, action: action) {
+                Text(title)
+            }
+            Spacer(minLength: 0)
+        }
     }
 }

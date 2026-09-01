@@ -4,20 +4,32 @@ import SwiftData
 struct AddVehicleShopView: View {
 
     let vehicle: Vehicle
+    var shop: VehicleShop? = nil
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
-    @State private var name = ""
-    @State private var details = ""
+    @State private var name: String
+    @State private var details: String
+
+    private var isEditing: Bool {
+        shop != nil
+    }
 
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    init(vehicle: Vehicle, shop: VehicleShop? = nil) {
+        self.vehicle = vehicle
+        self.shop = shop
+        _name = State(initialValue: shop?.name ?? "")
+        _details = State(initialValue: shop?.details ?? "")
+    }
+
     var body: some View {
         InfotainmentScaffold(
-            title: "New Shop",
+            title: isEditing ? "Edit Shop" : "New Shop",
             confirmEnabled: canSave,
             onCancel: { dismiss() },
             onConfirm: saveShop
@@ -35,13 +47,23 @@ struct AddVehicleShopView: View {
     }
 
     private func saveShop() {
-        let shop = VehicleShop(
-            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            details: details.trimmingCharacters(in: .whitespacesAndNewlines)
-        )
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedDetails = details.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        vehicle.shops.append(shop)
-        modelContext.insert(shop)
+        if let shop {
+            shop.name = trimmedName
+            shop.details = trimmedDetails
+            shop.updatedAt = Date()
+        } else {
+            let shop = VehicleShop(
+                name: trimmedName,
+                details: trimmedDetails
+            )
+
+            vehicle.shops.append(shop)
+            modelContext.insert(shop)
+        }
+
         dismiss()
     }
 }

@@ -1,8 +1,16 @@
 import SwiftUI
+import SwiftData
 
 struct VehicleShopDetailView: View {
 
-    let shop: VehicleShop
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+
+    let vehicle: Vehicle
+    @Bindable var shop: VehicleShop
+
+    @State private var showingEdit = false
+    @State private var showDeleteAlert = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -49,13 +57,13 @@ struct VehicleShopDetailView: View {
 
             VStack(spacing: 12) {
                 DashButton(isSelected: true, kind: .bar) {
-                    // TODO
+                    showingEdit = true
                 } label: {
                     Text("Edit Shop")
                 }
 
                 DashButton(kind: .bar, isDestructive: true) {
-                    // TODO
+                    showDeleteAlert = true
                 } label: {
                     Text("Delete Shop")
                 }
@@ -68,6 +76,21 @@ struct VehicleShopDetailView: View {
         .navigationTitle("Vehicle Shop")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.clear, for: .navigationBar)
+        .sheet(isPresented: $showingEdit) {
+            AddVehicleShopView(vehicle: vehicle, shop: shop)
+        }
+        .alert(
+            "Delete Shop?",
+            isPresented: $showDeleteAlert
+        ) {
+            Button("Delete", role: .destructive) {
+                modelContext.delete(shop)
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This shop will be permanently deleted.")
+        }
     }
 
     @ViewBuilder
@@ -88,8 +111,16 @@ struct VehicleShopDetailView: View {
 }
 
 #Preview {
+    let vehicle = Vehicle(
+        make: "Audi",
+        model: "S4",
+        year: 2022,
+        currentMileage: 79000
+    )
+
     NavigationStack {
         VehicleShopDetailView(
+            vehicle: vehicle,
             shop: VehicleShop(
                 name: "Eurotech",
                 details: "Independent Audi specialist for inspections and suspension work."

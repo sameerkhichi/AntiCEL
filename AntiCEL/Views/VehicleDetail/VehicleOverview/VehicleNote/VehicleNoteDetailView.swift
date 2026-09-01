@@ -1,8 +1,16 @@
 import SwiftUI
+import SwiftData
 
 struct VehicleNoteDetailView: View {
 
-    let note: VehicleNote
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+
+    let vehicle: Vehicle
+    @Bindable var note: VehicleNote
+
+    @State private var showingEdit = false
+    @State private var showDeleteAlert = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -44,13 +52,13 @@ struct VehicleNoteDetailView: View {
 
             VStack(spacing: 12) {
                 DashButton(isSelected: true, kind: .bar) {
-                    // TODO
+                    showingEdit = true
                 } label: {
                     Text("Edit Note")
                 }
 
                 DashButton(kind: .bar, isDestructive: true) {
-                    // TODO
+                    showDeleteAlert = true
                 } label: {
                     Text("Delete Note")
                 }
@@ -63,6 +71,21 @@ struct VehicleNoteDetailView: View {
         .navigationTitle("Vehicle Note")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.clear, for: .navigationBar)
+        .sheet(isPresented: $showingEdit) {
+            AddVehicleNoteView(vehicle: vehicle, note: note)
+        }
+        .alert(
+            "Delete Note?",
+            isPresented: $showDeleteAlert
+        ) {
+            Button("Delete", role: .destructive) {
+                modelContext.delete(note)
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This note will be permanently deleted.")
+        }
     }
 
     @ViewBuilder
@@ -83,8 +106,16 @@ struct VehicleNoteDetailView: View {
 }
 
 #Preview {
+    let vehicle = Vehicle(
+        make: "Audi",
+        model: "S4",
+        year: 2022,
+        currentMileage: 79000
+    )
+
     NavigationStack {
         VehicleNoteDetailView(
+            vehicle: vehicle,
             note: VehicleNote(
                 title: "Winter Tires",
                 content: "Swap over before the first snowfall."

@@ -38,7 +38,7 @@ struct VehicleShopsCard: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(vehicle.shops) { shop in
-                        NavigationLink(destination: VehicleShopDetailView(shop: shop)) {
+                        NavigationLink(destination: VehicleShopDetailView(vehicle: vehicle, shop: shop)) {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(shop.name)
                                     .fontWeight(.semibold)

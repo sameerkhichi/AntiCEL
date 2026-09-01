@@ -38,7 +38,7 @@ struct VehicleNotesCard: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(vehicle.notes) { note in
-                        NavigationLink(destination: VehicleNoteDetailView(note: note)) {
+                        NavigationLink(destination: VehicleNoteDetailView(vehicle: vehicle, note: note)) {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(note.title)
                                     .fontWeight(.semibold)

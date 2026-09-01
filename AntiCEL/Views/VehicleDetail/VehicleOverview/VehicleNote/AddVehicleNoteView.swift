@@ -4,20 +4,32 @@ import SwiftData
 struct AddVehicleNoteView: View {
 
     let vehicle: Vehicle
+    var note: VehicleNote? = nil
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
-    @State private var title = ""
-    @State private var content = ""
+    @State private var title: String
+    @State private var content: String
+
+    private var isEditing: Bool {
+        note != nil
+    }
 
     private var canSave: Bool {
         !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    init(vehicle: Vehicle, note: VehicleNote? = nil) {
+        self.vehicle = vehicle
+        self.note = note
+        _title = State(initialValue: note?.title ?? "")
+        _content = State(initialValue: note?.content ?? "")
+    }
+
     var body: some View {
         InfotainmentScaffold(
-            title: "New Note",
+            title: isEditing ? "Edit Note" : "New Note",
             confirmEnabled: canSave,
             onCancel: { dismiss() },
             onConfirm: saveNote
@@ -43,13 +55,20 @@ struct AddVehicleNoteView: View {
             finalTitle = title
         }
 
-        let note = VehicleNote(
-            title: finalTitle,
-            content: content
-        )
+        if let note {
+            note.title = finalTitle
+            note.content = content
+            note.updatedAt = Date()
+        } else {
+            let note = VehicleNote(
+                title: finalTitle,
+                content: content
+            )
 
-        vehicle.notes.append(note)
-        modelContext.insert(note)
+            vehicle.notes.append(note)
+            modelContext.insert(note)
+        }
+
         dismiss()
     }
 }
