@@ -17,6 +17,8 @@ struct GarageView: View {
     @State private var vehicleToShare: Vehicle?
     @State private var orderedIDs: [UUID] = []
     @State private var bayFrames: [UUID: CGRect] = [:]
+    @State private var selectedVehicleID: UUID?
+    @State private var suppressVehicleOpen = false
     @GestureState private var dragSession: GarageDragSession?
     @Binding var pendingMileageVehicleID: UUID?
 
@@ -118,6 +120,11 @@ struct GarageView: View {
             .navigationTitle("Garage")
             .toolbar(.hidden, for: .navigationBar)
             .keyboardDismissToolbar()
+            .navigationDestination(item: $selectedVehicleID) { id in
+                if let vehicle = vehicles.first(where: { $0.id == id }) {
+                    VehicleDetailView(vehicle: vehicle)
+                }
+            }
             .sheet(isPresented: $showingAddVehicle) {
                 AddVehicleView()
             }
@@ -168,10 +175,17 @@ struct GarageView: View {
             }
             .onChange(of: dragSession?.id) { oldValue, newValue in
                 if oldValue == nil, newValue != nil {
+                    suppressVehicleOpen = true
                     AppHaptic.flashlight.play()
                 }
                 if oldValue != nil, newValue == nil {
                     persistGarageOrder()
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(400))
+                        if dragSession == nil {
+                            suppressVehicleOpen = false
+                        }
+                    }
                 }
             }
             .onAppear {
@@ -208,15 +222,12 @@ struct GarageView: View {
     @ViewBuilder
     private func garageBay(for vehicle: Vehicle) -> some View {
         ZStack(alignment: .topTrailing) {
-            NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
+            Button {
+                openVehicle(vehicle)
+            } label: {
                 GarageBayCard(vehicle: vehicle)
             }
             .buttonStyle(.plain)
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    AppHaptic.flashlight.play()
-                }
-            )
 
             DashButton(kind: .compact) {
                 vehicleForMileageUpdate = vehicle
@@ -237,12 +248,24 @@ struct GarageView: View {
             Button("Remove from Garage", role: .destructive) {
                 vehiclePendingDelete = vehicle
             }
+        } preview: {
+            GarageBayCard(vehicle: vehicle)
+                .frame(width: 280)
         }
         .background {
             bayFrameProbe(for: vehicle.id)
         }
         .simultaneousGesture(reorderGesture(for: vehicle.id))
         .accessibilityHint("Touch and hold, then drag to reorder")
+    }
+
+    private func openVehicle(_ vehicle: Vehicle) {
+        guard dragSession == nil, !suppressVehicleOpen else {
+            return
+        }
+
+        AppHaptic.flashlight.play()
+        selectedVehicleID = vehicle.id
     }
 
     private func reorderGesture(for id: UUID) -> some Gesture {
