@@ -229,7 +229,7 @@ struct ConnectAccessView: View {
     private var lifetimePitch: some View {
         DashPanel(padding: 14, cornerRadius: 14) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("AntiCEL is against check engine lights.............and subscriptions")
+                Text("AntiCEL is against check engine lights and subscriptions")
                     .font(.subheadline.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
                 Text("Times where you pay once and you own a service are becoming rarer by the second.")
