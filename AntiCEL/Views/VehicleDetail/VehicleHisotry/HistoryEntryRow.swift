@@ -10,33 +10,10 @@ struct HistoryEntryRow: View {
         entry.date.formatted(date: .abbreviated, time: .omitted)
     }
 
-    private var categoryIcon: String {
-        switch entry.category {
-        case .maintenance:
-            return "wrench.and.screwdriver.fill"
-        case .repair:
-            return "hammer.fill"
-        case .modification:
-            return "sparkles"
-        case .inspection:
-            return "checkmark.shield.fill"
-        case .registration:
-            return "doc.text.fill"
-        case .accident:
-            return "exclamationmark.triangle.fill"
-        case .purchase:
-            return "car.fill"
-        case .sale:
-            return "dollarsign.circle.fill"
-        case .note:
-            return "note.text"
-        }
-    }
-
     var body: some View {
         DashPanel(padding: 14, cornerRadius: 14) {
             HStack(alignment: .top, spacing: 16) {
-                Image(systemName: categoryIcon)
+                Image(systemName: entry.category.systemImage)
                     .font(.title2)
                     .foregroundStyle(Color.accentColor)
                     .frame(width: 32)

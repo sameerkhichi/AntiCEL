@@ -25,7 +25,7 @@ struct ConnectEmptyStateView: View {
 
             disclaimer(
                 title: "Optional Feature",
-                body: "Connect is optional. The rest of AntiCEL — garage, history, documents, album, reminders — stays free. AntiCEL is not sponsored and does not sell adapters. You only pay if you want live OBD after the free month."
+                body: "Connect is optional. The rest of AntiCEL like the garage, history, documents, album, and remindersstays free. AntiCEL is not sponsored and does not sell adapters. You only pay if you want live OBD after the free month."
             )
 
             disclaimer(

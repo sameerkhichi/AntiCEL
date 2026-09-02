@@ -1,6 +1,9 @@
 import SwiftUI
+import SwiftData
 
 struct HistoryListView: View {
+
+    @Environment(\.modelContext) private var modelContext
 
     @Bindable var vehicle: Vehicle
 
@@ -31,48 +34,48 @@ struct HistoryListView: View {
     }
 
     var body: some View {
-
-        LazyVStack(alignment: .leading, spacing: 24) {
-
+        List {
             ForEach(groupedEntries, id: \.0) { month, entries in
-
-                VStack(alignment: .leading, spacing: 12) {
-
+                Section {
+                    ForEach(entries) { entry in
+                        NavigationLink {
+                            HistoryEntryDetailView(
+                                vehicle: vehicle,
+                                historyEntry: entry
+                            )
+                        } label: {
+                            HistoryEntryRow(entry: entry)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                delete(entry)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
+                } header: {
                     Text(month.uppercased())
                         .font(.appBadge)
                         .tracking(1.6)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal)
-
-                    VStack(spacing: 12) {
-
-                        ForEach(entries) { entry in
-
-                            NavigationLink {
-
-                                HistoryEntryDetailView(
-                                    vehicle: vehicle,
-                                    historyEntry: entry
-                                )
-
-                            } label: {
-
-                                HistoryEntryRow(entry: entry)
-
-                            }
-                            .buttonStyle(.plain)
-
-                        }
-
-                    }
-
+                        .textCase(nil)
                 }
-
             }
-
         }
-        .padding(.vertical)
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .listSectionSpacing(18)
+    }
 
+    private func delete(_ entry: HistoryEntry) {
+        PhotoStore.deleteAppFile(entry.photoFileName)
+        modelContext.delete(entry)
+        ReminderNotifications.refresh(using: modelContext)
     }
 
 }

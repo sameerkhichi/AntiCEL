@@ -27,6 +27,7 @@ struct HistoryEntryDetailView: View {
     @State private var showingRelatedToHelp = false
     @State private var photoDraft = PhotoDraft()
     @State private var isSaving = false
+    @State private var showDeleteAlert = false
 
     private var isEditing: Bool {
         historyEntry != nil
@@ -83,10 +84,29 @@ struct HistoryEntryDetailView: View {
                 footnote: "Optional receipt or proof of the work.",
                 draft: $photoDraft
             )
+
+            if isEditing {
+                DashButton(kind: .bar, isDestructive: true) {
+                    showDeleteAlert = true
+                } label: {
+                    Text("Delete Entry")
+                }
+            }
         }
         .appTheme()
         .sheet(isPresented: $showingRelatedToHelp) {
             VehicleAreaHelpSheet()
+        }
+        .alert(
+            "Delete Entry?",
+            isPresented: $showDeleteAlert
+        ) {
+            Button("Delete", role: .destructive) {
+                deleteEntry()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This history record will be permanently deleted.")
         }
         .onAppear {
             if let historyEntry {
@@ -155,5 +175,13 @@ struct HistoryEntryDetailView: View {
             ReminderNotifications.refresh(using: modelContext)
             dismiss()
         }
+    }
+
+    private func deleteEntry() {
+        guard let historyEntry else { return }
+        PhotoStore.deleteAppFile(historyEntry.photoFileName)
+        modelContext.delete(historyEntry)
+        ReminderNotifications.refresh(using: modelContext)
+        dismiss()
     }
 }

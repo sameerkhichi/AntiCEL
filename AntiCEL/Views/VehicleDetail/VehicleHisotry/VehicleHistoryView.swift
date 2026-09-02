@@ -22,9 +22,7 @@ struct VehicleHistoryView: View {
                 HistoryModelView(vehicle: vehicle, isActive: isActive)
 
             case .list:
-                ScrollView {
-                    HistoryListView(vehicle: vehicle)
-                }
+                HistoryListView(vehicle: vehicle)
 
             }
 
