@@ -140,7 +140,7 @@ enum HintTopic: Hashable {
                 ),
                 (
                     "Auto reconnect",
-                    "Once an adapter is paired, AntiCEL keeps looking for it while you drive, including when the phone is locked or the app is in the background. Bluetooth is allowed to wake the app if the adapter comes back. Forget the adapter if you want that to stop."
+                    "Once an adapter is paired, AntiCEL keeps looking for it while you drive, including when the phone is locked or the app is in the background. Bluetooth is allowed to wake the app if the adapter comes back. Forget the adapter if you want that to stop. Leaving AntiCEL on in the background shouldn't drain your phone's battery, and uses less power than hotspot or navigation during a drive. When away from your vehicle, AntiCEL will barely use your battery, not at all a noticable amount. Exact use depends on the phone, iOS, and what else is running."
                 )
             ]
         case .driveAlerts:

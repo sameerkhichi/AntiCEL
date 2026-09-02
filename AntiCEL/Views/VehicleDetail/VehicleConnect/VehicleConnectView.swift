@@ -72,6 +72,12 @@ struct VehicleConnectView: View {
                 .padding(.horizontal)
 
             if adapter == nil {
+                if let lastError = obd.lastError {
+                    Text(lastError)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .padding(.horizontal)
+                }
                 ConnectEmptyStateView(
                     onScan: { requestScan() },
                     onSeePlans: { showingAccess = true },

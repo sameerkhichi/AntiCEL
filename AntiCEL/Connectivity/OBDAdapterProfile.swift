@@ -23,7 +23,7 @@ enum OBDAdapterProfile {
         CBUUID(string: "FFF2"),
         CBUUID(string: "FFE1"),
         CBUUID(string: "18F2"),
-        CBUUID(string: "49535343-6DAA-4DA4-4D02-ABF619569ACA69FE"),
+        CBUUID(string: "49535343-8841-43F4-A8D4-ECBE34729BB3"),
         CBUUID(string: "49535343-6DAA-4D02-ABF6-19569ACA69FE"),
     ]
 

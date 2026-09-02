@@ -72,6 +72,9 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private var maxOilTempC: Double?
     private var consecutiveECUMisses = 0
     private var didScheduleTripEndAlerts = false
+    private var handshakeTask: Task<Void, Never>?
+    private var forgetIfUnsupported = false
+    private var receivedNonElmTraffic = false
 
     #if DEBUG
     private var mockFaults: [OBDFaultReading] = OBDMockAdapter.sampleFaults
@@ -132,12 +135,14 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             lastError = "The adapter is no longer in range. Scan again."
             return
         }
+        forgetIfUnsupported = true
         connect(peripheral: match, vehicleID: vehicleID)
     }
 
     func connectPairedAdapter(for vehicle: Vehicle) {
         guard !denyIfConnectLocked(userFacing: true) else { return }
         guard let adapter = OBDStore.pairedAdapter(on: vehicle) else { return }
+        forgetIfUnsupported = false
         connect(identifier: adapter.peripheralIdentifier, vehicleID: vehicle.id, name: adapter.name)
     }
 
@@ -153,6 +158,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         }
         #endif
 
+        forgetIfUnsupported = false
         guard central.state == .poweredOn else { return }
 
         let pairedAdapters = OBDStore.allPairedAdapters()
@@ -364,7 +370,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     nonisolated func centralManagerDidUpdateState(_ central: CBCentralManager) {
         let state = central.state
-        MainActor.assumeIsolated {
+        hop {
             bluetoothState = state
             if state == .poweredOn {
                 reconnectKnownAdapters()
@@ -378,26 +384,8 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     nonisolated func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
         let restored = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral] ?? []
-        MainActor.assumeIsolated {
-            guard ConnectEntitlementStore.shared.canAttemptConnection else {
-                for item in restored {
-                    central.cancelPeripheralConnection(item)
-                }
-                return
-            }
-            for item in restored {
-                knownPeripherals[item.identifier] = item
-                item.delegate = self
-                if item.state == .connected {
-                    peripheral = item
-                    connectionState = .initializing
-                    connectedAdapterName = OBDAdapterProfile.displayName(for: item, advertisementName: advertisementNames[item.identifier])
-                    connectedVehicleID = OBDStore.vehicleID(for: item.identifier)
-                    item.discoverServices(nil)
-                } else {
-                    central.connect(item, options: OBDAdapterProfile.connectOptions)
-                }
-            }
+        hop {
+            handleRestoredPeripherals(restored, central: central)
         }
     }
 
@@ -410,13 +398,13 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         let advertisedName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
         let services = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID] ?? []
         let rssi = RSSI.intValue
-        MainActor.assumeIsolated {
+        hop {
             handleDiscovery(peripheral, advertisedName: advertisedName, services: services, rssi: rssi)
         }
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        MainActor.assumeIsolated {
+        hop {
             handleDidConnect(peripheral)
         }
     }
@@ -424,7 +412,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     nonisolated func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         let message = error?.localizedDescription
         let identifier = peripheral.identifier
-        MainActor.assumeIsolated {
+        hop {
             if connectingPeripheralID == identifier {
                 lastError = message ?? "Could not connect to the adapter."
                 resetConnection(keepVehicle: true)
@@ -437,36 +425,46 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     nonisolated func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         let identifier = peripheral.identifier
-        MainActor.assumeIsolated {
+        hop {
             handleDidDisconnect(identifier)
         }
     }
 
     nonisolated func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         let message = error?.localizedDescription
-        MainActor.assumeIsolated {
+        hop {
             handleDiscoveredServices(on: peripheral, errorMessage: message)
         }
     }
 
     nonisolated func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
-        MainActor.assumeIsolated {
-            handleDiscoveredCharacteristics(on: peripheral, service: service)
+        hop {
+            handleDiscoveredCharacteristics(on: peripheral, service: service, errorMessage: error?.localizedDescription)
         }
     }
 
     nonisolated func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         let data = characteristic.value
-        MainActor.assumeIsolated {
+        hop {
             handleValueUpdate(characteristic, data: data)
         }
     }
 
     nonisolated func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
         let ok = error == nil
-        MainActor.assumeIsolated {
+        hop {
             if characteristic == notifyCharacteristic, ok {
-                Task { await handshake() }
+                startHandshake()
+            }
+        }
+    }
+
+    nonisolated private func hop(_ body: @escaping @MainActor () -> Void) {
+        if Thread.isMainThread {
+            MainActor.assumeIsolated(body)
+        } else {
+            Task { @MainActor in
+                body()
             }
         }
     }
@@ -506,6 +504,37 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         }
     }
 
+    private func handleRestoredPeripherals(_ restored: [CBPeripheral], central: CBCentralManager) {
+        guard ConnectEntitlementStore.shared.canAttemptConnection else {
+            for item in restored {
+                central.cancelPeripheralConnection(item)
+            }
+            return
+        }
+
+        let pairedIDs = Set(OBDStore.allPairedAdapters().map(\.peripheralIdentifier))
+        forgetIfUnsupported = false
+
+        for item in restored {
+            knownPeripherals[item.identifier] = item
+            if !pairedIDs.contains(item.identifier) {
+                central.cancelPeripheralConnection(item)
+                continue
+            }
+            item.delegate = self
+            if item.state == .connected {
+                peripheral = item
+                connectionState = .initializing
+                statusMessage = "Talking to adapter…"
+                connectedAdapterName = OBDAdapterProfile.displayName(for: item, advertisementName: advertisementNames[item.identifier])
+                connectedVehicleID = OBDStore.vehicleID(for: item.identifier)
+                discoverAdapterServices(on: item)
+            } else {
+                central.connect(item, options: OBDAdapterProfile.connectOptions)
+            }
+        }
+    }
+
     private func handleDidConnect(_ peripheral: CBPeripheral) {
         self.peripheral = peripheral
         peripheral.delegate = self
@@ -521,7 +550,13 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         pendingDiscoveries = 0
         writeCharacteristic = nil
         notifyCharacteristic = nil
-        peripheral.discoverServices(nil)
+        handshakeTask = nil
+        receivedNonElmTraffic = false
+        discoverAdapterServices(on: peripheral)
+    }
+
+    private func discoverAdapterServices(on peripheral: CBPeripheral) {
+        peripheral.discoverServices(OBDAdapterProfile.uartServices)
     }
 
     private func handleDidDisconnect(_ identifier: UUID) {
@@ -545,14 +580,15 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     private func handleDiscoveredServices(on peripheral: CBPeripheral, errorMessage: String?) {
-        if let errorMessage {
-            lastError = errorMessage
-            connectionState = .unsupportedAdapter
+        if errorMessage != nil {
+            receivedNonElmTraffic = true
+            failHandshake()
             return
         }
         let services = peripheral.services ?? []
         pendingDiscoveries = services.count
         guard pendingDiscoveries > 0 else {
+            receivedNonElmTraffic = true
             failHandshake()
             return
         }
@@ -561,17 +597,19 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         }
     }
 
-    private func handleDiscoveredCharacteristics(on peripheral: CBPeripheral, service: CBService) {
+    private func handleDiscoveredCharacteristics(on peripheral: CBPeripheral, service: CBService, errorMessage: String?) {
         pendingDiscoveries = max(pendingDiscoveries - 1, 0)
-        for characteristic in service.characteristics ?? [] {
-            if notifyCharacteristic == nil || OBDAdapterProfile.preferredNotify.contains(characteristic.uuid) {
-                if characteristic.properties.contains(.notify) || characteristic.properties.contains(.indicate) {
-                    notifyCharacteristic = characteristic
+        if errorMessage == nil {
+            for characteristic in service.characteristics ?? [] {
+                if notifyCharacteristic == nil || OBDAdapterProfile.preferredNotify.contains(characteristic.uuid) {
+                    if characteristic.properties.contains(.notify) || characteristic.properties.contains(.indicate) {
+                        notifyCharacteristic = characteristic
+                    }
                 }
-            }
-            if writeCharacteristic == nil || OBDAdapterProfile.preferredWrite.contains(characteristic.uuid) {
-                if characteristic.properties.contains(.write) || characteristic.properties.contains(.writeWithoutResponse) {
-                    writeCharacteristic = characteristic
+                if writeCharacteristic == nil || OBDAdapterProfile.preferredWrite.contains(characteristic.uuid) {
+                    if characteristic.properties.contains(.write) || characteristic.properties.contains(.writeWithoutResponse) {
+                        writeCharacteristic = characteristic
+                    }
                 }
             }
         }
@@ -582,8 +620,14 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     private func handleValueUpdate(_ characteristic: CBCharacteristic, data: Data?) {
-        guard characteristic == notifyCharacteristic, let data else { return }
-        let chunk = String(data: data, encoding: .utf8) ?? ""
+        guard characteristic == notifyCharacteristic, let data, !data.isEmpty else { return }
+        guard let chunk = String(data: data, encoding: .utf8) else {
+            receivedNonElmTraffic = true
+            if connectionState == .initializing {
+                failHandshake()
+            }
+            return
+        }
         responseBuffer += chunk
         if responseBuffer.contains(">") {
             completeCommand(responseBuffer)
@@ -594,27 +638,46 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     private func finishDiscovery(on peripheral: CBPeripheral) {
         guard let notifyCharacteristic, writeCharacteristic != nil else {
+            receivedNonElmTraffic = true
             failHandshake()
             return
         }
         peripheral.setNotifyValue(true, for: notifyCharacteristic)
     }
 
+    private func startHandshake() {
+        guard handshakeTask == nil else { return }
+        guard connectionState == .initializing || connectionState == .connecting else { return }
+        handshakeTask = Task { [weak self] in
+            await self?.handshake()
+        }
+    }
+
     private func handshake() async {
         connectionState = .initializing
         do {
             try await Task.sleep(for: .milliseconds(250))
-            _ = try await send("ATZ", timeout: 8)
+            try Task.checkCancellation()
+            let resetBanner = try await send("ATZ", timeout: 6)
+            try Task.checkCancellation()
             _ = try await send("ATE0")
             _ = try await send("ATL0")
             _ = try await send("ATS0")
             _ = try await send("ATH0")
-            _ = try await send("ATSP0", timeout: 8)
-            _ = try? await send("ATI")
+            _ = try await send("ATSP0", timeout: 6)
+            let ident = (try? await send("ATI")) ?? ""
+            try Task.checkCancellation()
+
+            guard ELM327Codec.looksLikeAdapter(resetBanner) || ELM327Codec.looksLikeAdapter(ident) else {
+                receivedNonElmTraffic = true
+                throw OBDError.handshakeFailed
+            }
 
             connectionState = .connected
             lastError = nil
             statusMessage = "Connected"
+            handshakeTask = nil
+            forgetIfUnsupported = false
             ConnectEntitlementStore.shared.beginTrialIfNeeded()
             beginTripTracking()
             markAdapterSeen()
@@ -622,6 +685,8 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             await snapshot()
             persistBackgroundSnapshotIfNeeded()
             startMonitor()
+        } catch is CancellationError {
+            return
         } catch {
             failHandshake()
         }
@@ -955,7 +1020,11 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         guard connectionState == .connected || connectionState == .initializing else {
             throw OBDError.notConnected
         }
+        guard peripheral != nil, writeCharacteristic != nil else {
+            throw OBDError.handshakeFailed
+        }
         while commandLock {
+            try Task.checkCancellation()
             try await Task.sleep(for: .milliseconds(40))
         }
         commandLock = true
@@ -965,11 +1034,12 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             pendingCommand = continuation
             responseBuffer = ""
             write(command)
-            timeoutTask = Task {
+            timeoutTask = Task { [weak self] in
                 try? await Task.sleep(for: .seconds(timeout))
-                if pendingCommand != nil {
-                    let snapshot = responseBuffer
-                    completeCommandSafely(snapshot.isEmpty ? nil : snapshot, timedOut: snapshot.isEmpty)
+                await MainActor.run {
+                    guard let self, self.pendingCommand != nil else { return }
+                    let snapshot = self.responseBuffer
+                    self.completeCommandSafely(snapshot.isEmpty ? nil : snapshot, timedOut: snapshot.isEmpty)
                 }
             }
         }
@@ -1052,9 +1122,21 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     private func failHandshake() {
+        handshakeTask?.cancel()
+        handshakeTask = nil
+        failPendingCommand(OBDError.handshakeFailed)
         suppressReconnect = true
         lastError = OBDError.handshakeFailed.errorDescription
         connectionState = .unsupportedAdapter
+        statusMessage = "Adapter not supported"
+
+        let shouldForget = forgetIfUnsupported || receivedNonElmTraffic
+        if shouldForget, let vehicleID = connectingVehicleID ?? connectedVehicleID {
+            OBDStore.forgetAdapter(vehicleID: vehicleID, container: modelContainer)
+        }
+        forgetIfUnsupported = false
+        receivedNonElmTraffic = false
+
         if let peripheral {
             central.cancelPeripheralConnection(peripheral)
         }
@@ -1062,6 +1144,8 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     private func resetConnection(keepVehicle: Bool) {
         isUsingMockAdapter = false
+        handshakeTask?.cancel()
+        handshakeTask = nil
         monitorTask?.cancel()
         monitorTask = nil
         peripheral = nil

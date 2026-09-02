@@ -37,6 +37,25 @@ enum OBDStore {
         vehicle.pairedAdapters.removeAll()
     }
 
+    static func forgetAdapter(vehicleID: UUID, container: ModelContainer?) {
+        do {
+            let container = try container ?? SharedModelContainer.make()
+            let context = ModelContext(container)
+            let target = vehicleID
+            var descriptor = FetchDescriptor<Vehicle>(
+                predicate: #Predicate { $0.id == target }
+            )
+            descriptor.fetchLimit = 1
+            guard let vehicle = try context.fetch(descriptor).first else {
+                return
+            }
+            forgetAdapter(on: vehicle, context: context)
+            try context.save()
+        } catch {
+            return
+        }
+    }
+
     static func markLastSeen(
         vehicleID: UUID,
         fuelPercent: Double? = nil,

@@ -50,8 +50,8 @@ enum ELM327Codec {
         if upper.contains("STN") { return true }
         if upper.contains("OBD") { return true }
         if upper.contains("VEEPEAK") { return true }
-        let payload = payload(from: raw)
-        return !payload.isEmpty && !isNoData(raw)
+        if upper.contains("OBDII") { return true }
+        return false
     }
 
     static func bytes(from raw: String) -> [UInt8] {
