@@ -86,7 +86,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         super.init()
         central = CBCentralManager(
             delegate: self,
-            queue: nil,
+            queue: .main,
             options: [CBCentralManagerOptionRestoreIdentifierKey: OBDAdapterProfile.restoreIdentifier]
         )
     }
@@ -370,23 +370,12 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     nonisolated func centralManagerDidUpdateState(_ central: CBCentralManager) {
         let state = central.state
-        hop {
-            bluetoothState = state
-            if state == .poweredOn {
-                reconnectKnownAdapters()
-            } else if connectionState != .disconnected && !isUsingMockAdapter {
-                lastError = OBDError.bluetoothUnavailable.errorDescription
-                scheduleTripEndAlertsIfNeeded()
-                resetConnection(keepVehicle: true)
-            }
-        }
+        hop { self.applyBluetoothState(state) }
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, willRestoreState dict: [String: Any]) {
         let restored = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral] ?? []
-        hop {
-            handleRestoredPeripherals(restored, central: central)
-        }
+        hop { self.handleRestoredPeripherals(restored, central: central) }
     }
 
     nonisolated func centralManager(
@@ -398,74 +387,73 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         let advertisedName = advertisementData[CBAdvertisementDataLocalNameKey] as? String
         let services = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID] ?? []
         let rssi = RSSI.intValue
-        hop {
-            handleDiscovery(peripheral, advertisedName: advertisedName, services: services, rssi: rssi)
-        }
+        hop { self.handleDiscovery(peripheral, advertisedName: advertisedName, services: services, rssi: rssi) }
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        hop {
-            handleDidConnect(peripheral)
-        }
+        hop { self.handleDidConnect(peripheral) }
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         let message = error?.localizedDescription
         let identifier = peripheral.identifier
-        hop {
-            if connectingPeripheralID == identifier {
-                lastError = message ?? "Could not connect to the adapter."
-                resetConnection(keepVehicle: true)
-                if !suppressReconnect {
-                    reconnectKnownAdapters()
-                }
-            }
-        }
+        hop { self.handleDidFailToConnect(identifier: identifier, message: message) }
     }
 
     nonisolated func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         let identifier = peripheral.identifier
-        hop {
-            handleDidDisconnect(identifier)
-        }
+        hop { self.handleDidDisconnect(identifier) }
     }
 
     nonisolated func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         let message = error?.localizedDescription
-        hop {
-            handleDiscoveredServices(on: peripheral, errorMessage: message)
-        }
+        hop { self.handleDiscoveredServices(on: peripheral, errorMessage: message) }
     }
 
     nonisolated func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
-        hop {
-            handleDiscoveredCharacteristics(on: peripheral, service: service, errorMessage: error?.localizedDescription)
-        }
+        hop { self.handleDiscoveredCharacteristics(on: peripheral, service: service, errorMessage: error?.localizedDescription) }
     }
 
     nonisolated func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         let data = characteristic.value
-        hop {
-            handleValueUpdate(characteristic, data: data)
-        }
+        hop { self.handleValueUpdate(characteristic, data: data) }
     }
 
     nonisolated func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
-        let ok = error == nil
-        hop {
-            if characteristic == notifyCharacteristic, ok {
-                startHandshake()
+        let enabled = error == nil
+        hop { self.handleNotificationState(characteristic, enabled: enabled) }
+    }
+
+    /// BLE is created on the main queue, so callbacks are already on the main actor.
+    /// Keep this non-escaping so Core Bluetooth objects do not cross a Sendable boundary.
+    nonisolated private func hop(_ body: @MainActor () -> Void) {
+        MainActor.assumeIsolated(body)
+    }
+
+    private func applyBluetoothState(_ state: CBManagerState) {
+        bluetoothState = state
+        if state == .poweredOn {
+            reconnectKnownAdapters()
+        } else if connectionState != .disconnected && !isUsingMockAdapter {
+            lastError = OBDError.bluetoothUnavailable.errorDescription
+            scheduleTripEndAlertsIfNeeded()
+            resetConnection(keepVehicle: true)
+        }
+    }
+
+    private func handleDidFailToConnect(identifier: UUID, message: String?) {
+        if connectingPeripheralID == identifier {
+            lastError = message ?? "Could not connect to the adapter."
+            resetConnection(keepVehicle: true)
+            if !suppressReconnect {
+                reconnectKnownAdapters()
             }
         }
     }
 
-    nonisolated private func hop(_ body: @escaping @MainActor () -> Void) {
-        if Thread.isMainThread {
-            MainActor.assumeIsolated(body)
-        } else {
-            Task { @MainActor in
-                body()
-            }
+    private func handleNotificationState(_ characteristic: CBCharacteristic, enabled: Bool) {
+        if characteristic == notifyCharacteristic, enabled {
+            startHandshake()
         }
     }
 
