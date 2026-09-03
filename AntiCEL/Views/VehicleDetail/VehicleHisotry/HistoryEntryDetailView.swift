@@ -69,9 +69,24 @@ struct HistoryEntryDetailView: View {
                 .datePickerStyle(.compact)
             }
 
-            InfotainmentField(label: "Mileage (\(settings.mileageUnit.abbreviation))") {
-                TextField("Mileage", text: $mileage)
-                    .keyboardType(.numberPad)
+            VStack(alignment: .leading, spacing: 8) {
+                InfotainmentField(label: "Mileage (\(settings.mileageUnit.abbreviation))") {
+                    TextField("Mileage", text: $mileage)
+                        .keyboardType(.numberPad)
+                }
+
+                HStack {
+                    DashButton(kind: .compact) {
+                        mileage = String(
+                            settings.mileageUnit.displayValue(
+                                fromStoredKilometers: vehicle.currentMileage
+                            )
+                        )
+                    } label: {
+                        Text("Use Current Mileage")
+                    }
+                    Spacer(minLength: 0)
+                }
             }
 
             InfotainmentField(label: "Notes") {

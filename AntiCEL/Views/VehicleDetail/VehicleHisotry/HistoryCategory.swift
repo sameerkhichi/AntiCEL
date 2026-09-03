@@ -17,7 +17,7 @@ enum HistoryCategory: String, Codable, CaseIterable {
         case .repair:
             return "hammer.fill"
         case .modification:
-            return "engine.combustion.fill"
+            return "gearshape.2.fill"
         case .inspection:
             return "checkmark.shield.fill"
         case .registration:

@@ -62,10 +62,7 @@ struct AddServiceReminderView: View {
                 }
 
             case .mileage:
-                InfotainmentField(label: "Due Mileage (\(settings.mileageUnit.abbreviation))") {
-                    TextField("Due Mileage", text: $dueMileage)
-                        .keyboardType(.numberPad)
-                }
+                dueMileageField
 
             case .whicheverComesFirst:
                 InfotainmentField(label: "Due Date") {
@@ -78,10 +75,7 @@ struct AddServiceReminderView: View {
                     .datePickerStyle(.compact)
                 }
 
-                InfotainmentField(label: "Due Mileage (\(settings.mileageUnit.abbreviation))") {
-                    TextField("Due Mileage", text: $dueMileage)
-                        .keyboardType(.numberPad)
-                }
+                dueMileageField
             }
 
             InfotainmentField(label: "Notes") {
@@ -92,6 +86,28 @@ struct AddServiceReminderView: View {
         .appTheme()
         .sheet(isPresented: $showingRelatedToHelp) {
             VehicleAreaHelpSheet()
+        }
+    }
+
+    private var dueMileageField: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            InfotainmentField(label: "Due Mileage (\(settings.mileageUnit.abbreviation))") {
+                TextField("Due Mileage", text: $dueMileage)
+                    .keyboardType(.numberPad)
+            }
+
+            HStack {
+                DashButton(kind: .compact) {
+                    dueMileage = String(
+                        settings.mileageUnit.displayValue(
+                            fromStoredKilometers: vehicle.currentMileage
+                        )
+                    )
+                } label: {
+                    Text("Use Current Mileage")
+                }
+                Spacer(minLength: 0)
+            }
         }
     }
 

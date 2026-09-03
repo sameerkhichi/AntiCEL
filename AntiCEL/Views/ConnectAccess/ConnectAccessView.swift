@@ -42,12 +42,14 @@ struct ConnectAccessView: View {
                 disclosure
             }
 
+            #if DEBUG
             if !store.isLoadingProducts, store.products.isEmpty, shouldShowPlans {
                 Text("Apple’s StoreKit catalog is not attached to this run, so there is no purchase sheet. In a Debug build you can still tap a plan to unlock Connect on this install and test the rest of the app.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            #endif
 
             if let lastMessage = store.lastMessage {
                 Text(lastMessage)
