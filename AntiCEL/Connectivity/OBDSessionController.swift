@@ -87,6 +87,8 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private var notifyReadyContinuation: CheckedContinuation<Void, Never>?
     private var writeReadyContinuation: CheckedContinuation<Void, Never>?
     private var writeGeneration = 0
+    private var idleNotifyBuffer = ""
+    private var allCharacteristics: [CBCharacteristic] = []
 
     #if DEBUG
     private var mockFaults: [OBDFaultReading] = OBDMockAdapter.sampleFaults
@@ -476,7 +478,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     private func handleNotificationState(_ characteristic: CBCharacteristic, enabled: Bool) {
-        guard enabled else { return }
+        guard enabled || characteristic.isNotifying else { return }
         didEnableNotify = true
         notifyReadyContinuation?.resume()
         notifyReadyContinuation = nil
@@ -580,6 +582,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         pendingServiceIDs = []
         writeCharacteristic = nil
         notifyCharacteristic = nil
+        handshakeTask?.cancel()
         handshakeTask = nil
         receivedNonElmTraffic = false
         commandAwaitingResponse = false
@@ -589,6 +592,8 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         uartPairs = [:]
         probeNotifyCharacteristics = []
         probeWriteCharacteristics = []
+        allCharacteristics = []
+        idleNotifyBuffer = ""
         didDiscoverAllServices = true
         peripheral.discoverServices(nil)
     }
@@ -640,6 +645,9 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             var notify = uartPairs[service.uuid]?.notify
             var write = uartPairs[service.uuid]?.write
             for characteristic in service.characteristics ?? [] {
+                if !allCharacteristics.contains(where: { $0.uuid == characteristic.uuid && $0.service?.uuid == service.uuid }) {
+                    allCharacteristics.append(characteristic)
+                }
                 let knownNotify = OBDAdapterProfile.preferredNotify.contains(characteristic.uuid)
                 let knownWrite = OBDAdapterProfile.preferredWrite.contains(characteristic.uuid)
                 let canNotify = characteristic.properties.contains(.notify) || characteristic.properties.contains(.indicate)
@@ -671,14 +679,21 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     private func handleValueUpdate(_ characteristic: CBCharacteristic, data: Data?) {
-        guard commandAwaitingResponse, let data, !data.isEmpty else { return }
+        guard let data, !data.isEmpty else { return }
         if connectionState != .initializing, !isNotifyTraffic(characteristic) {
             return
         }
-        notifyCharacteristic = characteristic
         let chunk = String(data: data, encoding: .utf8)
             ?? String(data: data, encoding: .isoLatin1)
             ?? ""
+        guard !chunk.isEmpty else { return }
+
+        if connectionState == .initializing, !commandAwaitingResponse {
+            idleNotifyBuffer += chunk
+            return
+        }
+        guard commandAwaitingResponse else { return }
+        notifyCharacteristic = characteristic
         responseBuffer += chunk
         if responseLooksComplete(responseBuffer) {
             completeCommand(responseBuffer)
@@ -695,7 +710,10 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private func responseLooksComplete(_ buffer: String) -> Bool {
         if buffer.contains(">") { return true }
         let upper = buffer.uppercased()
-        return upper.contains("ELM") || upper.contains("OK") || upper.contains("VEEPEAK")
+        return upper.contains("ELM")
+            || upper.contains("OK")
+            || upper.contains("VEEPEAK")
+            || upper.contains("?")
     }
 
     // MARK: - Handshake and polling
@@ -708,7 +726,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         writeCharacteristic = probeWriteCharacteristics.first(where: { $0.uuid == fff2 })
             ?? OBDAdapterProfile.preferredWriteOrder(probeWriteCharacteristics).first
 
-        guard notifyCharacteristic != nil, writeCharacteristic != nil else {
+        guard notifyCharacteristic != nil || writeCharacteristic != nil || !probeWriteCharacteristics.isEmpty else {
             failHandshake(
                 message: "Found the Veepeak but not its serial channel (notify \(probeNotifyCharacteristics.map { $0.uuid.uuidString }.joined(separator: ", ")); write \(probeWriteCharacteristics.map { $0.uuid.uuidString }.joined(separator: ", "))).",
                 forget: false,
@@ -717,16 +735,29 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             return
         }
 
-        if let notifyCharacteristic {
-            peripheral.setNotifyValue(true, for: notifyCharacteristic)
-        }
+        enableAllNotifications(on: peripheral)
         startHandshake()
+    }
+
+    private func enableAllNotifications(on peripheral: CBPeripheral) {
+        var seen = Set<String>()
+        for characteristic in probeNotifyCharacteristics + allCharacteristics {
+            let key = "\(characteristic.service?.uuid.uuidString ?? "")-\(characteristic.uuid.uuidString)"
+            guard seen.insert(key).inserted else { continue }
+            let canNotify = characteristic.properties.contains(.notify)
+                || characteristic.properties.contains(.indicate)
+                || OBDAdapterProfile.preferredNotify.contains(characteristic.uuid)
+            guard canNotify else { continue }
+            peripheral.setNotifyValue(true, for: characteristic)
+        }
     }
 
     private func startHandshake() {
         guard handshakeTask == nil else { return }
         guard connectionState == .initializing || connectionState == .connecting else { return }
-        handshakeTask = Task { [weak self] in
+        // Core Bluetooth delivers notify on the main queue. Handshake must run there
+        // or ATE0 replies are dropped before commandAwaitingResponse is visible.
+        handshakeTask = Task { @MainActor [weak self] in
             await self?.handshake()
         }
     }
@@ -736,15 +767,35 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         handshakeTask = nil
         failPendingCommand(OBDError.notConnected)
         lastError = nil
+        idleNotifyBuffer = ""
+        didEnableNotify = false
         connectionState = .initializing
         statusMessage = "Talking to adapter…"
+        if let peripheral {
+            enableAllNotifications(on: peripheral)
+        }
         startHandshake()
     }
 
     private func handshake() async {
         connectionState = .initializing
-        let writes = handshakeWriteTargets()
-        guard let writeChar = writes.first ?? writeCharacteristic, notifyCharacteristic != nil else {
+        statusMessage = "Talking to adapter…"
+        await waitUntilNotifyEnabled()
+        try? await Task.sleep(for: .milliseconds(600))
+
+        if handshakeReplyLooksValid(idleNotifyBuffer) {
+            do {
+                try await completeHandshake(firstReply: idleNotifyBuffer)
+                return
+            } catch is CancellationError {
+                return
+            } catch {
+                idleNotifyBuffer = ""
+            }
+        }
+
+        let pairs = uartProbePairs()
+        guard !pairs.isEmpty else {
             failHandshake(
                 message: "Found the Veepeak but not a usable write characteristic.",
                 forget: false,
@@ -753,31 +804,58 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             return
         }
 
-        writeCharacteristic = writeChar
-        await waitUntilNotifyEnabled()
-        try? await Task.sleep(for: .milliseconds(300))
-        var sawTimeout = false
         var lastFailure: String?
-        for withoutResponse in writeModes(for: writeChar) {
-            writeUsesWithoutResponse = withoutResponse
-            commandTerminator = "\r"
-            statusMessage = "Talking to adapter…"
+        if let first = pairs.first {
+            notifyCharacteristic = first.notify
+            writeCharacteristic = first.write
+        }
+        commandTerminator = "\r"
+        writeUsesWithoutResponse = false
+        idleNotifyBuffer = ""
+        if let wakeReply = try? await send("", timeout: 1.2), handshakeReplyLooksValid(wakeReply) {
             do {
-                try Task.checkCancellation()
-                // Do not send ATZ first. On Veepeak BLE+ it resets the radio and the reply never arrives.
-                let firstReply = try await send("ATE0", timeout: 4)
-                try Task.checkCancellation()
-                try await completeHandshake(firstReply: firstReply)
+                try await completeHandshake(firstReply: wakeReply)
                 return
             } catch is CancellationError {
                 return
-            } catch let error as OBDError where error == .timeout {
-                sawTimeout = true
-                lastFailure = error.localizedDescription
-                continue
             } catch {
                 lastFailure = error.localizedDescription
-                continue
+            }
+        } else if handshakeReplyLooksValid(idleNotifyBuffer) {
+            do {
+                try await completeHandshake(firstReply: idleNotifyBuffer)
+                return
+            } catch is CancellationError {
+                return
+            } catch {
+                lastFailure = error.localizedDescription
+            }
+        }
+
+        for (index, pair) in pairs.enumerated() {
+            if Task.isCancelled { return }
+            notifyCharacteristic = pair.notify
+            writeCharacteristic = pair.write
+            let terminators = index == 0 ? ["\r", "\r\n"] : ["\r"]
+            for terminator in terminators {
+                commandTerminator = terminator
+                for withoutResponse in writeModes(for: pair.write) {
+                    writeUsesWithoutResponse = withoutResponse
+                    statusMessage = "Talking to adapter…"
+                    do {
+                        try Task.checkCancellation()
+                        // Do not send ATZ first. On Veepeak BLE+ it resets the radio.
+                        let firstReply = try await send("ATE0", timeout: 4)
+                        try Task.checkCancellation()
+                        try await completeHandshake(firstReply: firstReply)
+                        return
+                    } catch is CancellationError {
+                        return
+                    } catch {
+                        lastFailure = error.localizedDescription
+                        continue
+                    }
+                }
             }
         }
 
@@ -786,7 +864,6 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             forget: false,
             timedOut: true
         )
-        _ = sawTimeout
     }
 
     private func completeHandshake(firstReply: String) async throws {
@@ -824,37 +901,61 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         startMonitor()
     }
 
-    private func handshakeWriteTargets() -> [CBCharacteristic] {
-        let preferred = probeWriteCharacteristics.filter { OBDAdapterProfile.preferredWrite.contains($0.uuid) }
-        if let fff2 = preferred.first(where: { $0.uuid == CBUUID(string: "FFF2") }) {
-            return [fff2]
-        }
-        if !preferred.isEmpty {
-            return OBDAdapterProfile.preferredWriteOrder(preferred)
-        }
-        return OBDAdapterProfile.preferredWriteOrder(
-            probeWriteCharacteristics.filter { characteristic in
-                guard let service = characteristic.service?.uuid else { return false }
-                return OBDAdapterProfile.isUARTService(service)
+    private func handshakeReplyLooksValid(_ raw: String) -> Bool {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        if trimmed.contains(">") { return true }
+        let upper = trimmed.uppercased()
+        return upper.contains("OK")
+            || ELM327Codec.looksLikeAdapter(trimmed)
+    }
+
+    private func uartProbePairs() -> [(notify: CBCharacteristic, write: CBCharacteristic)] {
+        var pairs: [(notify: CBCharacteristic, write: CBCharacteristic)] = []
+        func add(_ notify: CBCharacteristic?, _ write: CBCharacteristic?) {
+            guard let notify, let write else { return }
+            let exists = pairs.contains {
+                $0.notify.uuid == notify.uuid
+                    && $0.write.uuid == write.uuid
+                    && $0.notify.service?.uuid == notify.service?.uuid
+                    && $0.write.service?.uuid == write.service?.uuid
             }
-        )
+            if !exists {
+                pairs.append((notify, write))
+            }
+        }
+
+        let fff1 = CBUUID(string: "FFF1")
+        let fff2 = CBUUID(string: "FFF2")
+        let notifyFFF1 = probeNotifyCharacteristics.first { $0.uuid == fff1 }
+        let writeFFF2 = probeWriteCharacteristics.first { $0.uuid == fff2 }
+        add(notifyFFF1, writeFFF2)
+
+        for pair in OBDAdapterProfile.orderedUARTPairs(from: uartPairs) {
+            add(pair.notify, pair.write)
+        }
+
+        // Some clones swap FFF1/FFF2 or use one characteristic both ways.
+        add(allCharacteristics.first { $0.uuid == fff2 }, allCharacteristics.first { $0.uuid == fff1 })
+        add(notifyFFF1, notifyFFF1)
+        add(writeFFF2, writeFFF2)
+
+        for notify in probeNotifyCharacteristics {
+            for write in OBDAdapterProfile.preferredWriteOrder(probeWriteCharacteristics) {
+                add(notify, write)
+            }
+        }
+        return Array(pairs.prefix(4))
     }
 
     private func writeModes(for characteristic: CBCharacteristic) -> [Bool] {
-        var modes: [Bool] = []
-        // Veepeak FFF2 is documented as write-with-response.
-        if characteristic.uuid == CBUUID(string: "FFF2") {
-            if characteristic.properties.contains(.write) { modes.append(false) }
-            if characteristic.properties.contains(.writeWithoutResponse) { modes.append(true) }
-            return modes.isEmpty ? [false, true] : modes
+        // Always try both ATT write types. iOS may accept withResponse while the
+        // firmware only forwards write-without-response to the ELM UART, or the reverse.
+        if characteristic.properties.contains(.writeWithoutResponse)
+            && !characteristic.properties.contains(.write) {
+            return [true, false]
         }
-        if characteristic.properties.contains(.writeWithoutResponse) {
-            modes.append(true)
-        }
-        if characteristic.properties.contains(.write) {
-            modes.append(false)
-        }
-        return modes.isEmpty ? [false, true] : modes
+        return [false, true]
     }
 
     private func waitUntilNotifyEnabled() async {
@@ -866,7 +967,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             }
             notifyReadyContinuation = continuation
             Task { [weak self] in
-                try? await Task.sleep(for: .seconds(2))
+                try? await Task.sleep(for: .seconds(4))
                 await MainActor.run {
                     guard let self, let pending = self.notifyReadyContinuation else { return }
                     self.notifyReadyContinuation = nil
@@ -882,7 +983,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             return
         }
         monitorTask?.cancel()
-        monitorTask = Task { [weak self] in
+        monitorTask = Task { @MainActor [weak self] in
             var ticks = 0
             while let self, !Task.isCancelled, self.connectionState == .connected {
                 await self.pollTick(ticks: ticks)
@@ -1201,6 +1302,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     // MARK: - Commands
 
+    @MainActor
     private func send(_ command: String, timeout: TimeInterval = 4) async throws -> String {
         guard connectionState == .connected || connectionState == .initializing else {
             throw OBDError.notConnected
@@ -1222,28 +1324,20 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             responseBuffer = ""
             commandAwaitingResponse = true
             write(command)
-            timeoutTask = Task { [weak self] in
+            timeoutTask = Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .seconds(timeout))
-                await MainActor.run {
-                    guard let self, self.pendingCommand != nil else { return }
-                    let snapshot = self.responseBuffer
-                    self.completeCommandSafely(snapshot.isEmpty ? nil : snapshot, timedOut: snapshot.isEmpty)
-                }
+                guard let self, self.pendingCommand != nil else { return }
+                let snapshot = self.responseBuffer
+                self.completeCommandSafely(snapshot.isEmpty ? nil : snapshot, timedOut: snapshot.isEmpty)
             }
         }
     }
 
+    @MainActor
     private func write(_ command: String) {
         guard let peripheral, let writeCharacteristic else { return }
         let payload = (command + commandTerminator).data(using: .ascii) ?? Data()
-        let type: CBCharacteristicWriteType
-        if writeUsesWithoutResponse == true, writeCharacteristic.properties.contains(.writeWithoutResponse) {
-            type = .withoutResponse
-        } else if writeCharacteristic.properties.contains(.write) {
-            type = .withResponse
-        } else {
-            type = .withoutResponse
-        }
+        let type: CBCharacteristicWriteType = writeUsesWithoutResponse == true ? .withoutResponse : .withResponse
         peripheral.writeValue(payload, for: writeCharacteristic, type: type)
     }
 
@@ -1377,6 +1471,8 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         uartPairs = [:]
         probeNotifyCharacteristics = []
         probeWriteCharacteristics = []
+        allCharacteristics = []
+        idleNotifyBuffer = ""
         didDiscoverAllServices = false
         writeUsesWithoutResponse = nil
         commandTerminator = "\r"

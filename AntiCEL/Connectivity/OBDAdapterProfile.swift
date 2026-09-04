@@ -17,6 +17,7 @@ enum OBDAdapterProfile {
         CBUUID(string: "FFE1"),
         CBUUID(string: "18F1"),
         CBUUID(string: "49535343-ACA3-481C-91EC-D85E28A60318"),
+        CBUUID(string: "49535343-1E4D-4BD9-BA61-23C647249616"),
     ]
 
     static let preferredWrite: [CBUUID] = [
