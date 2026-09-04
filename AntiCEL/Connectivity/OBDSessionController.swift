@@ -75,6 +75,8 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private var handshakeTask: Task<Void, Never>?
     private var forgetIfUnsupported = false
     private var receivedNonElmTraffic = false
+    private var uartPairs: [CBUUID: (notify: CBCharacteristic?, write: CBCharacteristic?)] = [:]
+    private var didDiscoverAllServices = false
 
     #if DEBUG
     private var mockFaults: [OBDFaultReading] = OBDMockAdapter.sampleFaults
@@ -540,11 +542,18 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         notifyCharacteristic = nil
         handshakeTask = nil
         receivedNonElmTraffic = false
+        uartPairs = [:]
+        didDiscoverAllServices = false
         discoverAdapterServices(on: peripheral)
     }
 
-    private func discoverAdapterServices(on peripheral: CBPeripheral) {
-        peripheral.discoverServices(OBDAdapterProfile.uartServices)
+    private func discoverAdapterServices(on peripheral: CBPeripheral, allServices: Bool = false) {
+        if allServices {
+            didDiscoverAllServices = true
+            peripheral.discoverServices(nil)
+        } else {
+            peripheral.discoverServices(OBDAdapterProfile.uartServices)
+        }
     }
 
     private func handleDidDisconnect(_ identifier: UUID) {
@@ -569,13 +578,22 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     private func handleDiscoveredServices(on peripheral: CBPeripheral, errorMessage: String?) {
         if errorMessage != nil {
+            if !didDiscoverAllServices {
+                discoverAdapterServices(on: peripheral, allServices: true)
+                return
+            }
             receivedNonElmTraffic = true
             failHandshake()
             return
         }
-        let services = peripheral.services ?? []
+
+        let services = (peripheral.services ?? []).filter { OBDAdapterProfile.isUARTService($0.uuid) }
         pendingDiscoveries = services.count
         guard pendingDiscoveries > 0 else {
+            if !didDiscoverAllServices {
+                discoverAdapterServices(on: peripheral, allServices: true)
+                return
+            }
             receivedNonElmTraffic = true
             failHandshake()
             return
@@ -588,18 +606,21 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private func handleDiscoveredCharacteristics(on peripheral: CBPeripheral, service: CBService, errorMessage: String?) {
         pendingDiscoveries = max(pendingDiscoveries - 1, 0)
         if errorMessage == nil {
+            var notify = uartPairs[service.uuid]?.notify
+            var write = uartPairs[service.uuid]?.write
             for characteristic in service.characteristics ?? [] {
-                if notifyCharacteristic == nil || OBDAdapterProfile.preferredNotify.contains(characteristic.uuid) {
-                    if characteristic.properties.contains(.notify) || characteristic.properties.contains(.indicate) {
-                        notifyCharacteristic = characteristic
+                if characteristic.properties.contains(.notify) || characteristic.properties.contains(.indicate) {
+                    if notify == nil || OBDAdapterProfile.preferredNotify.contains(characteristic.uuid) {
+                        notify = characteristic
                     }
                 }
-                if writeCharacteristic == nil || OBDAdapterProfile.preferredWrite.contains(characteristic.uuid) {
-                    if characteristic.properties.contains(.write) || characteristic.properties.contains(.writeWithoutResponse) {
-                        writeCharacteristic = characteristic
+                if characteristic.properties.contains(.write) || characteristic.properties.contains(.writeWithoutResponse) {
+                    if write == nil || OBDAdapterProfile.preferredWrite.contains(characteristic.uuid) {
+                        write = characteristic
                     }
                 }
             }
+            uartPairs[service.uuid] = (notify, write)
         }
 
         if pendingDiscoveries == 0 {
@@ -610,10 +631,6 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private func handleValueUpdate(_ characteristic: CBCharacteristic, data: Data?) {
         guard characteristic == notifyCharacteristic, let data, !data.isEmpty else { return }
         guard let chunk = String(data: data, encoding: .utf8) else {
-            receivedNonElmTraffic = true
-            if connectionState == .initializing {
-                failHandshake()
-            }
             return
         }
         responseBuffer += chunk
@@ -625,12 +642,18 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     // MARK: - Handshake and polling
 
     private func finishDiscovery(on peripheral: CBPeripheral) {
-        guard let notifyCharacteristic, writeCharacteristic != nil else {
+        guard let pair = OBDAdapterProfile.preferredUARTPair(from: uartPairs) else {
+            if !didDiscoverAllServices {
+                discoverAdapterServices(on: peripheral, allServices: true)
+                return
+            }
             receivedNonElmTraffic = true
             failHandshake()
             return
         }
-        peripheral.setNotifyValue(true, for: notifyCharacteristic)
+        notifyCharacteristic = pair.notify
+        writeCharacteristic = pair.write
+        peripheral.setNotifyValue(true, for: pair.notify)
     }
 
     private func startHandshake() {
@@ -644,7 +667,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private func handshake() async {
         connectionState = .initializing
         do {
-            try await Task.sleep(for: .milliseconds(250))
+            try await Task.sleep(for: .milliseconds(500))
             try Task.checkCancellation()
             let resetBanner = try await send("ATZ", timeout: 6)
             try Task.checkCancellation()
@@ -656,7 +679,10 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             let ident = (try? await send("ATI")) ?? ""
             try Task.checkCancellation()
 
-            guard ELM327Codec.looksLikeAdapter(resetBanner) || ELM327Codec.looksLikeAdapter(ident) else {
+            let namedAdapter = OBDAdapterProfile.isLikelyAdapter(name: connectedAdapterName ?? "")
+            guard namedAdapter
+                    || ELM327Codec.looksLikeAdapter(resetBanner)
+                    || ELM327Codec.looksLikeAdapter(ident) else {
                 receivedNonElmTraffic = true
                 throw OBDError.handshakeFailed
             }
@@ -1139,6 +1165,8 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         peripheral = nil
         writeCharacteristic = nil
         notifyCharacteristic = nil
+        uartPairs = [:]
+        didDiscoverAllServices = false
         pendingDiscoveries = 0
         telemetry = OBDLiveTelemetry()
         if !keepVehicle {

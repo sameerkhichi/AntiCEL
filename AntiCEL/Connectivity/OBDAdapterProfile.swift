@@ -52,12 +52,32 @@ enum OBDAdapterProfile {
         return raw
     }
 
-    static func isLikelyAdapter(name: String, advertisedServices: [CBUUID]) -> Bool {
+    static func isLikelyAdapter(name: String, advertisedServices: [CBUUID] = []) -> Bool {
         let upper = name.uppercased()
         if nameHints.contains(where: { upper.contains($0) }) {
             return true
         }
         return advertisedServices.contains(where: { uartServices.contains($0) })
+    }
+
+    static func isUARTService(_ uuid: CBUUID) -> Bool {
+        uartServices.contains(uuid)
+    }
+
+    static func preferredUARTPair(
+        from pairs: [CBUUID: (notify: CBCharacteristic?, write: CBCharacteristic?)]
+    ) -> (notify: CBCharacteristic, write: CBCharacteristic)? {
+        for uuid in uartServices {
+            if let pair = pairs[uuid], let notify = pair.notify, let write = pair.write {
+                return (notify, write)
+            }
+        }
+        for pair in pairs.values {
+            if let notify = pair.notify, let write = pair.write {
+                return (notify, write)
+            }
+        }
+        return nil
     }
 
     static let connectOptions: [String: Any] = [
