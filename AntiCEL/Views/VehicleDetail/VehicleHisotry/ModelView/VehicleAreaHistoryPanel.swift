@@ -39,7 +39,7 @@ struct VehicleAreaHistoryPanel: View {
 
                 if let latestEntry {
                     Text(
-                        "Last: \(latestEntry.title) · \(latestEntry.date.formatted(date: .abbreviated, time: .omitted))"
+                        "Last: \(latestEntry.displayTitle) · \(latestEntry.date.formatted(date: .abbreviated, time: .omitted))"
                     )
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
@@ -64,7 +64,7 @@ struct VehicleAreaHistoryPanel: View {
                         } label: {
                             HStack(alignment: .top, spacing: 12) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(entry.title)
+                                    Text(entry.displayTitle)
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundStyle(.primary)
 
@@ -81,6 +81,10 @@ struct VehicleAreaHistoryPanel: View {
                                         Text(settings.formattedMileage(mileage))
                                             .font(.caption2)
                                             .foregroundStyle(.tertiary)
+                                    }
+
+                                    if entry.isAutoScannedFault {
+                                        ScannedFaultVerificationBadge()
                                     }
                                 }
 

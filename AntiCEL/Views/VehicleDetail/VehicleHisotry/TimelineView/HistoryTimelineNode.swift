@@ -37,7 +37,7 @@ struct HistoryTimelineNode: View {
 
             VStack(alignment: .leading, spacing: 8) {
 
-                Text(entry.title)
+                Text(entry.displayTitle)
                     .font(.headline)
 
                 Text(formattedDate)
@@ -48,6 +48,10 @@ struct HistoryTimelineNode: View {
                     Text(settings.formattedMileage(mileage))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                }
+
+                if entry.isAutoScannedFault {
+                    ScannedFaultVerificationBadge()
                 }
 
                 if entry.photoFileName != nil {

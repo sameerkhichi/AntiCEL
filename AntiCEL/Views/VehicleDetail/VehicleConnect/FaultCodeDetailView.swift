@@ -19,7 +19,8 @@ struct FaultCodeDetailView: View {
             onConfirm: { dismiss() }
         ) {
             InfotainmentField(label: "Code") {
-                Text(fault.code)
+                Text(DTCDictionary.normalizedCode(fault.code))
+                    .font(.body.monospaced())
             }
 
             InfotainmentField(label: "Status") {
@@ -27,7 +28,7 @@ struct FaultCodeDetailView: View {
             }
 
             InfotainmentField(label: "Description") {
-                Text(fault.title)
+                Text(DTCDictionary.description(for: fault.code))
                     .fixedSize(horizontal: false, vertical: true)
             }
 

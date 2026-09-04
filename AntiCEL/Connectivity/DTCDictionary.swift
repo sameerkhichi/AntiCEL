@@ -2,8 +2,12 @@ import Foundation
 
 enum DTCDictionary {
 
-    static func title(for code: String) -> String {
-        let key = code.uppercased()
+    static func normalizedCode(_ code: String) -> String {
+        code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    }
+
+    static func description(for code: String) -> String {
+        let key = normalizedCode(code)
         if let exact = titles[key] {
             return exact
         }
@@ -20,6 +24,11 @@ enum DTCDictionary {
         default:
             return "Diagnostic trouble code"
         }
+    }
+
+    static func title(for code: String) -> String {
+        let key = normalizedCode(code)
+        return "\(key) · \(description(for: key))"
     }
 
     private static let titles: [String: String] = [

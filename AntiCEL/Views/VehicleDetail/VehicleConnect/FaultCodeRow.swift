@@ -13,10 +13,12 @@ struct FaultCodeRow: View {
                     .frame(width: 32)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(fault.code)
-                        .font(.headline.width(.condensed))
+                    Text(DTCDictionary.normalizedCode(fault.code))
+                        .font(.headline.monospaced().width(.condensed))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
 
-                    Text(fault.title)
+                    Text(DTCDictionary.description(for: fault.code))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

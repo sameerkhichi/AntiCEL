@@ -159,6 +159,7 @@ enum OBDStore {
                 if reading.status.rank >= existing.status.rank {
                     existing.status = reading.status
                 }
+                existing.title = DTCDictionary.title(for: reading.code)
 
                 if returned {
                     existing.firstSeenAt = now
@@ -262,7 +263,9 @@ enum OBDStore {
             mileage: fault.mileageAtFirstSeen,
             category: DTCHistoryMapper.category(for: fault.code),
             vehicleArea: DTCHistoryMapper.vehicleArea(for: fault.code),
-            vehicle: vehicle
+            vehicle: vehicle,
+            createdFromScannedFault: true,
+            scannedFaultCode: DTCDictionary.normalizedCode(fault.code)
         )
         context.insert(entry)
         vehicle.historyEntries.append(entry)

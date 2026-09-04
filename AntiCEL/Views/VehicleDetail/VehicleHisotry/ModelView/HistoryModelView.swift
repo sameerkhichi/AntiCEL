@@ -125,7 +125,7 @@ struct HistoryModelView: View {
 
                                 if let latest {
                                     Text(
-                                        "Last: \(latest.title) · \(latest.date.formatted(date: .abbreviated, time: .omitted))"
+                                        "Last: \(latest.displayTitle) · \(latest.date.formatted(date: .abbreviated, time: .omitted))"
                                     )
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)

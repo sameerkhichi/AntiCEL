@@ -26,6 +26,7 @@ enum DTCHistoryMapper {
     }
 
     static func historyDetails(code: String, status: DiagnosticFaultStatus) -> String {
-        "\(code.uppercased()) — \(DTCDictionary.title(for: code)). Status: \(status.displayName)."
+        let key = DTCDictionary.normalizedCode(code)
+        return "\(key) — \(DTCDictionary.description(for: key)). Status: \(status.displayName)."
     }
 }

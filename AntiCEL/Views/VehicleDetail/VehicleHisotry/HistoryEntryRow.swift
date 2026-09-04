@@ -19,7 +19,7 @@ struct HistoryEntryRow: View {
                     .frame(width: 32)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(entry.title)
+                    Text(entry.displayTitle)
                         .font(.headline)
 
                     Text(formattedDate)
@@ -34,6 +34,10 @@ struct HistoryEntryRow: View {
                         Text(settings.formattedMileage(mileage))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                    }
+
+                    if entry.isAutoScannedFault {
+                        ScannedFaultVerificationBadge()
                     }
                 }
 

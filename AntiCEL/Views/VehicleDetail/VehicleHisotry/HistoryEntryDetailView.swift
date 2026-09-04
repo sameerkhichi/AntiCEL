@@ -40,6 +40,13 @@ struct HistoryEntryDetailView: View {
             onCancel: { dismiss() },
             onConfirm: saveEntry
         ) {
+            if historyEntry?.isAutoScannedFault == true {
+                HStack(alignment: .top, spacing: 10) {
+                    ScannedFaultVerificationBadge()
+                    Spacer(minLength: 0)
+                }
+            }
+
             InfotainmentField(label: "Title") {
                 TextField("Title", text: $title)
             }
@@ -125,7 +132,7 @@ struct HistoryEntryDetailView: View {
         }
         .onAppear {
             if let historyEntry {
-                title = historyEntry.title
+                title = historyEntry.displayTitle
                 category = historyEntry.category
                 vehicleArea = historyEntry.resolvedVehicleArea
                 date = historyEntry.date
