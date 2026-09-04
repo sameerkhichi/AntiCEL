@@ -64,6 +64,11 @@ enum OBDAdapterProfile {
         uartServices.contains(uuid)
     }
 
+    static func isVeepeakUARTPair(notify: CBUUID?, write: CBUUID?) -> Bool {
+        guard let notify, let write else { return false }
+        return notify == CBUUID(string: "FFF1") && write == CBUUID(string: "FFF2")
+    }
+
     static func preferredUARTPair(
         from pairs: [CBUUID: (notify: CBCharacteristic?, write: CBCharacteristic?)]
     ) -> (notify: CBCharacteristic, write: CBCharacteristic)? {
