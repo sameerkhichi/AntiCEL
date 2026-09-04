@@ -78,6 +78,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private var uartPairs: [CBUUID: (notify: CBCharacteristic?, write: CBCharacteristic?)] = [:]
     private var didDiscoverAllServices = false
     private var commandAwaitingResponse = false
+    private var writeUsesWithoutResponse: Bool?
 
     #if DEBUG
     private var mockFaults: [OBDFaultReading] = OBDMockAdapter.sampleFaults
@@ -427,6 +428,10 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         hop { self.handleNotificationState(characteristic, enabled: enabled) }
     }
 
+    nonisolated func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
+        hop { self.handleDidWrite(characteristic, errorMessage: error?.localizedDescription) }
+    }
+
     /// BLE is created on the main queue, so callbacks are already on the main actor.
     /// Keep this non-escaping so Core Bluetooth objects do not cross a Sendable boundary.
     nonisolated private func hop(_ body: @MainActor () -> Void) {
@@ -455,8 +460,15 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     private func handleNotificationState(_ characteristic: CBCharacteristic, enabled: Bool) {
-        if characteristic == notifyCharacteristic, enabled {
+        if characteristic.uuid == notifyCharacteristic?.uuid, enabled {
             startHandshake()
+        }
+    }
+
+    private func handleDidWrite(_ characteristic: CBCharacteristic, errorMessage: String?) {
+        guard characteristic.uuid == writeCharacteristic?.uuid, let errorMessage else { return }
+        if commandAwaitingResponse, connectionState == .initializing {
+            lastError = errorMessage
         }
     }
 
@@ -547,6 +559,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         handshakeTask = nil
         receivedNonElmTraffic = false
         commandAwaitingResponse = false
+        writeUsesWithoutResponse = nil
         uartPairs = [:]
         didDiscoverAllServices = false
         discoverAdapterServices(on: peripheral)
@@ -634,20 +647,38 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     private func handleValueUpdate(_ characteristic: CBCharacteristic, data: Data?) {
-        guard commandAwaitingResponse, characteristic == notifyCharacteristic, let data, !data.isEmpty else { return }
+        guard commandAwaitingResponse, isNotifyTraffic(characteristic), let data, !data.isEmpty else { return }
         let chunk = String(data: data, encoding: .utf8)
             ?? String(data: data, encoding: .isoLatin1)
             ?? ""
         responseBuffer += chunk
-        if responseBuffer.contains(">") {
+        if responseLooksComplete(responseBuffer) {
             completeCommand(responseBuffer)
         }
+    }
+
+    private func isNotifyTraffic(_ characteristic: CBCharacteristic) -> Bool {
+        if characteristic.uuid == notifyCharacteristic?.uuid {
+            return true
+        }
+        if let notify = notifyCharacteristic,
+           characteristic.service?.uuid == notify.service?.uuid {
+            return characteristic.properties.contains(.notify) || characteristic.properties.contains(.indicate)
+        }
+        return false
+    }
+
+    private func responseLooksComplete(_ buffer: String) -> Bool {
+        if buffer.contains(">") { return true }
+        let upper = buffer.uppercased()
+        return upper.contains("ELM") || upper.contains("OK") || upper.contains("VEEPEAK")
     }
 
     // MARK: - Handshake and polling
 
     private func finishDiscovery(on peripheral: CBPeripheral) {
-        guard let pair = OBDAdapterProfile.preferredUARTPair(from: uartPairs) else {
+        let pairs = OBDAdapterProfile.orderedUARTPairs(from: uartPairs)
+        guard let pair = pairs.first else {
             if !didDiscoverAllServices {
                 discoverAdapterServices(on: peripheral, allServices: true)
                 return
@@ -656,9 +687,24 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             failHandshake()
             return
         }
+        applyUARTPair(pair, on: peripheral)
+    }
+
+    private func applyUARTPair(
+        _ pair: (notify: CBCharacteristic, write: CBCharacteristic),
+        on peripheral: CBPeripheral
+    ) {
         notifyCharacteristic = pair.notify
         writeCharacteristic = pair.write
-        peripheral.setNotifyValue(true, for: pair.notify)
+        if let characteristics = pair.notify.service?.characteristics {
+            for characteristic in characteristics {
+                if characteristic.properties.contains(.notify) || characteristic.properties.contains(.indicate) {
+                    peripheral.setNotifyValue(true, for: characteristic)
+                }
+            }
+        } else {
+            peripheral.setNotifyValue(true, for: pair.notify)
+        }
     }
 
     private func startHandshake() {
@@ -671,59 +717,91 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     private func handshake() async {
         connectionState = .initializing
-        do {
-            try await Task.sleep(for: .milliseconds(400))
-            try Task.checkCancellation()
-            let resetBanner = try await resetAdapter()
-            try Task.checkCancellation()
-            _ = try await send("ATE0")
-            _ = try await send("ATL0")
-            _ = try await send("ATS0")
-            _ = try await send("ATH0")
-            let ident = (try? await send("ATI")) ?? ""
-            _ = try? await send("ATSP0", timeout: 6)
-            try Task.checkCancellation()
-
-            let namedAdapter = OBDAdapterProfile.isLikelyAdapter(name: connectedAdapterName ?? "")
-            let identified = ELM327Codec.looksLikeAdapter(resetBanner)
-                || ELM327Codec.looksLikeAdapter(ident)
-            let veepeakUART = OBDAdapterProfile.isVeepeakUARTPair(
-                notify: notifyCharacteristic?.uuid,
-                write: writeCharacteristic?.uuid
-            )
-            guard namedAdapter || identified || veepeakUART else {
-                receivedNonElmTraffic = true
-                throw OBDError.handshakeFailed
-            }
-
-            connectionState = .connected
-            lastError = nil
-            statusMessage = "Connected"
-            handshakeTask = nil
-            forgetIfUnsupported = false
-            ConnectEntitlementStore.shared.beginTrialIfNeeded()
-            beginTripTracking()
-            markAdapterSeen()
-            await loadSupportedPIDs()
-            await snapshot()
-            persistBackgroundSnapshotIfNeeded()
-            startMonitor()
-        } catch is CancellationError {
+        let pairs = OBDAdapterProfile.orderedUARTPairs(from: uartPairs)
+        guard !pairs.isEmpty else {
+            failHandshake()
             return
-        } catch let error as OBDError where error == .timeout {
-            failHandshake(message: "The adapter did not respond in time. Turn the ignition on, stay next to the car, and try again. Do not pair it in iOS Bluetooth Settings.")
-        } catch {
+        }
+
+        var sawTimeout = false
+        for pair in pairs {
+            guard let peripheral else { break }
+            applyUARTPair(pair, on: peripheral)
+            try? await Task.sleep(for: .milliseconds(350))
+            for withoutResponse in writeModes(for: pair.write) {
+                writeUsesWithoutResponse = withoutResponse
+                do {
+                    try Task.checkCancellation()
+                    _ = try? await send("", timeout: 1.2)
+                    let resetBanner = try await send("ATZ", timeout: 5)
+                    try Task.checkCancellation()
+                    try await completeHandshake(resetBanner: resetBanner)
+                    return
+                } catch is CancellationError {
+                    return
+                } catch let error as OBDError where error == .timeout {
+                    sawTimeout = true
+                    continue
+                } catch {
+                    continue
+                }
+            }
+        }
+
+        if sawTimeout {
+            failHandshake(
+                message: "The adapter did not respond in time. Keep the ignition on and stay next to the car. If it is listed in iOS Bluetooth Settings, forget it there and pair only from AntiCEL.",
+                forget: false
+            )
+        } else {
             failHandshake()
         }
     }
 
-    private func resetAdapter() async throws -> String {
-        do {
-            return try await send("ATZ", timeout: 6)
-        } catch {
-            try await Task.sleep(for: .milliseconds(300))
-            return try await send("ATZ", timeout: 6)
+    private func completeHandshake(resetBanner: String) async throws {
+        _ = try await send("ATE0")
+        _ = try await send("ATL0")
+        _ = try await send("ATS0")
+        _ = try await send("ATH0")
+        let ident = (try? await send("ATI")) ?? ""
+        _ = try? await send("ATSP0", timeout: 6)
+        try Task.checkCancellation()
+
+        let namedAdapter = OBDAdapterProfile.isLikelyAdapter(name: connectedAdapterName ?? "")
+        let identified = ELM327Codec.looksLikeAdapter(resetBanner)
+            || ELM327Codec.looksLikeAdapter(ident)
+        let veepeakUART = OBDAdapterProfile.isVeepeakUARTPair(
+            notify: notifyCharacteristic?.uuid,
+            write: writeCharacteristic?.uuid
+        )
+        guard namedAdapter || identified || veepeakUART else {
+            receivedNonElmTraffic = true
+            throw OBDError.handshakeFailed
         }
+
+        connectionState = .connected
+        lastError = nil
+        statusMessage = "Connected"
+        handshakeTask = nil
+        forgetIfUnsupported = false
+        ConnectEntitlementStore.shared.beginTrialIfNeeded()
+        beginTripTracking()
+        markAdapterSeen()
+        await loadSupportedPIDs()
+        await snapshot()
+        persistBackgroundSnapshotIfNeeded()
+        startMonitor()
+    }
+
+    private func writeModes(for characteristic: CBCharacteristic) -> [Bool] {
+        var modes: [Bool] = []
+        if characteristic.properties.contains(.write) {
+            modes.append(false)
+        }
+        if characteristic.properties.contains(.writeWithoutResponse) {
+            modes.append(true)
+        }
+        return modes.isEmpty ? [false, true] : modes
     }
 
     private func startMonitor() {
@@ -1084,9 +1162,22 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private func write(_ command: String) {
         guard let peripheral, let writeCharacteristic else { return }
         let payload = (command + "\r").data(using: .ascii) ?? Data()
-        let type: CBCharacteristicWriteType = writeCharacteristic.properties.contains(.writeWithoutResponse)
-            ? .withoutResponse
-            : .withResponse
+        let canWithout = writeCharacteristic.properties.contains(.writeWithoutResponse)
+        let canWith = writeCharacteristic.properties.contains(.write)
+        let type: CBCharacteristicWriteType
+        if let override = writeUsesWithoutResponse {
+            if override, canWithout {
+                type = .withoutResponse
+            } else if canWith {
+                type = .withResponse
+            } else {
+                type = .withoutResponse
+            }
+        } else if canWithout {
+            type = .withoutResponse
+        } else {
+            type = .withResponse
+        }
         peripheral.writeValue(payload, for: writeCharacteristic, type: type)
     }
 
@@ -1158,7 +1249,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         return false
     }
 
-    private func failHandshake(message: String? = nil) {
+    private func failHandshake(message: String? = nil, forget: Bool? = nil) {
         handshakeTask?.cancel()
         handshakeTask = nil
         failPendingCommand(OBDError.handshakeFailed)
@@ -1167,7 +1258,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         connectionState = .unsupportedAdapter
         statusMessage = "Adapter not supported"
 
-        let shouldForget = forgetIfUnsupported || receivedNonElmTraffic
+        let shouldForget = forget ?? ((forgetIfUnsupported || receivedNonElmTraffic) && message == nil)
         if shouldForget, let vehicleID = connectingVehicleID ?? connectedVehicleID {
             OBDStore.forgetAdapter(vehicleID: vehicleID, container: modelContainer)
         }
@@ -1190,6 +1281,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         notifyCharacteristic = nil
         uartPairs = [:]
         didDiscoverAllServices = false
+        writeUsesWithoutResponse = nil
         pendingDiscoveries = 0
         telemetry = OBDLiveTelemetry()
         if !keepVehicle {

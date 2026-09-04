@@ -69,20 +69,26 @@ enum OBDAdapterProfile {
         return notify == CBUUID(string: "FFF1") && write == CBUUID(string: "FFF2")
     }
 
+    static func orderedUARTPairs(
+        from pairs: [CBUUID: (notify: CBCharacteristic?, write: CBCharacteristic?)]
+    ) -> [(notify: CBCharacteristic, write: CBCharacteristic)] {
+        var result: [(notify: CBCharacteristic, write: CBCharacteristic)] = []
+        for uuid in uartServices {
+            if let pair = pairs[uuid], let notify = pair.notify, let write = pair.write {
+                result.append((notify, write))
+            }
+        }
+        return result
+    }
+
     static func preferredUARTPair(
         from pairs: [CBUUID: (notify: CBCharacteristic?, write: CBCharacteristic?)]
     ) -> (notify: CBCharacteristic, write: CBCharacteristic)? {
-        for uuid in uartServices {
-            if let pair = pairs[uuid], let notify = pair.notify, let write = pair.write {
+        orderedUARTPairs(from: pairs).first
+            ?? pairs.values.compactMap { pair -> (notify: CBCharacteristic, write: CBCharacteristic)? in
+                guard let notify = pair.notify, let write = pair.write else { return nil }
                 return (notify, write)
-            }
-        }
-        for pair in pairs.values {
-            if let notify = pair.notify, let write = pair.write {
-                return (notify, write)
-            }
-        }
-        return nil
+            }.first
     }
 
     static let connectOptions: [String: Any] = [
