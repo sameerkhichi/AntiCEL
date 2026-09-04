@@ -636,7 +636,8 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private func handleValueUpdate(_ characteristic: CBCharacteristic, data: Data?) {
         guard commandAwaitingResponse, characteristic == notifyCharacteristic, let data, !data.isEmpty else { return }
         let chunk = String(data: data, encoding: .utf8)
-            ?? String(decoding: data, as: Unicode.ISOLatin1.self)
+            ?? String(data: data, encoding: .isoLatin1)
+            ?? ""
         responseBuffer += chunk
         if responseBuffer.contains(">") {
             completeCommand(responseBuffer)
