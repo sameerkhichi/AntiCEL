@@ -64,6 +64,21 @@ enum OBDAdapterProfile {
         uartServices.contains(uuid)
     }
 
+    static func isSkippableService(_ uuid: CBUUID) -> Bool {
+        let id = uuid.uuidString.uppercased()
+        return id == "1800" || id == "1801" || id == "180A" || id == "180F"
+            || id.hasPrefix("00001800") || id.hasPrefix("00001801")
+            || id.hasPrefix("0000180A") || id.hasPrefix("0000180F")
+    }
+
+    static func preferredWriteOrder(_ characteristics: [CBCharacteristic]) -> [CBCharacteristic] {
+        characteristics.sorted { lhs, rhs in
+            let left = preferredWrite.firstIndex(of: lhs.uuid) ?? preferredWrite.count
+            let right = preferredWrite.firstIndex(of: rhs.uuid) ?? preferredWrite.count
+            return left < right
+        }
+    }
+
     static func isVeepeakUARTPair(notify: CBUUID?, write: CBUUID?) -> Bool {
         guard let notify, let write else { return false }
         return notify == CBUUID(string: "FFF1") && write == CBUUID(string: "FFF2")
