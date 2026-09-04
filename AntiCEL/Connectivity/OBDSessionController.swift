@@ -82,6 +82,9 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private var commandAwaitingResponse = false
     private var writeUsesWithoutResponse: Bool?
     private var commandTerminator = "\r"
+    private var didEnableNotify = false
+    private var notifyReadyContinuation: CheckedContinuation<Void, Never>?
+    private var writeReadyContinuation: CheckedContinuation<Void, Never>?
 
     #if DEBUG
     private var mockFaults: [OBDFaultReading] = OBDMockAdapter.sampleFaults
@@ -435,6 +438,10 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         hop { self.handleDidWrite(characteristic, errorMessage: error?.localizedDescription) }
     }
 
+    nonisolated func peripheralIsReady(toSendWriteWithoutResponse peripheral: CBPeripheral) {
+        hop { self.handleWriteReady() }
+    }
+
     /// BLE is created on the main queue, so callbacks are already on the main actor.
     /// Keep this non-escaping so Core Bluetooth objects do not cross a Sendable boundary.
     nonisolated private func hop(_ body: @MainActor () -> Void) {
@@ -463,9 +470,10 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     private func handleNotificationState(_ characteristic: CBCharacteristic, enabled: Bool) {
-        if characteristic.uuid == notifyCharacteristic?.uuid, enabled {
-            startHandshake()
-        }
+        guard enabled else { return }
+        didEnableNotify = true
+        notifyReadyContinuation?.resume()
+        notifyReadyContinuation = nil
     }
 
     private func handleDidWrite(_ characteristic: CBCharacteristic, errorMessage: String?) {
@@ -473,6 +481,11 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         if commandAwaitingResponse, connectionState == .initializing {
             lastError = errorMessage
         }
+    }
+
+    private func handleWriteReady() {
+        writeReadyContinuation?.resume()
+        writeReadyContinuation = nil
     }
 
     private func handleDiscovery(
@@ -564,6 +577,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         commandAwaitingResponse = false
         writeUsesWithoutResponse = nil
         commandTerminator = "\r"
+        didEnableNotify = false
         uartPairs = [:]
         probeNotifyCharacteristics = []
         probeWriteCharacteristics = []
@@ -701,29 +715,29 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             return
         }
 
-        try? await Task.sleep(for: .milliseconds(400))
+        await waitUntilNotifyEnabled()
+        try? await Task.sleep(for: .milliseconds(250))
         var sawTimeout = false
         for writeChar in writes {
             writeCharacteristic = writeChar
             for withoutResponse in writeModes(for: writeChar) {
                 writeUsesWithoutResponse = withoutResponse
-                for terminator in ["\r", "\r\n"] {
-                    commandTerminator = terminator
-                    statusMessage = "Talking to adapter…"
-                    do {
-                        try Task.checkCancellation()
-                        let resetBanner = try await send("ATZ", timeout: 4)
-                        try Task.checkCancellation()
-                        try await completeHandshake(resetBanner: resetBanner)
-                        return
-                    } catch is CancellationError {
-                        return
-                    } catch let error as OBDError where error == .timeout {
-                        sawTimeout = true
-                        continue
-                    } catch {
-                        continue
-                    }
+                commandTerminator = "\r"
+                statusMessage = "Talking to adapter…"
+                do {
+                    try Task.checkCancellation()
+                    // Do not send ATZ first. On Veepeak BLE+ it resets the radio and the reply never arrives.
+                    let firstReply = try await send("ATE0", timeout: 5)
+                    try Task.checkCancellation()
+                    try await completeHandshake(firstReply: firstReply)
+                    return
+                } catch is CancellationError {
+                    return
+                } catch let error as OBDError where error == .timeout {
+                    sawTimeout = true
+                    continue
+                } catch {
+                    continue
                 }
             }
         }
@@ -739,23 +753,23 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         }
     }
 
-    private func completeHandshake(resetBanner: String) async throws {
-        _ = try await send("ATE0")
+    private func completeHandshake(firstReply: String) async throws {
         _ = try await send("ATL0")
         _ = try await send("ATS0")
         _ = try await send("ATH0")
-        let ident = (try? await send("ATI")) ?? ""
-        _ = try? await send("ATSP0", timeout: 6)
+        let ident = (try? await send("ATI")) ?? firstReply
+        _ = try? await send("ATSP0", timeout: 8)
         try Task.checkCancellation()
 
         let namedAdapter = OBDAdapterProfile.isLikelyAdapter(name: connectedAdapterName ?? "")
-        let identified = ELM327Codec.looksLikeAdapter(resetBanner)
+        let identified = ELM327Codec.looksLikeAdapter(firstReply)
             || ELM327Codec.looksLikeAdapter(ident)
+        let acknowledged = firstReply.contains(">") || firstReply.uppercased().contains("OK")
         let veepeakUART = OBDAdapterProfile.isVeepeakUARTPair(
             notify: notifyCharacteristic?.uuid,
             write: writeCharacteristic?.uuid
         )
-        guard namedAdapter || identified || veepeakUART else {
+        guard namedAdapter || identified || acknowledged || veepeakUART else {
             receivedNonElmTraffic = true
             throw OBDError.handshakeFailed
         }
@@ -775,14 +789,32 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     private func writeModes(for characteristic: CBCharacteristic) -> [Bool] {
-        var modes: [Bool] = []
-        if characteristic.properties.contains(.write) {
-            modes.append(false)
-        }
         if characteristic.properties.contains(.writeWithoutResponse) {
-            modes.append(true)
+            return [true]
         }
-        return modes.isEmpty ? [false, true] : modes
+        if characteristic.properties.contains(.write) {
+            return [false]
+        }
+        return [true]
+    }
+
+    private func waitUntilNotifyEnabled() async {
+        if didEnableNotify { return }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            if didEnableNotify {
+                continuation.resume()
+                return
+            }
+            notifyReadyContinuation = continuation
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(2))
+                await MainActor.run {
+                    guard let self, let pending = self.notifyReadyContinuation else { return }
+                    self.notifyReadyContinuation = nil
+                    pending.resume()
+                }
+            }
+        }
     }
 
     private func startMonitor() {
@@ -1124,6 +1156,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         commandLock = true
         defer { commandLock = false }
 
+        await waitUntilWritable()
         return try await withCheckedThrowingContinuation { continuation in
             pendingCommand = continuation
             responseBuffer = ""
@@ -1160,6 +1193,34 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             type = .withResponse
         }
         peripheral.writeValue(payload, for: writeCharacteristic, type: type)
+    }
+
+    private func waitUntilWritable() async {
+        guard let peripheral, willWriteWithoutResponse else { return }
+        if peripheral.canSendWriteWithoutResponse { return }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            if peripheral.canSendWriteWithoutResponse {
+                continuation.resume()
+                return
+            }
+            writeReadyContinuation = continuation
+            Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(800))
+                await MainActor.run {
+                    guard let self, let pending = self.writeReadyContinuation else { return }
+                    self.writeReadyContinuation = nil
+                    pending.resume()
+                }
+            }
+        }
+    }
+
+    private var willWriteWithoutResponse: Bool {
+        guard let writeCharacteristic else { return false }
+        if let override = writeUsesWithoutResponse {
+            return override && writeCharacteristic.properties.contains(.writeWithoutResponse)
+        }
+        return writeCharacteristic.properties.contains(.writeWithoutResponse)
     }
 
     private func completeCommand(_ raw: String?, timedOut: Bool = false) {
@@ -1271,6 +1332,11 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         didDiscoverAllServices = false
         writeUsesWithoutResponse = nil
         commandTerminator = "\r"
+        didEnableNotify = false
+        notifyReadyContinuation?.resume()
+        notifyReadyContinuation = nil
+        writeReadyContinuation?.resume()
+        writeReadyContinuation = nil
         pendingDiscoveries = 0
         telemetry = OBDLiveTelemetry()
         if !keepVehicle {
