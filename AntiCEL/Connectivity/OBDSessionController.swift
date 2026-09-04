@@ -477,10 +477,8 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     private func handleDidWrite(_ characteristic: CBCharacteristic, errorMessage: String?) {
-        guard characteristic.uuid == writeCharacteristic?.uuid, let errorMessage else { return }
-        if commandAwaitingResponse, connectionState == .initializing {
-            lastError = errorMessage
-        }
+        guard commandAwaitingResponse, let errorMessage else { return }
+        failPendingCommand(OBDError.commandFailed(errorMessage))
     }
 
     private func handleWriteReady() {
@@ -709,7 +707,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     private func handshake() async {
         connectionState = .initializing
-        let writes = OBDAdapterProfile.preferredWriteOrder(probeWriteCharacteristics)
+        let writes = handshakeWriteTargets()
         guard !writes.isEmpty, !probeNotifyCharacteristics.isEmpty else {
             failHandshake()
             return
@@ -720,14 +718,14 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         var sawTimeout = false
         for writeChar in writes {
             writeCharacteristic = writeChar
-            for withoutResponse in writeModes(for: writeChar) {
+            for withoutResponse in [true, false] {
                 writeUsesWithoutResponse = withoutResponse
                 commandTerminator = "\r"
                 statusMessage = "Talking to adapter…"
                 do {
                     try Task.checkCancellation()
                     // Do not send ATZ first. On Veepeak BLE+ it resets the radio and the reply never arrives.
-                    let firstReply = try await send("ATE0", timeout: 5)
+                    let firstReply = try await send("ATE0", timeout: 3)
                     try Task.checkCancellation()
                     try await completeHandshake(firstReply: firstReply)
                     return
@@ -788,14 +786,17 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         startMonitor()
     }
 
-    private func writeModes(for characteristic: CBCharacteristic) -> [Bool] {
-        if characteristic.properties.contains(.writeWithoutResponse) {
-            return [true]
+    private func handshakeWriteTargets() -> [CBCharacteristic] {
+        let preferred = probeWriteCharacteristics.filter { OBDAdapterProfile.preferredWrite.contains($0.uuid) }
+        if !preferred.isEmpty {
+            return OBDAdapterProfile.preferredWriteOrder(preferred)
         }
-        if characteristic.properties.contains(.write) {
-            return [false]
-        }
-        return [true]
+        return OBDAdapterProfile.preferredWriteOrder(
+            probeWriteCharacteristics.filter { characteristic in
+                guard let service = characteristic.service?.uuid else { return false }
+                return OBDAdapterProfile.isUARTService(service)
+            }
+        )
     }
 
     private func waitUntilNotifyEnabled() async {
@@ -1176,22 +1177,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private func write(_ command: String) {
         guard let peripheral, let writeCharacteristic else { return }
         let payload = (command + commandTerminator).data(using: .ascii) ?? Data()
-        let canWithout = writeCharacteristic.properties.contains(.writeWithoutResponse)
-        let canWith = writeCharacteristic.properties.contains(.write)
-        let type: CBCharacteristicWriteType
-        if let override = writeUsesWithoutResponse {
-            if override, canWithout {
-                type = .withoutResponse
-            } else if canWith {
-                type = .withResponse
-            } else {
-                type = .withoutResponse
-            }
-        } else if canWithout {
-            type = .withoutResponse
-        } else {
-            type = .withResponse
-        }
+        let type: CBCharacteristicWriteType = (writeUsesWithoutResponse ?? true) ? .withoutResponse : .withResponse
         peripheral.writeValue(payload, for: writeCharacteristic, type: type)
     }
 
