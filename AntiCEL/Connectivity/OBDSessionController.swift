@@ -85,6 +85,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private var didEnableNotify = false
     private var notifyReadyContinuation: CheckedContinuation<Void, Never>?
     private var writeReadyContinuation: CheckedContinuation<Void, Never>?
+    private var writeGeneration = 0
 
     #if DEBUG
     private var mockFaults: [OBDFaultReading] = OBDMockAdapter.sampleFaults
@@ -477,6 +478,9 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     }
 
     private func handleDidWrite(_ characteristic: CBCharacteristic, errorMessage: String?) {
+        // withoutResponse writes must not complete/fail the command here. A rejected
+        // withoutResponse can also arrive late and would cancel the next withResponse.
+        guard writeUsesWithoutResponse != true else { return }
         guard commandAwaitingResponse, let errorMessage else { return }
         failPendingCommand(OBDError.commandFailed(errorMessage))
     }
@@ -718,7 +722,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         var sawTimeout = false
         for writeChar in writes {
             writeCharacteristic = writeChar
-            for withoutResponse in [true, false] {
+            for withoutResponse in writeModes(for: writeChar) {
                 writeUsesWithoutResponse = withoutResponse
                 commandTerminator = "\r"
                 statusMessage = "Talking to adapter…"
@@ -788,6 +792,9 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     private func handshakeWriteTargets() -> [CBCharacteristic] {
         let preferred = probeWriteCharacteristics.filter { OBDAdapterProfile.preferredWrite.contains($0.uuid) }
+        if let fff2 = preferred.first(where: { $0.uuid == CBUUID(string: "FFF2") }) {
+            return [fff2]
+        }
         if !preferred.isEmpty {
             return OBDAdapterProfile.preferredWriteOrder(preferred)
         }
@@ -797,6 +804,17 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
                 return OBDAdapterProfile.isUARTService(service)
             }
         )
+    }
+
+    private func writeModes(for characteristic: CBCharacteristic) -> [Bool] {
+        var modes: [Bool] = []
+        if characteristic.properties.contains(.writeWithoutResponse) {
+            modes.append(true)
+        }
+        if characteristic.properties.contains(.write) {
+            modes.append(false)
+        }
+        return modes.isEmpty ? [true] : modes
     }
 
     private func waitUntilNotifyEnabled() async {
@@ -1158,6 +1176,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         defer { commandLock = false }
 
         await waitUntilWritable()
+        writeGeneration += 1
         return try await withCheckedThrowingContinuation { continuation in
             pendingCommand = continuation
             responseBuffer = ""
@@ -1177,7 +1196,14 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private func write(_ command: String) {
         guard let peripheral, let writeCharacteristic else { return }
         let payload = (command + commandTerminator).data(using: .ascii) ?? Data()
-        let type: CBCharacteristicWriteType = (writeUsesWithoutResponse ?? true) ? .withoutResponse : .withResponse
+        let type: CBCharacteristicWriteType
+        if writeUsesWithoutResponse == true, writeCharacteristic.properties.contains(.writeWithoutResponse) {
+            type = .withoutResponse
+        } else if writeCharacteristic.properties.contains(.write) {
+            type = .withResponse
+        } else {
+            type = .withoutResponse
+        }
         peripheral.writeValue(payload, for: writeCharacteristic, type: type)
     }
 
