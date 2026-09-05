@@ -19,6 +19,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     var statusMessage: String?
     var appliedMileageKm: Int?
     var isUsingMockAdapter = false
+    var vehicleReadout: OBDVehicleReadout?
 
     var modelContainer: ModelContainer?
 
@@ -57,6 +58,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
     private var tripDistanceKm: Double = 0
     private var supportedPIDs: Set<UInt8> = []
     private var didApplyOdometerThisTrip = false
+    private var needsPIDRefresh = false
     private var connectingVehicleID: UUID?
     private var connectingPeripheralID: UUID?
 
@@ -226,7 +228,14 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             vehicle.updatedAt = Date()
             try? context.save()
             noteTripFaults(readings)
-            statusMessage = readings.isEmpty ? "No faults reported" : nil
+            publishReadout()
+            if readings.isEmpty {
+                statusMessage = vehicleLooksAwake
+                    ? "No faults reported"
+                    : "No faults yet. Turn the ignition on so the car can talk, then scan again."
+            } else {
+                statusMessage = nil
+            }
         } catch {
             lastError = error.localizedDescription
         }
@@ -247,11 +256,48 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
                 return
             }
             #endif
-            _ = try await send("04")
-            try await Task.sleep(for: .milliseconds(400))
+            statusMessage = "Clearing codes…"
+            lastError = nil
+            // Wake the ECU first. Mode $04 on a sleeping bus often returns UNABLE TO CONNECT.
+            _ = try? await send("0101", timeout: 8)
+            var reply = try await send("04", timeout: 12)
+            if ELM327Codec.isClearRejected(reply) {
+                try await Task.sleep(for: .milliseconds(800))
+                reply = try await send("04", timeout: 12)
+            }
+
+            let accepted = ELM327Codec.isClearAccepted(reply)
+            if accepted, let context = vehicle.modelContext {
+                OBDStore.deactivateNonPermanentFaults(on: vehicle)
+                telemetry.milOn = false
+                telemetry.dtcCount = vehicle.diagnosticFaults.filter { $0.isActive }.count
+                try? context.save()
+            }
+
+            try await Task.sleep(for: .milliseconds(2500))
             await scanFaults(for: vehicle)
+
+            let stillActive = vehicle.diagnosticFaults.filter(\.isActive)
+            let storedAgain = stillActive.contains { $0.status != .permanent }
+            let onlyPermanent = !stillActive.isEmpty && !storedAgain
+
+            if !accepted && ELM327Codec.isClearRejected(reply) {
+                lastError = "The vehicle did not accept the clear. Turn the ignition on and keep the engine running, then try again."
+                statusMessage = "Clear was not accepted"
+            } else if stillActive.isEmpty {
+                lastError = nil
+                statusMessage = "Codes cleared. If a fault is still happening, it will show up again on the next scan."
+            } else if onlyPermanent {
+                lastError = nil
+                statusMessage = "Stored codes cleared. Permanent codes stay until the car completes a drive cycle without the fault."
+            } else {
+                lastError = nil
+                statusMessage = "Codes were cleared, then the vehicle reported them again. The problem is still present."
+            }
+            publishReadout()
         } catch {
             lastError = error.localizedDescription
+            statusMessage = "Clear failed"
         }
     }
 
@@ -321,10 +367,12 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         }
         applyMileage(jump.proposedKm, to: vehicle)
         mileageJump = nil
+        publishReadout()
     }
 
     func declineMileageJump() {
         mileageJump = nil
+        publishReadout()
     }
 
     #if DEBUG
@@ -368,6 +416,7 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
             noteOilTemp(mockOilTempC)
             markAdapterSeen()
             statusMessage = "Connected · mock"
+            publishReadout()
             startMonitor()
         }
     }
@@ -895,9 +944,23 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         ConnectEntitlementStore.shared.beginTrialIfNeeded()
         beginTripTracking()
         markAdapterSeen()
+        statusMessage = "Reading vehicle…"
+        await wakeVehicleBus()
         await loadSupportedPIDs()
         await snapshot()
+        if !vehicleLooksAwake {
+            try? await Task.sleep(for: .milliseconds(1200))
+            await wakeVehicleBus()
+            if supportedPIDs.isEmpty {
+                await loadSupportedPIDs()
+            }
+            await snapshot()
+        }
+        needsPIDRefresh = supportedPIDs.isEmpty
+        await scanFaultsInBackground()
+        publishReadout()
         persistBackgroundSnapshotIfNeeded()
+        statusMessage = "Connected"
         startMonitor()
     }
 
@@ -1069,6 +1132,11 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
         if gotECUData {
             noteECUDataReceived()
+            if needsPIDRefresh {
+                needsPIDRefresh = false
+                await loadSupportedPIDs()
+            }
+            publishReadout()
         } else {
             noteECUMiss()
         }
@@ -1122,11 +1190,49 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
 
     // MARK: - PIDs
 
+    private func wakeVehicleBus() async {
+        for _ in 0..<3 {
+            if let raw = try? await send("0100", timeout: 6), !ELM327Codec.isNoData(raw) {
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(700))
+        }
+    }
+
+    private var vehicleLooksAwake: Bool {
+        telemetry.rpm != nil
+            || telemetry.speedKmh != nil
+            || telemetry.fuelPercent != nil
+            || telemetry.coolantTempC != nil
+            || telemetry.oilTempC != nil
+            || telemetry.milOn != nil
+            || telemetry.odometerKm != nil
+    }
+
+    func refreshVehicleReadout() {
+        publishReadout()
+    }
+
+    private func publishReadout() {
+        vehicleReadout = OBDVehicleReadoutBuilder.make(
+            adapterName: connectedAdapterName ?? "Adapter",
+            supportedPIDs: supportedPIDs,
+            telemetry: telemetry,
+            mileageJumpPending: mileageJump != nil,
+            didApplyOdometer: didApplyOdometerThisTrip
+        )
+    }
+
     private func loadSupportedPIDs() async {
         supportedPIDs = []
         var pid: UInt8? = 0x00
         while let current = pid {
-            guard let raw = try? await send(String(format: "01%02X", current)), !ELM327Codec.isNoData(raw) else {
+            var raw = try? await send(String(format: "01%02X", current))
+            if raw == nil || raw.map(ELM327Codec.isNoData) == true {
+                try? await Task.sleep(for: .milliseconds(400))
+                raw = try? await send(String(format: "01%02X", current))
+            }
+            guard let raw, !ELM327Codec.isNoData(raw) else {
                 break
             }
             let found = ELM327Codec.supportedPIDs(from: raw, pid: current)
@@ -1247,10 +1353,12 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
                     proposedKm: proposedKm,
                     source: source
                 )
+                publishReadout()
                 return
             }
             try MileageWriter.set(vehicleID: vehicleID, mileage: proposedKm)
             appliedMileageKm = proposedKm
+            publishReadout()
         } catch {
             lastError = error.localizedDescription
         }
@@ -1484,6 +1592,8 @@ final class OBDSessionController: NSObject, CBCentralManagerDelegate, CBPeripher
         writeReadyContinuation = nil
         pendingDiscoveries = 0
         telemetry = OBDLiveTelemetry()
+        vehicleReadout = nil
+        needsPIDRefresh = false
         if !keepVehicle {
             connectedVehicleID = nil
             connectedAdapterName = nil

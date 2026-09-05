@@ -36,6 +36,18 @@ final class HistoryEntry {
         return title
     }
 
+    var displayNotes: String {
+        guard isAutoScannedFault,
+              let code = scannedFaultCode ?? Self.dtcPrefix(from: details) else {
+            return details
+        }
+        let generated = DTCDictionary.notes(for: code, status: .stored)
+        if details.isEmpty || details.hasPrefix(code) {
+            return generated
+        }
+        return details
+    }
+
     init(
         title: String,
         details: String = "",

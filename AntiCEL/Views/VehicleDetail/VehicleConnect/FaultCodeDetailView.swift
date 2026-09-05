@@ -32,6 +32,11 @@ struct FaultCodeDetailView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
+            InfotainmentField(label: "What this means") {
+                Text(DTCDictionary.explanation(for: fault.code))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             InfotainmentField(label: "First seen") {
                 Text(fault.firstSeenAt.formatted(date: .abbreviated, time: .shortened))
             }

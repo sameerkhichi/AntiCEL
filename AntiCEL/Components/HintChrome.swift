@@ -128,7 +128,11 @@ enum HintTopic: Hashable {
                 ),
                 (
                     "Mileage",
-                    "Automatic mileage is not exact on every model. It depends on whether the vehicle reports odometer data over OBD. Otherwise distance is estimated from speed and time. A large mileage calculation will prompt you before saving."
+                    "Automatic mileage is not exact on every model. It depends on whether the vehicle reports odometer data over OBD. Otherwise distance is estimated from speed and time. A large jump, such as catching the garage mileage up to the real odometer, waits for a confirm. The info button on the adapter card shows which mileage mode this car uses."
+                ),
+                (
+                    "Ignition and first read",
+                    "The adapter can be powered with the car off, but the vehicle’s computers usually will not answer until the ignition is on. Fuel, coolant, faults, and a code clear need the car awake. If you scanned or cleared with the key off, try again with ignition on. Engine running helps a clear take."
                 ),
                 (
                     "Battery",

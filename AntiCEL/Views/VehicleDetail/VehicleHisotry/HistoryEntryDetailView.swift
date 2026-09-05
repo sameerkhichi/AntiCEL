@@ -136,7 +136,7 @@ struct HistoryEntryDetailView: View {
                 category = historyEntry.category
                 vehicleArea = historyEntry.resolvedVehicleArea
                 date = historyEntry.date
-                notes = historyEntry.details
+                notes = historyEntry.displayNotes
                 photoDraft.load(from: historyEntry.photoFileName)
 
                 if let mileageValue = historyEntry.mileage {

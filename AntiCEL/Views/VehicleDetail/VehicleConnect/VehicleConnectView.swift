@@ -17,6 +17,7 @@ struct VehicleConnectView: View {
     @State private var showingDriveAlerts = false
     @State private var showingClearConfirm = false
     @State private var showingForgetConfirm = false
+    @State private var showingReadout = false
 
     private var adapter: PairedAdapter? {
         OBDStore.pairedAdapter(on: vehicle)
@@ -116,6 +117,10 @@ struct VehicleConnectView: View {
                 ConnectDriveAlertsSheet(adapter: adapter)
             }
         }
+        .sheet(isPresented: $showingReadout) {
+            ConnectVehicleReadoutSheet()
+                .environment(obd)
+        }
         .confirmationDialog(
             "Clear diagnostic codes?",
             isPresented: $showingClearConfirm,
@@ -126,7 +131,7 @@ struct VehicleConnectView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This asks the vehicle to clear stored OBD-II codes. It does not repair the fault. Only do this if you understand why the codes are present.")
+            Text("This asks the vehicle to forget stored OBD-II codes. It does not repair the fault. If the problem is still there, the codes and the check engine light will come back on the next scan or drive.")
         }
         .confirmationDialog(
             "Forget this adapter?",
@@ -194,6 +199,10 @@ struct VehicleConnectView: View {
     private var pairedContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             connectionPanel
+
+            if let jump = obd.mileageJump, jump.vehicleID == vehicle.id {
+                mileageJumpBanner(jump)
+            }
 
             #if DEBUG
             if obd.isUsingMockAdapter, connectedToThisVehicle {
@@ -346,6 +355,15 @@ struct VehicleConnectView: View {
 
                     Spacer()
 
+                    Button {
+                        showingReadout = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                            .font(.body.weight(.semibold))
+                    }
+                    .buttonStyle(DashButtonStyle(kind: .compact))
+                    .accessibilityLabel("What this vehicle reports")
+
                     if entitlement.canAttemptConnection,
                        obd.connectionState == .disconnected || obd.connectionState == .unsupportedAdapter {
                         DashButton(kind: .compact) {
@@ -413,6 +431,35 @@ struct VehicleConnectView: View {
 
     private func formattedTemperature(_ celsius: Double) -> String {
         settings.formattedTemperature(celsius)
+    }
+
+    private func mileageJumpBanner(_ jump: MileageJumpProposal) -> some View {
+        DashPanel(padding: 14, cornerRadius: 14) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Confirm mileage update")
+                    .font(.headline)
+                Text(
+                    "The \(jump.source) is \(settings.formattedMileage(jump.proposedKm)). Garage mileage is \(settings.formattedMileage(jump.currentKm)). Large jumps wait for a confirm so they are not saved by accident."
+                )
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 10) {
+                    DashButton(kind: .bar) {
+                        obd.confirmMileageJump(on: vehicle)
+                    } label: {
+                        Text("Update")
+                    }
+                    DashButton(kind: .bar) {
+                        obd.declineMileageJump()
+                    } label: {
+                        Text("Keep Current")
+                    }
+                }
+            }
+        }
+        .padding(.horizontal)
     }
 
     #if DEBUG

@@ -191,6 +191,12 @@ enum OBDStore {
         }
     }
 
+    static func deactivateNonPermanentFaults(on vehicle: Vehicle) {
+        for fault in vehicle.diagnosticFaults where fault.isActive && fault.status != .permanent {
+            fault.isActive = false
+        }
+    }
+
     static func promoteIfNeeded(_ fault: DiagnosticFault, onto vehicle: Vehicle, context: ModelContext) {
         guard !fault.promotedToHistory else { return }
         promote(fault, onto: vehicle, context: context)

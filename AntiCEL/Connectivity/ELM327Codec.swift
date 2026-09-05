@@ -44,6 +44,34 @@ enum ELM327Codec {
             || upper.contains("ERROR")
     }
 
+    static func isClearRejected(_ raw: String) -> Bool {
+        let upper = raw.uppercased()
+        if upper.contains("UNABLE TO CONNECT")
+            || upper.contains("NO DATA")
+            || upper.contains("CAN ERROR")
+            || upper.contains("BUS INIT:ERROR")
+            || upper.contains("STOPPED") {
+            return true
+        }
+        return upper.contains("?") && !upper.contains("44")
+    }
+
+    /// Mode $04 success is often just `>` once echo and headers are off.
+    static func isClearAccepted(_ raw: String) -> Bool {
+        if isClearRejected(raw) { return false }
+        let upper = raw.uppercased()
+        if upper.contains("44") || upper.contains("OK") {
+            return true
+        }
+        let stripped = upper
+            .replacingOccurrences(of: "SEARCHING...", with: "")
+            .replacingOccurrences(of: "BUS INIT: OK", with: "")
+            .replacingOccurrences(of: ">", with: "")
+            .replacingOccurrences(of: "04", with: "")
+            .filter { !$0.isWhitespace }
+        return stripped.isEmpty
+    }
+
     static func looksLikeAdapter(_ raw: String) -> Bool {
         let upper = raw.uppercased()
         if upper.contains("ELM") { return true }
