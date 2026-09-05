@@ -7,7 +7,7 @@ struct GarageView: View {
     @Environment(\.appTheme) private var theme
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.scenePhase) private var scenePhase
-    @Query private var vehicles: [Vehicle]
+    @Query(sort: \Vehicle.createdAt) private var vehicles: [Vehicle]
 
     @State private var showingAddVehicle = false
     @State private var showingSettings = false
@@ -37,36 +37,9 @@ struct GarageView: View {
                     }
 
                     LazyVGrid(columns: columns, spacing: 18) {
-                        ForEach(vehicles) { vehicle in
-                            ZStack(alignment: .topTrailing) {
-                                NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
-                                    GarageBayCard(vehicle: vehicle)
-                                }
-                                .buttonStyle(.plain)
-                                .simultaneousGesture(
-                                    TapGesture().onEnded {
-                                        AppHaptic.flashlight.play()
-                                    }
-                                )
-                                .contextMenu {
-                                    Button {
-                                        vehicleToShare = vehicle
-                                    } label: {
-                                        Label("Share Vehicle", systemImage: "square.and.arrow.up")
-                                    }
-                                    Button("Remove from Garage", role: .destructive) {
-                                        vehiclePendingDelete = vehicle
-                                    }
-                                }
-
-                                DashButton(kind: .compact) {
-                                    vehicleForMileageUpdate = vehicle
-                                } label: {
-                                    Image(systemName: "gauge")
-                                }
-                                .padding(10)
-                                .accessibilityLabel("Update mileage")
-                            }
+                        ForEach(vehicles, id: \.id) { vehicle in
+                            garageBay(for: vehicle)
+                                .id(vehicle.id)
                         }
 
                         Button {
@@ -171,6 +144,39 @@ struct GarageView: View {
                     OBDSessionController.shared.reconnectKnownAdapters()
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func garageBay(for vehicle: Vehicle) -> some View {
+        ZStack(alignment: .topTrailing) {
+            NavigationLink(destination: VehicleDetailView(vehicle: vehicle)) {
+                GarageBayCard(vehicle: vehicle)
+            }
+            .buttonStyle(.plain)
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    AppHaptic.flashlight.play()
+                }
+            )
+            .contextMenu {
+                Button {
+                    vehicleToShare = vehicle
+                } label: {
+                    Label("Share Vehicle", systemImage: "square.and.arrow.up")
+                }
+                Button("Remove from Garage", role: .destructive) {
+                    vehiclePendingDelete = vehicle
+                }
+            }
+
+            DashButton(kind: .compact) {
+                vehicleForMileageUpdate = vehicle
+            } label: {
+                Image(systemName: "gauge")
+            }
+            .padding(10)
+            .accessibilityLabel("Update mileage")
         }
     }
 

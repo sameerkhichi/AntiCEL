@@ -84,6 +84,7 @@ struct AddVehicleView: View {
                 kind: .vehicleIcon
             )
             modelContext.insert(vehicle)
+            try? modelContext.save()
             WidgetReloader.reload()
             dismiss()
         }
