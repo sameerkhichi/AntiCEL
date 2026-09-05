@@ -36,18 +36,6 @@ final class HistoryEntry {
         return title
     }
 
-    var displayNotes: String {
-        guard isAutoScannedFault,
-              let code = scannedFaultCode ?? Self.dtcPrefix(from: details) else {
-            return details
-        }
-        let generated = DTCDictionary.notes(for: code, status: .stored)
-        if details.isEmpty || details.hasPrefix(code) {
-            return generated
-        }
-        return details
-    }
-
     init(
         title: String,
         details: String = "",
@@ -73,7 +61,7 @@ final class HistoryEntry {
         self.scannedFaultCode = scannedFaultCode
     }
 
-    private static func dtcPrefix(from details: String) -> String? {
+    static func dtcPrefix(from details: String) -> String? {
         let head = details
             .split(separator: "—", maxSplits: 1)
             .first?

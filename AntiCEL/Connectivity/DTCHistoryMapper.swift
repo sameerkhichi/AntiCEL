@@ -28,4 +28,16 @@ enum DTCHistoryMapper {
     static func historyDetails(code: String, status: DiagnosticFaultStatus) -> String {
         DTCDictionary.notes(for: code, status: status)
     }
+
+    static func displayNotes(for entry: HistoryEntry) -> String {
+        guard entry.isAutoScannedFault,
+              let code = entry.scannedFaultCode ?? HistoryEntry.dtcPrefix(from: entry.details) else {
+            return entry.details
+        }
+        let generated = DTCDictionary.notes(for: code, status: .stored)
+        if entry.details.isEmpty || entry.details.hasPrefix(code) {
+            return generated
+        }
+        return entry.details
+    }
 }
