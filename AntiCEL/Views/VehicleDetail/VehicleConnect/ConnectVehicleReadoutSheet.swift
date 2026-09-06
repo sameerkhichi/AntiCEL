@@ -83,16 +83,14 @@ struct ConnectVehicleReadoutSheet: View {
         }
     }
 
-    private func color(for availability: OBDSignalAvailability) -> Color {
+    private func color(for availability: OBDSignalAvailability) -> AnyShapeStyle {
         switch availability {
         case .reported:
-            return Color.accentColor
+            AnyShapeStyle(Color.accentColor)
         case .supported:
-            return .secondary
-        case .notSupported:
-            return .tertiary
-        case .unknown:
-            return .tertiary
+            AnyShapeStyle(.secondary)
+        case .notSupported, .unknown:
+            AnyShapeStyle(.tertiary)
         }
     }
 }
