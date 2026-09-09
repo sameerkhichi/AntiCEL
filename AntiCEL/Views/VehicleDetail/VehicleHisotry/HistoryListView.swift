@@ -7,6 +7,8 @@ struct HistoryListView: View {
 
     @Bindable var vehicle: Vehicle
 
+    @State private var selectedEntryID: UUID?
+
     private var groupedEntries: [(String, [HistoryEntry])] {
 
         let formatter = DateFormatter()
@@ -38,11 +40,8 @@ struct HistoryListView: View {
             ForEach(groupedEntries, id: \.0) { month, entries in
                 Section {
                     ForEach(entries) { entry in
-                        NavigationLink {
-                            HistoryEntryDetailView(
-                                vehicle: vehicle,
-                                historyEntry: entry
-                            )
+                        Button {
+                            selectedEntryID = entry.id
                         } label: {
                             HistoryEntryRow(entry: entry)
                         }
@@ -70,6 +69,14 @@ struct HistoryListView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .listSectionSpacing(18)
+        .navigationDestination(item: $selectedEntryID) { id in
+            if let entry = vehicle.historyEntries.first(where: { $0.id == id }) {
+                HistoryEntryDetailView(
+                    vehicle: vehicle,
+                    historyEntry: entry
+                )
+            }
+        }
     }
 
     private func delete(_ entry: HistoryEntry) {
